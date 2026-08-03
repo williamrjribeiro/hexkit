@@ -337,7 +337,14 @@ importers:
         version: 0.2.7(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.2.7(@types/node@24.13.3)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0))(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0)
 
   packages/plugin-architecture-hexagonal:
+    dependencies:
+      '@hexkit/plugin-api':
+        specifier: workspace:*
+        version: link:../plugin-api
     devDependencies:
+      '@hexkit/core':
+        specifier: workspace:*
+        version: link:../core
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
