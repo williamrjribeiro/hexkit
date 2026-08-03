@@ -9,9 +9,9 @@ Hexkit is a contract-driven code generator that produces production-ready TypeSc
 
 This PRD is the **master product requirements document for the Hexkit proof of concept (PoC)**. It turns [RFC.md](./RFC.md) into concrete, testable requirements that an implementation plan can execute.
 
-| Document | Owns |
-| --- | --- |
-| `RFC.md` | Architectural north star: stack, hexagonal rules, plugin layout, no-templates generation strategy |
+| Document | Owns                                                                                                                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `RFC.md` | Architectural north star: stack, hexagonal rules, plugin layout, no-templates generation strategy                                                      |
 | `PRD.md` | PoC scope, acceptance criteria, extension/regeneration rules, packaging, testing strategy, milestones, and explicit cuts from the full RFC success bar |
 
 Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implementation**. The RFC remains the longer-term architectural target.
@@ -50,25 +50,25 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 
 Trimmed contract rules:
 
-| Rule | Requirement |
-| --- | --- |
-| Resources | **Pet** and **Order** only; Order references `petId` |
-| Media types | **JSON only** — no XML (or other non-JSON) content |
-| Security | **None** — no security schemes or per-operation requirements |
-| Schemas | Only components required by selected operations (e.g. Pet, Order, and nested types those schemas need) |
-| Completeness | Every operation in `openapi.poc.yaml` must be generated and work with DB persistence |
+| Rule         | Requirement                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| Resources    | **Pet** and **Order** only; Order references `petId`                                                   |
+| Media types  | **JSON only** — no XML (or other non-JSON) content                                                     |
+| Security     | **None** — no security schemes or per-operation requirements                                           |
+| Schemas      | Only components required by selected operations (e.g. Pet, Order, and nested types those schemas need) |
+| Completeness | Every operation in `openapi.poc.yaml` must be generated and work with DB persistence                   |
 
 **Baseline operations (normative for PoC unless superseded by an explicit PRD amendment):**
 
-| Resource | operationId | Method / path (Petstore-shaped) |
-| --- | --- | --- |
-| Pet | `addPet` | `POST /pet` |
-| Pet | `updatePet` | `PUT /pet` |
-| Pet | `getPetById` | `GET /pet/{petId}` |
-| Pet | `deletePet` | `DELETE /pet/{petId}` |
-| Order | `placeOrder` | `POST /store/order` |
-| Order | `getOrderById` | `GET /store/order/{orderId}` |
-| Order | `deleteOrder` | `DELETE /store/order/{orderId}` |
+| Resource | operationId    | Method / path (Petstore-shaped) |
+| -------- | -------------- | ------------------------------- |
+| Pet      | `addPet`       | `POST /pet`                     |
+| Pet      | `updatePet`    | `PUT /pet`                      |
+| Pet      | `getPetById`   | `GET /pet/{petId}`              |
+| Pet      | `deletePet`    | `DELETE /pet/{petId}`           |
+| Order    | `placeOrder`   | `POST /store/order`             |
+| Order    | `getOrderById` | `GET /store/order/{orderId}`    |
+| Order    | `deleteOrder`  | `DELETE /store/order/{orderId}` |
 
 Out of slice: Users, `GET /store/inventory`, pet image upload, form updates, find-by-status/tags (unless later added to `openapi.poc.yaml`), webhooks, OAuth scopes, XML.
 
@@ -111,17 +111,17 @@ Architectural principles remain those in the RFC: contract-first, boundary valid
 
 ### 5.1 Package requirements (PoC)
 
-| Package | PoC must deliver |
-| --- | --- |
-| `@hexkit/plugin-api` | Plugin interfaces, metadata, generation context contracts |
-| `@hexkit/codegen` | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter |
-| `@hexkit/core` | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy |
-| `@hexkit/plugin-apical` | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/` |
-| `@hexkit/plugin-architecture-hexagonal` | Domain entities, repository ports, use-case skeletons; designate protected user zones |
-| `@hexkit/plugin-hono` | JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations |
-| `@hexkit/plugin-drizzle` | Postgres schemas, repository implementations, mappings; Zod-validate DB reads before the application layer |
-| `@hexkit/cli` | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory) |
-| `@hexkit/petstore-sample` | Trimmed OpenAPI, fully generated app output, Compose packaging, API tests |
+| Package                                 | PoC must deliver                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                  |
+| `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter |
+| `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                 |
+| `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                           |
+| `@hexkit/plugin-architecture-hexagonal` | Domain entities, repository ports, use-case skeletons; designate protected user zones                      |
+| `@hexkit/plugin-hono`                   | JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations                            |
+| `@hexkit/plugin-drizzle`                | Postgres schemas, repository implementations, mappings; Zod-validate DB reads before the application layer |
+| `@hexkit/cli`                           | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory)                        |
+| `@hexkit/petstore-sample`               | Trimmed OpenAPI, fully generated app output, Compose packaging, API tests                                  |
 
 `@hexkit/plugin-sst` is present in the repo scaffold but is **not a PoC deliverable**.
 
@@ -159,12 +159,12 @@ Exact filenames may vary; ownership rules in §6 are normative.
 
 ### 6.1 File ownership
 
-| Zone | Typical paths | On re-generate |
-| --- | --- | --- |
-| Always generated | `src/generated/contracts/**` | Overwrite |
-| Generated adapters / regenerable skeletons | `src/adapters/**`, ports, domain scaffolds as emitted by plugins | Overwrite |
-| Protected user zones | Use-case / business-logic files under `src/core/application/**` (and any other paths `core` marks protected) | **Never overwrite** if the file already exists |
-| Shared quality config | Formatter / linter / TS settings emitted for the generated app | Prefer overwrite of generated config; do not silently destroy documented user overrides |
+| Zone                                       | Typical paths                                                                                                | On re-generate                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Always generated                           | `src/generated/contracts/**`                                                                                 | Overwrite                                                                               |
+| Generated adapters / regenerable skeletons | `src/adapters/**`, ports, domain scaffolds as emitted by plugins                                             | Overwrite                                                                               |
+| Protected user zones                       | Use-case / business-logic files under `src/core/application/**` (and any other paths `core` marks protected) | **Never overwrite** if the file already exists                                          |
+| Shared quality config                      | Formatter / linter / TS settings emitted for the generated app                                               | Prefer overwrite of generated config; do not silently destroy documented user overrides |
 
 ### 6.2 First generate vs later generate
 
@@ -217,11 +217,11 @@ Vitest tests for packages with real dependencies (e.g. `core` loading plugins, a
 
 ### 8.5 Failure behavior
 
-| Condition | Behavior |
-| --- | --- |
-| Invalid or missing OpenAPI path | Non-zero CLI exit + clear message |
-| Apical craft failure | Surface craft stderr/stdout; fail pipeline |
-| Protected-zone collision | Skip write + log; continue |
+| Condition                       | Behavior                                   |
+| ------------------------------- | ------------------------------------------ |
+| Invalid or missing OpenAPI path | Non-zero CLI exit + clear message          |
+| Apical craft failure            | Surface craft stderr/stdout; fail pipeline |
+| Protected-zone collision        | Skip write + log; continue                 |
 | Any dogfood / E2E stage failure | Fail the overall local verification script |
 
 ## 9. Acceptance criteria
@@ -262,16 +262,16 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, auth, full Petstore surface, 
 
 ## 12. Decisions log
 
-| Decision | Choice |
-| --- | --- |
-| PoC success bar | Local generate + validate + Compose + API tests; no live AWS |
-| Contract | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched |
-| Baseline operations | add/update/get/delete Pet; place/get/delete Order |
-| Media types | JSON only |
-| Auth | None |
-| Extension model | Generated skeletons + protected user zones |
-| PRD shape | Single master `PRD.md` at repo root |
-| Infra plugin | Exclude `plugin-sst` from PoC |
-| Packaging | Hexkit emits Docker Compose (Hono + Postgres) |
-| API test stack | Vitest + PactumJS against Docker Compose |
-| CI | Local only for PoC |
+| Decision            | Choice                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| PoC success bar     | Local generate + validate + Compose + API tests; no live AWS                        |
+| Contract            | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched |
+| Baseline operations | add/update/get/delete Pet; place/get/delete Order                                   |
+| Media types         | JSON only                                                                           |
+| Auth                | None                                                                                |
+| Extension model     | Generated skeletons + protected user zones                                          |
+| PRD shape           | Single master `PRD.md` at repo root                                                 |
+| Infra plugin        | Exclude `plugin-sst` from PoC                                                       |
+| Packaging           | Hexkit emits Docker Compose (Hono + Postgres)                                       |
+| API test stack      | Vitest + PactumJS against Docker Compose                                            |
+| CI                  | Local only for PoC                                                                  |
