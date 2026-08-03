@@ -18,9 +18,13 @@
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "test": "vp test run --passWithNoTests",
+    "generate:petstore": "craft generate --server --routes -i ../../apps/petstore-sample/openapi.yaml -o ./generated/petstore",
+    "test": "vp test run",
     "check": "vp check",
     "prepublishOnly": "vp run build"
+  },
+  "dependencies": {
+    "@apical-ts/craft": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

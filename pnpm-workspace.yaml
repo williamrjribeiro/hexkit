@@ -5,6 +5,7 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@apical-ts/craft": 0.26.0
   "@types/node": ^24
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7
