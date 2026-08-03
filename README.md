@@ -4,7 +4,8 @@ Hexkit is a contract-driven generator for production-ready TypeScript REST API
 applications. Generated projects follow Ports & Adapters and use OpenAPI 3.1,
 Apical TS, Zod, Hono, Drizzle ORM, PostgreSQL, AWS Lambda, and SST.
 
-The approved design and scope are documented in [RFC.md](./RFC.md).
+The architectural design is documented in [RFC.md](./RFC.md). PoC product
+requirements and acceptance criteria are in [PRD.md](./PRD.md).
 
 ## Workspace
 
