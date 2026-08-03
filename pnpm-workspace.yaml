@@ -5,10 +5,13 @@ packages:
 catalogMode: prefer
 
 catalog:
+  "@apical-ts/craft": 0.26.0
+  "@standard-schema/spec": ^1.0.0
   "@types/node": ^24
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7
   vite-plus: 0.2.7
+  zod: ^4.0.0
 overrides:
   vite: "catalog:"
 peerDependencyRules:
