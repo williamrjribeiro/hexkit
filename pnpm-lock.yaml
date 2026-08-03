@@ -319,6 +319,9 @@ importers:
       '@apical-ts/craft':
         specifier: 'catalog:'
         version: 0.26.0(@types/json-schema@7.0.15)
+      '@hexkit/plugin-api':
+        specifier: workspace:*
+        version: link:../plugin-api
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

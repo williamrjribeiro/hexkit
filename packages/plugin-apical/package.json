@@ -24,7 +24,8 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@apical-ts/craft": "catalog:"
+    "@apical-ts/craft": "catalog:",
+    "@hexkit/plugin-api": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",
