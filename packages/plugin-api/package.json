@@ -18,7 +18,7 @@
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "test": "vp test run --passWithNoTests",
+    "test": "vp test run",
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },
