@@ -1,0 +1,23 @@
+{
+  "name": "@hexkit/petstore-sample",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Canonical Hexkit dogfooding project.",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test run --passWithNoTests",
+    "check": "vp check"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}
