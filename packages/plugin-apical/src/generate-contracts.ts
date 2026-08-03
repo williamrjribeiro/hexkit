@@ -10,13 +10,16 @@ export type GenerateContractsOptions = {
   routes?: boolean;
 };
 
+/** Side-effectful craft invocation; injectable so calculations stay testable. */
+export type CraftRunner = (args: readonly string[]) => void;
+
 const require = createRequire(import.meta.url);
 
 /**
- * Runs @apical-ts/craft against an OpenAPI document and writes contracts,
- * Zod schemas, and operation definitions to `output`.
+ * Pure calculation: craft CLI args for a generate invocation.
+ * Keeping this free of I/O makes Petstore wiring easy to unit test.
  */
-export function generateContracts(options: GenerateContractsOptions): void {
+export function buildCraftGenerateArgs(options: GenerateContractsOptions): string[] {
   const args = ["generate", "-i", options.input, "-o", options.output];
 
   if (options.client) {
@@ -29,6 +32,21 @@ export function generateContracts(options: GenerateContractsOptions): void {
     args.push("--routes");
   }
 
+  return args;
+}
+
+/**
+ * Action at the edge: run @apical-ts/craft with the calculated args.
+ * Pass `runCraft` in tests to assert call arguments without spawning craft.
+ */
+export function generateContracts(
+  options: GenerateContractsOptions,
+  runCraft: CraftRunner = runCraftCli,
+): void {
+  runCraft(buildCraftGenerateArgs(options));
+}
+
+function runCraftCli(args: readonly string[]): void {
   const result = spawnSync(process.execPath, [resolveCraftBin(), ...args], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],

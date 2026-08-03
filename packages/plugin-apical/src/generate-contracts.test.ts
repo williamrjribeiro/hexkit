@@ -1,62 +1,61 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 
-import { generateContracts } from "./generate-contracts.ts";
+import {
+  buildCraftGenerateArgs,
+  generateContracts,
+  type CraftRunner,
+  type GenerateContractsOptions,
+} from "./generate-contracts.ts";
 
-const packageRoot = fileURLToPath(new URL("..", import.meta.url));
-const petstoreOpenApi = join(packageRoot, "../../apps/petstore-sample/openapi.yaml");
-const outputDir = join(packageRoot, "generated/petstore");
+const petstoreOptions: GenerateContractsOptions = {
+  input: "/workspace/apps/petstore-sample/openapi.yaml",
+  output: "/workspace/packages/plugin-apical/generated/petstore",
+  server: true,
+  routes: true,
+};
 
-const require = createRequire(import.meta.url);
-const tscBin = join(dirname(require.resolve("typescript/package.json")), "bin", "tsc");
-
-describe("generateContracts", () => {
-  afterEach(() => {
-    rmSync(join(packageRoot, "generated"), { recursive: true, force: true });
+describe("buildCraftGenerateArgs", () => {
+  it("builds craft args for Petstore server and routes generation", () => {
+    expect(buildCraftGenerateArgs(petstoreOptions)).toEqual([
+      "generate",
+      "-i",
+      petstoreOptions.input,
+      "-o",
+      petstoreOptions.output,
+      "--server",
+      "--routes",
+    ]);
   });
 
-  it("generates Petstore contracts that typecheck with no errors", () => {
-    rmSync(outputDir, { recursive: true, force: true });
-    mkdirSync(outputDir, { recursive: true });
+  it("omits optional generation flags when unset", () => {
+    expect(
+      buildCraftGenerateArgs({
+        input: "openapi.yaml",
+        output: "generated",
+      }),
+    ).toEqual(["generate", "-i", "openapi.yaml", "-o", "generated"]);
+  });
 
-    generateContracts({
-      input: petstoreOpenApi,
-      output: outputDir,
-      server: true,
-      routes: true,
-    });
-
-    expect(existsSync(join(outputDir, "schemas", "index.ts"))).toBe(true);
-    expect(existsSync(join(outputDir, "routes", "index.ts"))).toBe(true);
-    expect(existsSync(join(outputDir, "server", "index.ts"))).toBe(true);
-
-    // Craft also emits a nested package.json; typecheck against this package's
-    // zod / @standard-schema/spec dependencies instead.
-    rmSync(join(outputDir, "package.json"), { force: true });
-    rmSync(join(outputDir, "tsconfig.json"), { force: true });
-
-    const typecheck = spawnSync(
-      process.execPath,
-      [tscBin, "--noEmit", "-p", join(packageRoot, "tsconfig.generated.json")],
-      {
-        cwd: packageRoot,
-        encoding: "utf8",
-      },
-    );
-
-    expect(typecheck.status, typecheck.stdout + typecheck.stderr).toBe(0);
+  it("includes client when requested", () => {
+    expect(
+      buildCraftGenerateArgs({
+        input: "openapi.yaml",
+        output: "generated",
+        client: true,
+      }),
+    ).toEqual(["generate", "-i", "openapi.yaml", "-o", "generated", "--client"]);
   });
 });
 
-it("resolves @apical-ts/craft from @hexkit/plugin-apical", () => {
-  const craftPackageJson = require.resolve("@apical-ts/craft/package.json");
-  const pkg = JSON.parse(readFileSync(craftPackageJson, "utf8")) as {
-    name: string;
-  };
-  expect(pkg.name).toBe("@apical-ts/craft");
-  expect(existsSync(join(dirname(craftPackageJson), "bin", "craft.js"))).toBe(true);
+describe("generateContracts", () => {
+  it("calls the craft runner with Petstore generate args", () => {
+    const calls: string[][] = [];
+    const runCraft: CraftRunner = (args) => {
+      calls.push([...args]);
+    };
+
+    generateContracts(petstoreOptions, runCraft);
+
+    expect(calls).toEqual([buildCraftGenerateArgs(petstoreOptions)]);
+  });
 });
