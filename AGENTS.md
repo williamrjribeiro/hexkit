@@ -21,7 +21,7 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 
 ## Cursor Cloud specific instructions
 
-This repo is a Vite+ monorepo driven by the global `vp` CLI (there is no local `vp` binary — it is installed at `~/.vite-plus` and put on `PATH` by `~/.vite-plus/env`, which the update script's `vp install` relies on). `vp` manages its own Node.js runtime (currently v24, required by `engines.node >=24.18.1`) rather than the system/nvm Node, so always invoke tooling through `vp` (e.g. `vp node`, `vp run ...`) instead of a bare `node`/`npm`.
+This repo is a Vite+ monorepo driven by the global `vp` CLI. The repo does not ship a global `vp`; it is installed separately at `~/.vite-plus` and put on `PATH` by `~/.vite-plus/env`, which the update script's `vp install` relies on. (After `vp install`, a project-local `node_modules/.bin/vp` also exists, but bootstrapping still needs the global `vp`.) `vp` manages its own Node.js runtime (currently v24, required by `engines.node >=24.18.1`) rather than the system/nvm Node, so always invoke tooling through `vp` (e.g. `vp node`, `vp run ...`) instead of a bare `node`/`npm`.
 
 Everything is scaffolding right now: every workspace `src/index.ts` is just `export {}`, there are no tests yet, and there is no runnable server/HTTP service. The "app" is a code-generator CLI (`@hexkit/cli`) that is not implemented yet. See `RFC.md` for the intended design.
 
