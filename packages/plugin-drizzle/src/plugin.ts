@@ -1,19 +1,19 @@
 import type { GeneratedFile, HexkitPlugin } from "@hexkit/plugin-api";
 
-const schemaSource = `import { bigint, boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+const schemaSource = `import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 
 export const petStatus = pgEnum("pet_status", ["available", "pending", "sold"]);
 export const orderStatus = pgEnum("order_status", ["placed", "approved", "delivered"]);
 
 export const pets = pgTable("pets", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
+  id: integer("id").primaryKey(),
   name: text("name").notNull(),
   status: petStatus("status"),
 });
 
 export const orders = pgTable("orders", {
-  id: bigint("id", { mode: "number" }).primaryKey(),
-  petId: bigint("pet_id", { mode: "number" })
+  id: integer("id").primaryKey(),
+  petId: integer("pet_id")
     .notNull()
     .references(() => pets.id),
   quantity: integer("quantity").notNull(),
@@ -26,14 +26,14 @@ const migrationSource = `CREATE TYPE "pet_status" AS ENUM ('available', 'pending
 CREATE TYPE "order_status" AS ENUM ('placed', 'approved', 'delivered');
 
 CREATE TABLE "pets" (
-  "id" bigint PRIMARY KEY NOT NULL,
+  "id" integer PRIMARY KEY NOT NULL,
   "name" text NOT NULL,
   "status" "pet_status"
 );
 
 CREATE TABLE "orders" (
-  "id" bigint PRIMARY KEY NOT NULL,
-  "pet_id" bigint NOT NULL,
+  "id" integer PRIMARY KEY NOT NULL,
+  "pet_id" integer NOT NULL,
   "quantity" integer NOT NULL,
   "status" "order_status" NOT NULL,
   "complete" boolean NOT NULL,
@@ -52,21 +52,11 @@ type PetRow = typeof pets.$inferSelect;
 type OrderRow = typeof orders.$inferSelect;
 
 export function mapPetRow(row: PetRow): Pet {
-  const pet = PetSchema.parse({ ...row, status: row.status ?? undefined });
-  return {
-    id: Number(pet.id),
-    name: pet.name,
-    ...(pet.status === undefined ? {} : { status: pet.status }),
-  };
+  return PetSchema.parse({ ...row, status: row.status ?? undefined });
 }
 
 export function mapOrderRow(row: OrderRow): Order {
-  const order = OrderSchema.parse(row);
-  return {
-    ...order,
-    id: Number(order.id),
-    petId: Number(order.petId),
-  };
+  return OrderSchema.parse(row);
 }
 `;
 

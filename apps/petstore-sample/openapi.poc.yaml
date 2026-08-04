@@ -117,7 +117,7 @@ components:
       properties:
         id:
           type: integer
-          format: int64
+          format: int32
         name:
           type: string
         status:
@@ -137,10 +137,10 @@ components:
       properties:
         id:
           type: integer
-          format: int64
+          format: int32
         petId:
           type: integer
-          format: int64
+          format: int32
         quantity:
           type: integer
           format: int32
