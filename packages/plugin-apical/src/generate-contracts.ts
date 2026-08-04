@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
@@ -11,13 +11,13 @@ export type GenerateContractsOptions = {
 };
 
 /** Side-effectful craft invocation; injectable so calculations stay testable. */
-export type CraftRunner = (args: readonly string[]) => void;
+export type CraftRunner = (args: readonly string[]) => Promise<void>;
 
 const require = createRequire(import.meta.url);
 
 /**
  * Pure calculation: craft CLI args for a generate invocation.
- * Keeping this free of I/O makes Petstore wiring easy to unit test.
+ * Keeping this free of I/O makes craft argument wiring easy to unit test.
  */
 export function buildCraftGenerateArgs(options: GenerateContractsOptions): string[] {
   const args = ["generate", "-i", options.input, "-o", options.output];
@@ -39,25 +39,42 @@ export function buildCraftGenerateArgs(options: GenerateContractsOptions): strin
  * Action at the edge: run @apical-ts/craft with the calculated args.
  * Pass `runCraft` in tests to assert call arguments without spawning craft.
  */
-export function generateContracts(
+export async function generateContracts(
   options: GenerateContractsOptions,
   runCraft: CraftRunner = runCraftCli,
-): void {
-  runCraft(buildCraftGenerateArgs(options));
+): Promise<void> {
+  await runCraft(buildCraftGenerateArgs(options));
 }
 
-function runCraftCli(args: readonly string[]): void {
-  const result = spawnSync(process.execPath, [resolveCraftBin(), ...args], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+function runCraftCli(args: readonly string[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [resolveCraftBin(), ...args], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const output: Buffer[] = [];
+    const errors: Buffer[] = [];
 
-  if (result.status !== 0) {
-    const details = [result.stderr, result.stdout].filter(Boolean).join("\n");
-    throw new Error(
-      `apical-ts craft failed${details ? `:\n${details}` : ` with exit code ${String(result.status)}`}`,
-    );
-  }
+    child.stdout.on("data", (chunk: Buffer) => output.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => errors.push(chunk));
+    child.once("error", (error) => {
+      reject(new Error(`Unable to start apical-ts craft: ${error.message}`, { cause: error }));
+    });
+    child.once("close", (status, signal) => {
+      if (status === 0) {
+        resolve();
+        return;
+      }
+
+      const details = [...errors, ...output]
+        .map((chunk) => chunk.toString("utf8").trim())
+        .filter(Boolean)
+        .join("\n");
+      const termination = signal === null ? `exit code ${String(status)}` : `signal ${signal}`;
+      reject(
+        new Error(`apical-ts craft failed${details ? `:\n${details}` : ` with ${termination}`}`),
+      );
+    });
+  });
 }
 
 function resolveCraftBin(): string {

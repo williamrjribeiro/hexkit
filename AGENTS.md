@@ -31,7 +31,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp run -r test` — run tests in every package (uses `--passWithNoTests`; no test files exist yet).
 - `vp run -r build` — build every package via `vp pack` (emits `dist/index.mjs` + `.d.mts`).
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). This is the dev "run" loop: editing a `src/**` file triggers an automatic rebuild of that package's `dist/`. There is no long-lived server to hit; validate by importing/executing the rebuilt `dist/index.mjs`.
-- `vp run ready` — convenience script that chains check + test + build.
+- `vp run ready` — convenience script that chains build + check + test.
 
 Gotchas:
 

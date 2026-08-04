@@ -11,11 +11,19 @@
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "test": "vp test run --passWithNoTests",
+    "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts",
+    "test:generation": "vp test run tests/generation.test.ts",
     "check": "vp check"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "pactum": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

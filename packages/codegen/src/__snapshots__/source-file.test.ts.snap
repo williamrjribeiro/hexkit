@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Given imports and source statements > when a source file is rendered, then it has deterministic spacing and a final newline 1`] = `
+"import type { Pet } from "./contracts.js";
+import { z } from "zod";
+
+export const PetSchema = z.object({ id: z.number() });
+
+export type StoredPet = Pet;
+"
+`;
+
+exports[`Given unordered and repeated imports > when imports are rendered, then the output is stable and deduplicated 1`] = `
+"import type { Pet } from "./contracts.js";
+import { ZodError, ZodType, z } from "zod";"
+`;

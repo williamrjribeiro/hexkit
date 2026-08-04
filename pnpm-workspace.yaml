@@ -6,10 +6,19 @@ catalogMode: prefer
 
 catalog:
   "@apical-ts/craft": 0.26.0
+  "@babel/parser": ^8.0.4
+  "@readme/openapi-parser": ^6.3.1
+  "@standard-schema/spec": ^1.1.0
   "@types/node": ^24
+  "@types/pg": ^8.20.3
+  drizzle-orm: ^0.45.2
+  hono: ^4.12.33
+  pactum: ^3.9.1
+  pg: ^8.22.0
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7
   vite-plus: 0.2.7
+  zod: ^4.4.3
 overrides:
   vite: "catalog:"
 peerDependencyRules:
