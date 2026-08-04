@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { pluralizeCamelCase, toCamelCase, toKebabCase, toPascalCase } from "./naming.ts";
+import {
+  pluralizeCamelCase,
+  toCamelCase,
+  toKebabCase,
+  toPascalCase,
+  toSnakeCase,
+} from "./naming.ts";
 
 describe("naming helpers", () => {
   it("converts identifiers across casings", () => {
@@ -10,6 +16,8 @@ describe("naming helpers", () => {
     expect(toCamelCase("addPet")).toBe("addPet");
     expect(toKebabCase("getPetById")).toBe("get-pet-by-id");
     expect(toKebabCase("Pet")).toBe("pet");
+    expect(toSnakeCase("petId")).toBe("pet_id");
+    expect(toSnakeCase("PetStatus")).toBe("pet_status");
   });
 
   it("pluralizes camelCase aggregate names", () => {

@@ -12,6 +12,10 @@ export function toKebabCase(value: string): string {
   return splitIdentifier(value).join("-");
 }
 
+export function toSnakeCase(value: string): string {
+  return splitIdentifier(value).join("_");
+}
+
 export function pluralizeCamelCase(value: string): string {
   const camel = toCamelCase(value);
   if (camel.length === 0) return camel;
