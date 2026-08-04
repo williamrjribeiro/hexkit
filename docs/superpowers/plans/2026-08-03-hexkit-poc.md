@@ -11,8 +11,9 @@
 ## Global Constraints
 
 - Use `PRD.md` as the PoC authority; leave `apps/petstore-sample/openapi.yaml` unchanged.
-- Generate only Pet and Order JSON operations, with no auth, XML, Users, SST, or AWS artifacts.
-- Use BDD-style `describe` / `it` tests from `vite-plus/test`; prefer snapshots for generated source and structured output.
+- Generate only Pet and Order JSON operations, with no auth, XML, Users, SST, or AWS artifacts — **via the Petstore OpenAPI fixture**, not by hardcoding Pet/Order into `@hexkit/plugin-*` (see PRD §5.0).
+- Plugins must be domain-agnostic: derive domain, ports, use cases, HTTP adapters, and persistence from OpenAPI / Apical contracts available in the generation context.
+- Use BDD-style `describe` / `it` tests from `vite-plus/test`; prefer snapshots for generated source and structured output. Plugin tests may use Petstore OpenAPI as an **input fixture**; they must not be green only because the plugin embeds Petstore strings.
 - Follow calculation/action separation: pure functions transform plain data, actions are small injected edges, and data shapes have intention-revealing names.
 - Test every new behavior first: capture the expected failure, implement the smallest passing code, then refactor.
 - Run `vp check`, `vp run -r test`, and `vp run -r build` at each milestone; run Compose and Pactum acceptance tests for the final dogfood milestone.
@@ -98,9 +99,12 @@ export function createApicalPlugin(runCraft?: CraftRunner): HexkitPlugin;
 export function createHexagonalPlugin(): HexkitPlugin;
 ```
 
-- [ ] Write a failing snapshot test for Pet and Order entities, repository ports, and protected application use cases.
+**Constraint:** The plugin must derive domain entities, repository ports, and use-case skeletons from Apical contracts / OpenAPI IR. Do **not** hardcode Pet, Order, or Petstore operation lists in plugin source. Petstore appears only as a test fixture / dogfood OpenAPI input (PRD §5.0).
+
+- [ ] Write a failing snapshot test that feeds the Petstore OpenAPI (or its Apical contract outputs) as input and expects derived entities, repository ports, and protected application use cases.
 - [ ] Run it and confirm failure because the plugin is absent.
-- [ ] Implement source-producing calculations that write domain and port files as generated and use-case files as protected.
+- [ ] Implement source-producing calculations that map contract schemas/operations to domain and port files (generated) and use-case files (protected).
+- [ ] Add a regression check that the plugin source contains no Petstore domain literals (e.g. fixed `Pet`/`Order` type bodies); changing the fixture must change output without editing the plugin for that domain.
 - [ ] Re-run generation after changing a protected use case; assert the changed source survives and missing new skeletons are added.
 - [ ] Run package tests and `vp check`; commit `feat(hexagonal): generate protected use-case skeletons`.
 
@@ -119,9 +123,11 @@ export function createHexagonalPlugin(): HexkitPlugin;
 export function createDrizzlePlugin(): HexkitPlugin;
 ```
 
-- [ ] Write failing BDD snapshot tests for Drizzle tables, foreign-key `orders.petId`, repositories, and Zod-validated read mappers.
+**Constraint:** Derive tables, FKs, repositories, and mappers from contracts/ports. Pet↔Order relations in snapshots come from the dogfood fixture, not from hardcoded SQL/entity strings in the plugin.
+
+- [ ] Write failing BDD snapshot tests using the Petstore fixture for Drizzle tables, foreign-key relations present in that contract, repositories, and Zod-validated read mappers.
 - [ ] Run the focused test and confirm the generator is missing.
-- [ ] Add the runtime dependencies at their current published versions; implement generated schema, migrations, repositories, and mapping source.
+- [ ] Add the runtime dependencies at their current published versions; implement generated schema, migrations, repositories, and mapping source driven by contracts/ports.
 - [ ] Confirm snapshots include no independently defined request/response schema and that each read mapper parses through generated contracts.
 - [ ] Run package tests and `vp check`; commit `feat(drizzle): generate validated postgres adapters`.
 
@@ -140,7 +146,9 @@ export function createDrizzlePlugin(): HexkitPlugin;
 export function createHonoPlugin(): HexkitPlugin;
 ```
 
-- [ ] Write a failing snapshot test for JSON routes/controllers covering all operation IDs and request/response validation boundaries.
+**Constraint:** Derive routes/controllers from Apical operations discovered for the input contract. Do not hardcode Petstore operationIds or paths in the plugin.
+
+- [ ] Write a failing snapshot test for JSON routes/controllers covering every operationId in the fixture and request/response validation boundaries.
 - [ ] Run it and confirm failure because the Hono plugin is missing.
 - [ ] Implement route/controller/runtime source generators that bind each generated operation to its protected use case and validate input/output with Apical artifacts.
 - [ ] Run a generated application unit test against an injected repository action to prove invalid data cannot cross HTTP or DB-read boundaries.
@@ -169,7 +177,7 @@ export function runCli(
 
 - [ ] Write failing BDD tests that snapshot help text, assert clear errors for a missing input, and verify `generate <openapi> <output>` invokes the default ordered plugin pipeline.
 - [ ] Run them and confirm failure because no CLI command exists.
-- [ ] Implement argument calculation separately from process exit/output actions; wire the default plugins and generated Compose/Docker artifacts.
+- [ ] Implement argument calculation separately from process exit/output actions; wire the default plugins and generated Compose/Docker artifacts. Packaging must stay domain-agnostic (PRD §5.0); Petstore-specific Compose credentials/names belong in sample options or derived metadata, not hardcoded packaging generators.
 - [ ] Invoke the built CLI against `openapi.poc.yaml`; verify it produces all required sample paths.
 - [ ] Run package tests and `vp check`; commit `feat(cli): generate compose-ready petstore application`.
 
