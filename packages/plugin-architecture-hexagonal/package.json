@@ -35,7 +35,9 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@hexkit/plugin-api": "workspace:*"
+    "@hexkit/codegen": "workspace:*",
+    "@hexkit/plugin-api": "workspace:*",
+    "@hexkit/plugin-apical": "workspace:*"
   },
   "devDependencies": {
     "@hexkit/core": "workspace:*",

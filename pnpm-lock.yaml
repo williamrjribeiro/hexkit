@@ -406,9 +406,15 @@ importers:
 
   packages/plugin-architecture-hexagonal:
     dependencies:
+      '@hexkit/codegen':
+        specifier: workspace:*
+        version: link:../codegen
       '@hexkit/plugin-api':
         specifier: workspace:*
         version: link:../plugin-api
+      '@hexkit/plugin-apical':
+        specifier: workspace:*
+        version: link:../plugin-apical
     devDependencies:
       '@hexkit/core':
         specifier: workspace:*
