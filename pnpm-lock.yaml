@@ -254,6 +254,25 @@ importers:
         version: 0.2.7(@types/node@24.13.3)(@voidzero-dev/vite-plus-core@0.2.7(@types/node@24.13.3)(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0))(jiti@2.7.0)(typescript@7.0.2)(yaml@2.9.0)
 
   apps/cli:
+    dependencies:
+      '@hexkit/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@hexkit/plugin-api':
+        specifier: workspace:*
+        version: link:../../packages/plugin-api
+      '@hexkit/plugin-apical':
+        specifier: workspace:*
+        version: link:../../packages/plugin-apical
+      '@hexkit/plugin-architecture-hexagonal':
+        specifier: workspace:*
+        version: link:../../packages/plugin-architecture-hexagonal
+      '@hexkit/plugin-drizzle':
+        specifier: workspace:*
+        version: link:../../packages/plugin-drizzle
+      '@hexkit/plugin-hono':
+        specifier: workspace:*
+        version: link:../../packages/plugin-hono
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
