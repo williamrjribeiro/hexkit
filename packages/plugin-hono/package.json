@@ -22,10 +22,18 @@
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },
+  "dependencies": {
+    "@hexkit/plugin-api": "workspace:*"
+  },
   "devDependencies": {
+    "@hexkit/plugin-apical": "workspace:*",
+    "@hexkit/plugin-architecture-hexagonal": "workspace:*",
+    "@standard-schema/spec": "catalog:",
     "@types/node": "catalog:",
+    "hono": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
   }
 }

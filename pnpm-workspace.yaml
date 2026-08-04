@@ -6,9 +6,11 @@ catalogMode: prefer
 
 catalog:
   "@apical-ts/craft": 0.26.0
+  "@standard-schema/spec": ^1.1.0
   "@types/node": ^24
   "@types/pg": ^8.20.3
   drizzle-orm: ^0.45.2
+  hono: ^4.12.33
   pg: ^8.22.0
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7
