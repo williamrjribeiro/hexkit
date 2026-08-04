@@ -16,7 +16,7 @@ export type ParsedArguments =
   | { kind: "error"; message: string };
 
 export type CliDependencies = {
-  generate(inputPath: string, outputDirectory: string): void;
+  generate(inputPath: string, outputDirectory: string): Promise<void>;
   log(text: string): void;
 };
 
@@ -46,7 +46,10 @@ export function parseArguments(arguments_: readonly string[]): ParsedArguments {
   return { kind: "generate", inputPath, outputDirectory };
 }
 
-export function runCli(arguments_: readonly string[], dependencies: CliDependencies): number {
+export async function runCli(
+  arguments_: readonly string[],
+  dependencies: CliDependencies,
+): Promise<number> {
   const command = parseArguments(arguments_);
 
   if (command.kind === "help") {
@@ -60,6 +63,6 @@ export function runCli(arguments_: readonly string[], dependencies: CliDependenc
     return 1;
   }
 
-  dependencies.generate(command.inputPath, command.outputDirectory);
+  await dependencies.generate(command.inputPath, command.outputDirectory);
   return 0;
 }

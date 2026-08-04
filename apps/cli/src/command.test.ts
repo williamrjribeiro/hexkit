@@ -4,7 +4,8 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { FileWriterActions } from "@hexkit/core";
-import type { GeneratedFile } from "@hexkit/plugin-api";
+import { loadValidatedOpenApi } from "@hexkit/plugin-apical";
+import { createArtifactRegistry, type GeneratedFile } from "@hexkit/plugin-api";
 
 import {
   createDefaultPlugins,
@@ -46,12 +47,38 @@ const apicalContractPaths = [
   "standard-schema.ts",
   "tsconfig.json",
 ] as const;
+const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", import.meta.url);
+
+const schemasIndex = `
+import { Order } from "./Order.ts";
+import { Pet } from "./Pet.ts";
+export { Order, Pet };
+`;
+
+const routesIndex = `
+import { serverRoute as addPetRoute } from "./addPet.ts";
+import { serverRoute as updatePetRoute } from "./updatePet.ts";
+import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
+import { serverRoute as deletePetRoute } from "./deletePet.ts";
+import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
+import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
+import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
+export const routes = {
+  addPet: addPetRoute,
+  updatePet: updatePetRoute,
+  getPetById: getPetByIdRoute,
+  deletePet: deletePetRoute,
+  placeOrder: placeOrderRoute,
+  getOrderById: getOrderByIdRoute,
+  deleteOrder: deleteOrderRoute,
+} as const;
+`;
 
 describe("Given a Hexkit CLI invocation", () => {
-  it("when help is requested, then it prints the snapshotted command help and succeeds", () => {
+  it("when help is requested, then it prints the snapshotted command help and succeeds", async () => {
     const messages: string[] = [];
 
-    const exitCode = runCli(["--help"], {
+    const exitCode = await runCli(["--help"], {
       generate() {
         throw new Error("help must not generate");
       },
@@ -78,10 +105,10 @@ describe("Given a Hexkit CLI invocation", () => {
     `);
   });
 
-  it("when generate has no OpenAPI input, then it reports a clear error and fails", () => {
+  it("when generate has no OpenAPI input, then it reports a clear error and fails", async () => {
     const messages: string[] = [];
 
-    const exitCode = runCli(["generate"], {
+    const exitCode = await runCli(["generate"], {
       generate() {
         throw new Error("invalid arguments must not generate");
       },
@@ -95,11 +122,12 @@ describe("Given a Hexkit CLI invocation", () => {
     expect(messages[1]).toContain("hexkit generate <openapi> <output>");
   });
 
-  it("when generate receives an input and output, then it invokes generation exactly once", () => {
+  it("when generate receives an input and output, then it invokes generation exactly once", async () => {
     const calls: Array<{ inputPath: string; outputDirectory: string }> = [];
 
-    const exitCode = runCli(["generate", "petstore.yaml", "generated/petstore"], {
-      generate(inputPath: string, outputDirectory: string) {
+    const exitCode = await runCli(["generate", "petstore.yaml", "generated/petstore"], {
+      async generate(inputPath: string, outputDirectory: string) {
+        await Promise.resolve();
         calls.push({ inputPath, outputDirectory });
       },
       log() {},
@@ -121,6 +149,34 @@ describe("Given a Hexkit CLI invocation", () => {
       outputDirectory: "generated/petstore",
     });
   });
+
+  it("when an async plugin fails, then main waits for and reports the failure", async () => {
+    const messages: string[] = [];
+
+    const exitCode = await main(["generate", "library.yaml", "/virtual/library"], {
+      actions: {
+        exists: () => false,
+        write() {},
+        log() {},
+      },
+      inputExists: () => true,
+      plugins: [
+        {
+          name: "failing",
+          async generate() {
+            await Promise.resolve();
+            throw new Error("async generation failed");
+          },
+        },
+      ],
+      log(message) {
+        messages.push(message);
+      },
+    });
+
+    expect(exitCode).toBe(1);
+    expect(messages).toEqual(["Error: async generation failed"]);
+  });
 });
 
 describe("Given the default generation pipeline", () => {
@@ -134,7 +190,7 @@ describe("Given the default generation pipeline", () => {
     ]);
   });
 
-  it("when the assembled CLI generates, then injected Craft and filesystem edges receive the complete application", () => {
+  it("when the assembled CLI generates, then injected Craft and filesystem edges receive the complete application", async () => {
     const outputDirectory = "/virtual/generated-petstore";
     const files = new Map<string, string>();
     const actions: FileWriterActions = {
@@ -148,19 +204,35 @@ describe("Given the default generation pipeline", () => {
     };
     const craftCalls: string[][] = [];
 
-    const exitCode = main(["generate", "petstore.yaml", outputDirectory], {
+    const exitCode = await main(["generate", "petstore.yaml", outputDirectory], {
       actions,
       inputExists: (path: string) => path === "petstore.yaml",
       log() {},
-      runCraft(arguments_: readonly string[]) {
-        craftCalls.push([...arguments_]);
-        const outputFlag = arguments_.indexOf("-o");
-        const contractsDirectory = arguments_[outputFlag + 1];
-        if (!contractsDirectory) throw new Error("Craft output argument is missing");
+      apical: {
+        async runCraft(arguments_: readonly string[]) {
+          craftCalls.push([...arguments_]);
+          const outputFlag = arguments_.indexOf("-o");
+          const contractsDirectory = arguments_[outputFlag + 1];
+          if (!contractsDirectory) throw new Error("Craft output argument is missing");
 
-        for (const path of apicalContractPaths) {
-          actions.write(join(contractsDirectory, path), "");
-        }
+          for (const path of apicalContractPaths) {
+            const contents =
+              path === "schemas/index.ts"
+                ? schemasIndex
+                : path === "routes/index.ts"
+                  ? routesIndex
+                  : "";
+            actions.write(join(contractsDirectory, path), contents);
+          }
+        },
+        loadOpenApi: () => loadValidatedOpenApi(petstoreContract.pathname),
+        async readGeneratedFile(path) {
+          const contents = files.get(path);
+          if (contents === undefined) {
+            throw new Error(`Missing virtual Apical output: ${path}`);
+          }
+          return contents;
+        },
       },
     });
 
@@ -202,6 +274,7 @@ describe("Given the default generation pipeline", () => {
         "src/core/domain/pet.ts",
         "src/core/ports/order-repository.ts",
         "src/core/ports/pet-repository.ts",
+        "src/generated/contracts/hexkit-contract.json",
         "src/generated/contracts/package.json",
         "src/generated/contracts/routes/addPet.ts",
         "src/generated/contracts/routes/deleteOrder.ts",
@@ -239,11 +312,11 @@ describe("Given the default generation pipeline", () => {
     `);
   });
 
-  it("when the assembled CLI receives a nonexistent OpenAPI path, then it reports the path and fails without generation", () => {
+  it("when the assembled CLI receives a nonexistent OpenAPI path, then it reports the path and fails without generation", async () => {
     const messages: string[] = [];
     let craftCalled = false;
 
-    const exitCode = main(["generate", "missing.yaml", "/virtual/output"], {
+    const exitCode = await main(["generate", "missing.yaml", "/virtual/output"], {
       actions: {
         exists: () => false,
         write() {
@@ -255,8 +328,10 @@ describe("Given the default generation pipeline", () => {
       log(text: string) {
         messages.push(text);
       },
-      runCraft() {
-        craftCalled = true;
+      apical: {
+        async runCraft() {
+          craftCalled = true;
+        },
       },
     });
 
@@ -279,12 +354,13 @@ describe("Given the published CLI package", () => {
 });
 
 describe("Given compose-ready generated packaging", () => {
-  it("when the packaging plugin runs, then it emits the snapshotted container and startup paths", () => {
+  it("when the packaging plugin runs, then it emits the snapshotted container and startup paths", async () => {
     const files: GeneratedFile[] = [];
 
-    createPackagingPlugin().generate({
+    await createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
+      artifacts: createArtifactRegistry(),
       writeFile(file: GeneratedFile) {
         files.push(file);
       },
@@ -358,12 +434,13 @@ describe("Given compose-ready generated packaging", () => {
     `);
   });
 
-  it("when the package manifest is emitted, then source build and runtime dependencies use current versions", () => {
+  it("when the package manifest is emitted, then source build and runtime dependencies use current versions", async () => {
     const files: GeneratedFile[] = [];
 
-    createPackagingPlugin().generate({
+    await createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
+      artifacts: createArtifactRegistry(),
       writeFile(file: GeneratedFile) {
         files.push(file);
       },
@@ -386,12 +463,13 @@ describe("Given compose-ready generated packaging", () => {
     });
   });
 
-  it("when TypeScript config is emitted, then it remains compatible with Apical generated imports", () => {
+  it("when TypeScript config is emitted, then it remains compatible with Apical generated imports", async () => {
     const files: GeneratedFile[] = [];
 
-    createPackagingPlugin().generate({
+    await createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
+      artifacts: createArtifactRegistry(),
       writeFile(file: GeneratedFile) {
         files.push(file);
       },

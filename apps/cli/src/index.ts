@@ -16,5 +16,5 @@ if (
   executablePath !== undefined &&
   import.meta.url === pathToFileURL(resolve(executablePath)).href
 ) {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 }
