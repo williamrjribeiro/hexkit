@@ -8,6 +8,21 @@ KEEP_STACK=${HEXKIT_KEEP_STACK:-0}
 REMOVE_OUTPUT=0
 COMPOSE_STARTED=0
 
+case "${1:-}" in
+  --print-config)
+    printf 'PETSTORE_API_URL=%s\n' "$API_BASE_URL"
+    printf 'HEXKIT_KEEP_STACK=%s\n' "$KEEP_STACK"
+    printf 'HEXKIT_DOGFOOD_OUTPUT=%s\n' "${HEXKIT_DOGFOOD_OUTPUT:-}"
+    exit 0
+    ;;
+  "")
+    ;;
+  *)
+    printf 'Error: unknown dogfood argument: %s\n' "$1" >&2
+    exit 2
+    ;;
+esac
+
 if [ -n "${HEXKIT_DOGFOOD_OUTPUT:-}" ]; then
   OUTPUT_DIR=$HEXKIT_DOGFOOD_OUTPUT
   mkdir -p "$OUTPUT_DIR"

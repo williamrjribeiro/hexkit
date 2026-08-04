@@ -48,3 +48,16 @@ Start the CLI package in watch mode:
 ```bash
 vp run dev
 ```
+
+## Petstore dogfood
+
+Run the uncached root dogfood task from the workspace root:
+
+```bash
+vp run dogfood
+```
+
+The task passes through `PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and
+`HEXKIT_DOGFOOD_OUTPUT`. Docker is required for the live Compose and API phases.
+`apps/petstore-sample/scripts/prove-api-url.sh` verifies task-level environment
+propagation without starting Compose.

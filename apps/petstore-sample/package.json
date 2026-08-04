@@ -10,11 +10,8 @@
   },
   "scripts": {
     "build": "vp pack",
-    "dogfood": "./scripts/dogfood.sh",
     "dev": "vp pack --watch",
-    "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts tests/dogfood-script.test.ts",
-    "test:api": "vp test run tests/api.test.ts",
-    "test:api-url": "./scripts/prove-api-url.sh",
+    "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts tests/dogfood-script.test.ts tests/dogfood-task.test.ts",
     "test:generation": "vp test run tests/generation.test.ts",
     "check": "vp check"
   },
