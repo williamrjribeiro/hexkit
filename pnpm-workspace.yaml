@@ -11,6 +11,7 @@ catalog:
   "@types/pg": ^8.20.3
   drizzle-orm: ^0.45.2
   hono: ^4.12.33
+  pactum: ^3.9.1
   pg: ^8.22.0
   typescript: ^7.0.2
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7

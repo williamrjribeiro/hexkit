@@ -10,8 +10,11 @@
   },
   "scripts": {
     "build": "vp pack",
+    "dogfood": "./scripts/dogfood.sh",
     "dev": "vp pack --watch",
-    "test": "vp test run --passWithNoTests",
+    "test": "vp test run tests/generation.test.ts",
+    "test:api": "vp test run tests/api.test.ts",
+    "test:generation": "vp test run tests/generation.test.ts",
     "check": "vp check"
   },
   "dependencies": {
@@ -22,6 +25,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
+    "pactum": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
