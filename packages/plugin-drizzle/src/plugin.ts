@@ -1,4 +1,4 @@
-import type { GeneratedFile, HexkitPlugin } from "@hexkit/plugin-api";
+import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 const schemaSource = `import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 
@@ -171,7 +171,7 @@ export function generateDrizzleFiles(): GeneratedFile[] {
 export function createDrizzlePlugin(): HexkitPlugin {
   return {
     name: "drizzle",
-    generate(context) {
+    generate(context: GenerationContext) {
       for (const file of generateDrizzleFiles()) {
         context.writeFile(file);
       }

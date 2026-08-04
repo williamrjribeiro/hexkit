@@ -10,7 +10,7 @@ function collectGeneratedFiles(): GeneratedFile[] {
   const context: GenerationContext = {
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
-    writeFile(file) {
+    writeFile(file: GeneratedFile) {
       files.push(file);
     },
     log() {},

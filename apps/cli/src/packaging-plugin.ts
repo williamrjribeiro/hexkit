@@ -1,4 +1,4 @@
-import type { GeneratedFile, HexkitPlugin } from "@hexkit/plugin-api";
+import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 const packageManifest = {
   name: "generated-petstore",
@@ -177,7 +177,7 @@ export function generatePackagingFiles(): GeneratedFile[] {
 export function createPackagingPlugin(): HexkitPlugin {
   return {
     name: "packaging",
-    generate(context) {
+    generate(context: GenerationContext) {
       for (const file of generatePackagingFiles()) {
         context.writeFile(file);
       }

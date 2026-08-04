@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { createDrizzlePlugin } from "./plugin.ts";
+import type { GeneratedFile } from "@hexkit/plugin-api";
 
-type GeneratedFile = {
-  path: string;
-  contents: string;
-  ownership: "generated" | "protected";
-};
+import { createDrizzlePlugin } from "./plugin.ts";
 
 function collectGeneratedFiles(): GeneratedFile[] {
   const files: GeneratedFile[] = [];
@@ -14,7 +10,7 @@ function collectGeneratedFiles(): GeneratedFile[] {
   createDrizzlePlugin().generate({
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
-    writeFile(file) {
+    writeFile(file: GeneratedFile) {
       files.push(file);
     },
     log() {},
@@ -96,7 +92,7 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
 
   it("when the generated migration is applied again, then existing enums and tables are tolerated", () => {
     const migration = collectGeneratedFiles().find(
-      (file) => file.path === "drizzle/0000_petstore.sql",
+      (file: GeneratedFile) => file.path === "drizzle/0000_petstore.sql",
     );
 
     expect(migration?.contents.match(/WHEN duplicate_object THEN NULL;/g) ?? []).toHaveLength(2);
@@ -106,7 +102,9 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
 
   it("when repository adapters are generated, then they implement every Pet and Order port operation", () => {
     const files = collectGeneratedFiles();
-    const repositories = files.filter((file) => file.path.endsWith("-repository.ts"));
+    const repositories = files.filter((file: GeneratedFile) =>
+      file.path.endsWith("-repository.ts"),
+    );
 
     expect(repositories).toMatchInlineSnapshot(`
       [
@@ -187,7 +185,7 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
 
   it("when database rows are mapped, then generated Apical Zod contracts validate every read", () => {
     const mapper = collectGeneratedFiles().find(
-      (file) => file.path === "src/adapters/db/mappers.ts",
+      (file: GeneratedFile) => file.path === "src/adapters/db/mappers.ts",
     );
 
     expect(mapper).toMatchInlineSnapshot(`

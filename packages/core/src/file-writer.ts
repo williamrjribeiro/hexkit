@@ -21,7 +21,7 @@ export function createFileWriter(
   outputDirectory: string,
   actions: FileWriterActions,
 ): (file: GeneratedFile) => void {
-  return (file) => {
+  return (file: GeneratedFile) => {
     const outputPath = join(outputDirectory, file.path);
     const destinationExists = file.ownership === "protected" && actions.exists(outputPath);
 

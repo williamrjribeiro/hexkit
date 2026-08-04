@@ -101,11 +101,11 @@ function generate(outputDirectory: string, logs: string[] = []): void {
   generateApplication(contractPath, outputDirectory, {
     actions: {
       exists: existsSync,
-      write(path, contents) {
+      write(path: string, contents: string) {
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, contents, "utf8");
       },
-      log(message) {
+      log(message: string) {
         logs.push(message);
       },
     },

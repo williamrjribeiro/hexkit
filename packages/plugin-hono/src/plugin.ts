@@ -1,4 +1,4 @@
-import type { GeneratedFile, HexkitPlugin } from "@hexkit/plugin-api";
+import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 const controllersSource = `import type { AddPet } from "../../core/application/add-pet.ts";
 import type { DeleteOrder } from "../../core/application/delete-order.ts";
@@ -253,7 +253,7 @@ export function generateHonoFiles(): GeneratedFile[] {
 export function createHonoPlugin(): HexkitPlugin {
   return {
     name: "hono",
-    generate(context) {
+    generate(context: GenerationContext) {
       for (const file of generateHonoFiles()) {
         context.writeFile(file);
       }

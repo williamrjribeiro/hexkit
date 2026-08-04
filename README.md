@@ -38,9 +38,9 @@ vp run ready
 Run an individual stage:
 
 ```bash
+vp run -r build
 vp check
 vp run -r test
-vp run -r build
 ```
 
 Start the CLI package in watch mode:

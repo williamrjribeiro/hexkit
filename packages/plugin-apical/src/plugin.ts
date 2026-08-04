@@ -1,13 +1,13 @@
 import { join } from "node:path";
 
-import type { HexkitPlugin } from "@hexkit/plugin-api";
+import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 import { generateContracts, type CraftRunner } from "./generate-contracts.ts";
 
 export function createApicalPlugin(runCraft?: CraftRunner): HexkitPlugin {
   return {
     name: "apical",
-    generate(context) {
+    generate(context: GenerationContext) {
       generateContracts(
         {
           input: context.inputPath,

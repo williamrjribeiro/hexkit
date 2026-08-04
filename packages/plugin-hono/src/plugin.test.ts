@@ -29,7 +29,7 @@ async function collectGeneratedFiles(): Promise<GeneratedFile[]> {
   createHonoPlugin().generate({
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
-    writeFile(file) {
+    writeFile(file: GeneratedFile) {
       files.push(file);
     },
     log() {},
@@ -71,35 +71,35 @@ function materializeGeneratedApp(): string {
 describe("Given the seven generated JSON operations and protected application use cases", () => {
   it("when Hono generation runs, then routes, controllers, and runtime composition preserve every validation boundary", async () => {
     const files = await collectGeneratedFiles();
-    const sourceContract = files.map((file) => ({
+    const sourceContract = files.map((file: GeneratedFile) => ({
       path: file.path,
       ownership: file.ownership,
-      operations: operationIds.filter((operationId) => file.contents.includes(operationId)),
+      operations: operationIds.filter((operationId: string) => file.contents.includes(operationId)),
       apicalImports: file.contents
         .split("\n")
         .filter(
-          (line) =>
+          (line: string) =>
             line.includes("/generated/contracts/") &&
             (line.includes("Wrapper") || line.includes("ResponseMap")),
         ),
       requestValidationCalls: file.contents
         .split("\n")
-        .filter((line) => /^\s+\w+: \w+Wrapper\(async \(request\) => \{$/.test(line)),
+        .filter((line: string) => /^\s+\w+: \w+Wrapper\(async \(request\) => \{$/.test(line)),
       responseValidationCalls: file.contents
         .split("\n")
         .filter(
-          (line) =>
+          (line: string) =>
             line.includes("data: ") && line.includes("ResponseMap") && line.includes(".parse("),
         ),
       routes: file.contents
         .split("\n")
-        .filter((line) => /^\s*app\.(?:delete|get|post|put)\(/.test(line)),
+        .filter((line: string) => /^\s*app\.(?:delete|get|post|put)\(/.test(line)),
       routeControllerCalls: file.contents
         .split("\n")
-        .filter((line) => line.includes("respond(await controllers.")),
+        .filter((line: string) => line.includes("respond(await controllers.")),
       bindings: file.contents
         .split("\n")
-        .filter((line) =>
+        .filter((line: string) =>
           /^\s+(?:addPet|deleteOrder|deletePet|getOrderById|getPetById|placeOrder|updatePet): create/.test(
             line,
           ),
@@ -219,7 +219,7 @@ describe("Given the seven generated JSON operations and protected application us
       ]
     `);
 
-    expect(files.map((file) => file.contents).join("\n")).not.toContain("z.object");
+    expect(files.map((file: GeneratedFile) => file.contents).join("\n")).not.toContain("z.object");
   });
 
   it("when the generated runtime is type checked, then every preceding generator import contract resolves", () => {

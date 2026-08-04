@@ -24,7 +24,7 @@ export function createDefaultPlugins(runCraft?: CraftRunner): readonly HexkitPlu
 function createNodeFileActions(log: (text: string) => void): FileWriterActions {
   return {
     exists: existsSync,
-    write(path, contents) {
+    write(path: string, contents: string) {
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, contents, "utf8");
     },
@@ -76,7 +76,7 @@ export function main(
 
   try {
     return runCli(arguments_, {
-      generate(inputPath, outputDirectory) {
+      generate(inputPath: string, outputDirectory: string) {
         generateApplication(inputPath, outputDirectory, {
           actions: resolvedOptions.actions ?? createNodeFileActions(log),
           inputExists: resolvedOptions.inputExists,

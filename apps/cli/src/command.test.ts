@@ -55,7 +55,7 @@ describe("Given a Hexkit CLI invocation", () => {
       generate() {
         throw new Error("help must not generate");
       },
-      log(text) {
+      log(text: string) {
         messages.push(text);
       },
     });
@@ -85,7 +85,7 @@ describe("Given a Hexkit CLI invocation", () => {
       generate() {
         throw new Error("invalid arguments must not generate");
       },
-      log(text) {
+      log(text: string) {
         messages.push(text);
       },
     });
@@ -99,7 +99,7 @@ describe("Given a Hexkit CLI invocation", () => {
     const calls: Array<{ inputPath: string; outputDirectory: string }> = [];
 
     const exitCode = runCli(["generate", "petstore.yaml", "generated/petstore"], {
-      generate(inputPath, outputDirectory) {
+      generate(inputPath: string, outputDirectory: string) {
         calls.push({ inputPath, outputDirectory });
       },
       log() {},
@@ -138,10 +138,10 @@ describe("Given the default generation pipeline", () => {
     const outputDirectory = "/virtual/generated-petstore";
     const files = new Map<string, string>();
     const actions: FileWriterActions = {
-      exists(path) {
+      exists(path: string) {
         return files.has(path);
       },
-      write(path, contents) {
+      write(path: string, contents: string) {
         files.set(path, contents);
       },
       log() {},
@@ -150,9 +150,9 @@ describe("Given the default generation pipeline", () => {
 
     const exitCode = main(["generate", "petstore.yaml", outputDirectory], {
       actions,
-      inputExists: (path) => path === "petstore.yaml",
+      inputExists: (path: string) => path === "petstore.yaml",
       log() {},
-      runCraft(arguments_) {
+      runCraft(arguments_: readonly string[]) {
         craftCalls.push([...arguments_]);
         const outputFlag = arguments_.indexOf("-o");
         const contractsDirectory = arguments_[outputFlag + 1];
@@ -252,7 +252,7 @@ describe("Given the default generation pipeline", () => {
         log() {},
       },
       inputExists: () => false,
-      log(text) {
+      log(text: string) {
         messages.push(text);
       },
       runCraft() {
@@ -285,7 +285,7 @@ describe("Given compose-ready generated packaging", () => {
     createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
-      writeFile(file) {
+      writeFile(file: GeneratedFile) {
         files.push(file);
       },
       log() {},
@@ -324,7 +324,7 @@ describe("Given compose-ready generated packaging", () => {
       ]
     `);
 
-    const compose = files.find((file) => file.path === "docker-compose.yml");
+    const compose = files.find((file: GeneratedFile) => file.path === "docker-compose.yml");
     expect(compose?.contents).toMatchInlineSnapshot(`
       "services:
         postgres:
@@ -364,13 +364,13 @@ describe("Given compose-ready generated packaging", () => {
     createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
-      writeFile(file) {
+      writeFile(file: GeneratedFile) {
         files.push(file);
       },
       log() {},
     });
 
-    const packageFile = files.find((file) => file.path === "package.json");
+    const packageFile = files.find((file: GeneratedFile) => file.path === "package.json");
     expect(packageFile).toBeDefined();
     const manifest = JSON.parse(packageFile?.contents ?? "") as {
       dependencies: Record<string, string>;
@@ -392,13 +392,13 @@ describe("Given compose-ready generated packaging", () => {
     createPackagingPlugin().generate({
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
-      writeFile(file) {
+      writeFile(file: GeneratedFile) {
         files.push(file);
       },
       log() {},
     });
 
-    const tsconfigFile = files.find((file) => file.path === "tsconfig.json");
+    const tsconfigFile = files.find((file: GeneratedFile) => file.path === "tsconfig.json");
     expect(tsconfigFile).toBeDefined();
     const tsconfig = JSON.parse(tsconfigFile?.contents ?? "") as {
       compilerOptions: Record<string, unknown>;

@@ -1,4 +1,4 @@
-import type { GeneratedFile, HexkitPlugin } from "@hexkit/plugin-api";
+import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 export function generateDomainFiles(): GeneratedFile[] {
   return [
@@ -162,7 +162,7 @@ export function generateCoreFiles(): GeneratedFile[] {
 export function createHexagonalPlugin(): HexkitPlugin {
   return {
     name: "architecture-hexagonal",
-    generate(context) {
+    generate(context: GenerationContext) {
       for (const file of generateCoreFiles()) {
         context.writeFile(file);
       }

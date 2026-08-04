@@ -13,7 +13,7 @@ export function runPipeline(options: PipelineOptions, actions: FileWriterActions
     inputPath: options.inputPath,
     outputDirectory: options.outputDirectory,
     writeFile: createFileWriter(options.outputDirectory, actions),
-    log(message) {
+    log(message: string) {
       actions.log(message);
     },
   };

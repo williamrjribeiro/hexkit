@@ -9,7 +9,7 @@ describe("Given the framework-agnostic plugin contracts", () => {
     const messages: string[] = [];
     const plugin: HexkitPlugin = {
       name: "example",
-      generate(context) {
+      generate(context: GenerationContext) {
         context.writeFile({
           path: "src/example.ts",
           contents: "export const example = true;\n",
@@ -21,10 +21,10 @@ describe("Given the framework-agnostic plugin contracts", () => {
     const context: GenerationContext = {
       inputPath: "openapi.yaml",
       outputDirectory: "generated-app",
-      writeFile(file) {
+      writeFile(file: GeneratedFile) {
         files.push(file);
       },
-      log(message) {
+      log(message: string) {
         messages.push(message);
       },
     };

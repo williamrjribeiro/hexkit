@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { HexkitPlugin } from "@hexkit/plugin-api";
+import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 
 import { runPipeline } from "./pipeline.ts";
 
@@ -10,7 +10,7 @@ describe("Given generated and protected files that already exist", () => {
     const messages: string[] = [];
     const plugin: HexkitPlugin = {
       name: "example",
-      generate(context) {
+      generate(context: GenerationContext) {
         context.writeFile({
           path: "src/generated/contracts.ts",
           contents: "export const generated = true;\n",
@@ -32,10 +32,10 @@ describe("Given generated and protected files that already exist", () => {
       },
       {
         exists: () => true,
-        write(path, contents) {
+        write(path: string, contents: string) {
           writes.push({ path, contents });
         },
-        log(message) {
+        log(message: string) {
           messages.push(message);
         },
       },
@@ -96,7 +96,7 @@ describe("Given an injected logger that uses its action context", () => {
         plugins: [
           {
             name: "logging",
-            generate(context) {
+            generate(context: GenerationContext) {
               context.log("generation started");
             },
           },
