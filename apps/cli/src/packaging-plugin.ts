@@ -1,33 +1,11 @@
-import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
+import { dirname, relative } from "node:path";
 
-const packageManifest = {
-  name: "generated-petstore",
-  version: "0.0.0",
-  private: true,
-  type: "module",
-  scripts: {
-    check: "tsc --noEmit",
-    migrate: 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_petstore.sql',
-    start: "node src/runtime/server.ts",
-  },
-  dependencies: {
-    "@hono/node-server": "2.0.12",
-    "@standard-schema/spec": "1.1.0",
-    "drizzle-orm": "0.45.2",
-    hono: "4.13.0",
-    pg: "8.22.0",
-    zod: "4.4.3",
-  },
-  devDependencies: {
-    "@types/node": "26.1.2",
-    "@types/pg": "8.20.3",
-    typescript: "7.0.2",
-  },
-  engines: {
-    node: ">=24.18.1",
-  },
-  packageManager: "pnpm@11.18.0",
-};
+import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
+import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
+import { PERSISTENCE_ARTIFACT, type PersistenceArtifact } from "@hexkit/plugin-drizzle";
+import { HTTP_ARTIFACT, type HttpArtifact } from "@hexkit/plugin-hono";
+
+const SERVER_FILE_PATH = "src/runtime/server.ts";
 
 const tsconfig = {
   compilerOptions: {
@@ -46,32 +24,6 @@ const tsconfig = {
   },
   include: ["src"],
 };
-
-const serverSource = `import { serve } from "@hono/node-server";
-import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
-
-import { createDrizzleOrderRepository } from "../adapters/db/order-repository.ts";
-import { createDrizzlePetRepository } from "../adapters/db/pet-repository.ts";
-import { createApp } from "./app.ts";
-
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) throw new Error("DATABASE_URL is required");
-
-const port = Number(process.env.PORT ?? "3000");
-if (!Number.isInteger(port) || port < 1) throw new Error("PORT must be a positive integer");
-
-const pool = new Pool({ connectionString });
-const db = drizzle(pool);
-const app = createApp({
-  pets: createDrizzlePetRepository(db),
-  orders: createDrizzleOrderRepository(db),
-});
-
-serve({ fetch: app.fetch, port }, ({ port: listeningPort }) => {
-  console.log(\`Petstore listening on http://0.0.0.0:\${listeningPort}\`);
-});
-`;
 
 const startupScript = `#!/bin/sh
 set -eu
@@ -99,46 +51,32 @@ EXPOSE 3000
 CMD ["./scripts/start.sh"]
 `;
 
-const dockerCompose = `services:
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: petstore
-      POSTGRES_USER: petstore
-      POSTGRES_PASSWORD: petstore
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U petstore -d petstore"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-  app:
-    build: .
-    environment:
-      DATABASE_URL: postgres://petstore:petstore@postgres:5432/petstore
-      PORT: "3000"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "3000:3000"
-
-volumes:
-  postgres-data:
-`;
-
 const dockerignore = `node_modules
 dist
 .git
 `;
 
-export function generatePackagingFiles(): GeneratedFile[] {
+export type PackagingInputs = {
+  contract: ContractArtifact;
+  http: HttpArtifact;
+  persistence: PersistenceArtifact;
+};
+
+export function generatePackagingFiles(inputs: PackagingInputs): GeneratedFile[] {
+  const { contract, http, persistence } = inputs;
+  const applicationSlug = contract.application.slug;
+  const packageName = `generated-${applicationSlug}`;
+  const databaseName = toDatabaseIdentifier(applicationSlug);
+  const repositories = resolveRuntimeRepositories(http, persistence);
+
   return [
     {
       path: "package.json",
-      contents: `${JSON.stringify(packageManifest, undefined, 2)}\n`,
+      contents: `${JSON.stringify(
+        createPackageManifest(packageName, persistence.migrationPath),
+        undefined,
+        2,
+      )}\n`,
       ownership: "generated",
     },
     {
@@ -147,8 +85,13 @@ export function generatePackagingFiles(): GeneratedFile[] {
       ownership: "generated",
     },
     {
-      path: "src/runtime/server.ts",
-      contents: serverSource,
+      path: SERVER_FILE_PATH,
+      contents: renderServerSource({
+        applicationTitle: contract.application.title,
+        createAppFactoryName: http.createAppFactoryName,
+        runtimeFilePath: http.runtimeFilePath,
+        repositories,
+      }),
       ownership: "generated",
     },
     {
@@ -163,7 +106,7 @@ export function generatePackagingFiles(): GeneratedFile[] {
     },
     {
       path: "docker-compose.yml",
-      contents: dockerCompose,
+      contents: renderDockerCompose(databaseName),
       ownership: "generated",
     },
     {
@@ -178,9 +121,186 @@ export function createPackagingPlugin(): HexkitPlugin {
   return {
     name: "packaging",
     generate(context: GenerationContext) {
-      for (const file of generatePackagingFiles()) {
+      const contract = context.artifacts.require(APICAL_CONTRACT_ARTIFACT);
+      const http = context.artifacts.require(HTTP_ARTIFACT);
+      const persistence = context.artifacts.require(PERSISTENCE_ARTIFACT);
+
+      for (const file of generatePackagingFiles({ contract, http, persistence })) {
         context.writeFile(file);
       }
     },
   };
+}
+
+type RuntimeRepositoryBinding = {
+  runtimeKey: string;
+  factoryName: string;
+  filePath: string;
+};
+
+function resolveRuntimeRepositories(
+  http: HttpArtifact,
+  persistence: PersistenceArtifact,
+): RuntimeRepositoryBinding[] {
+  const httpKeys = new Set(http.repositories.map((repository) => repository.parameterName));
+
+  for (const repository of persistence.repositories) {
+    if (!httpKeys.has(repository.runtimeKey)) {
+      throw new Error(
+        `PersistenceArtifact repository runtime key "${repository.runtimeKey}" is missing from HttpArtifact repositories.`,
+      );
+    }
+  }
+
+  const persistenceKeys = new Set(
+    persistence.repositories.map((repository) => repository.runtimeKey),
+  );
+  for (const repository of http.repositories) {
+    if (!persistenceKeys.has(repository.parameterName)) {
+      throw new Error(
+        `HttpArtifact repository parameter "${repository.parameterName}" has no PersistenceArtifact factory binding.`,
+      );
+    }
+  }
+
+  return [...persistence.repositories]
+    .map((repository) => ({
+      runtimeKey: repository.runtimeKey,
+      factoryName: repository.factoryName,
+      filePath: repository.filePath,
+    }))
+    .toSorted((left, right) => compareText(left.runtimeKey, right.runtimeKey));
+}
+
+function createPackageManifest(packageName: string, migrationPath: string) {
+  return {
+    name: packageName,
+    version: "0.0.0",
+    private: true,
+    type: "module",
+    scripts: {
+      check: "tsc --noEmit",
+      migrate: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}`,
+      start: "node src/runtime/server.ts",
+    },
+    dependencies: {
+      "@hono/node-server": "2.0.12",
+      "@standard-schema/spec": "1.1.0",
+      "drizzle-orm": "0.45.2",
+      hono: "4.13.0",
+      pg: "8.22.0",
+      zod: "4.4.3",
+    },
+    devDependencies: {
+      "@types/node": "26.1.2",
+      "@types/pg": "8.20.3",
+      typescript: "7.0.2",
+    },
+    engines: {
+      node: ">=24.18.1",
+    },
+    packageManager: "pnpm@11.18.0",
+  };
+}
+
+function renderServerSource(options: {
+  applicationTitle: string;
+  createAppFactoryName: string;
+  runtimeFilePath: string;
+  repositories: readonly RuntimeRepositoryBinding[];
+}): string {
+  const localImports = [
+    ...options.repositories.map((repository) => ({
+      from: relativeImportPath(SERVER_FILE_PATH, repository.filePath),
+      name: repository.factoryName,
+    })),
+    {
+      from: relativeImportPath(SERVER_FILE_PATH, options.runtimeFilePath),
+      name: options.createAppFactoryName,
+    },
+  ].toSorted((left, right) => compareText(left.from, right.from));
+
+  const importBlock = localImports
+    .map((declaration) => `import { ${declaration.name} } from "${declaration.from}";`)
+    .join("\n");
+
+  const appBindings = options.repositories
+    .map((repository) => `  ${repository.runtimeKey}: ${repository.factoryName}(db),`)
+    .join("\n");
+
+  const listeningPrefix = escapeTemplateLiteral(
+    `${options.applicationTitle} listening on http://0.0.0.0:`,
+  );
+
+  return `import { serve } from "@hono/node-server";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+${importBlock}
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is required");
+
+const port = Number(process.env.PORT ?? "3000");
+if (!Number.isInteger(port) || port < 1) throw new Error("PORT must be a positive integer");
+
+const pool = new Pool({ connectionString });
+const db = drizzle(pool);
+const app = ${options.createAppFactoryName}({
+${appBindings}
+});
+
+serve({ fetch: app.fetch, port }, ({ port: listeningPort }) => {
+  console.log(\`${listeningPrefix}\${listeningPort}\`);
+});
+`;
+}
+
+function renderDockerCompose(databaseName: string): string {
+  return `services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: \${POSTGRES_DB:-${databaseName}}
+      POSTGRES_USER: \${POSTGRES_USER:-${databaseName}}
+      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-${databaseName}}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://\${POSTGRES_USER:-${databaseName}}:\${POSTGRES_PASSWORD:-${databaseName}}@postgres:5432/\${POSTGRES_DB:-${databaseName}}
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+`;
+}
+
+function escapeTemplateLiteral(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll("`", "\\`").replaceAll("${", "\\${");
+}
+
+function toDatabaseIdentifier(slug: string): string {
+  return slug.replaceAll("-", "_");
+}
+
+function relativeImportPath(fromFilePath: string, toFilePath: string): string {
+  const specifier = relative(dirname(fromFilePath), toFilePath).split("\\").join("/");
+  return specifier.startsWith(".") ? specifier : `./${specifier}`;
+}
+
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
 }

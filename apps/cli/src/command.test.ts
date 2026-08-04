@@ -4,8 +4,14 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 
 import type { FileWriterActions } from "@hexkit/core";
-import { loadValidatedOpenApi } from "@hexkit/plugin-apical";
+import {
+  APICAL_CONTRACT_ARTIFACT,
+  loadValidatedOpenApi,
+  type ContractArtifact,
+} from "@hexkit/plugin-apical";
 import { createArtifactRegistry, type GeneratedFile } from "@hexkit/plugin-api";
+import { PERSISTENCE_ARTIFACT, type PersistenceArtifact } from "@hexkit/plugin-drizzle";
+import { HTTP_ARTIFACT, type HttpArtifact } from "@hexkit/plugin-hono";
 
 import {
   createDefaultPlugins,
@@ -254,7 +260,7 @@ describe("Given the default generation pipeline", () => {
         ".dockerignore",
         "Dockerfile",
         "docker-compose.yml",
-        "drizzle/0000_petstore.sql",
+        "drizzle/0000_hexkit-petstore-poc.sql",
         "package.json",
         "scripts/start.sh",
         "src/adapters/db/mappers.ts",
@@ -354,18 +360,162 @@ describe("Given the published CLI package", () => {
 });
 
 describe("Given compose-ready generated packaging", () => {
-  it("when the packaging plugin runs, then it emits the snapshotted container and startup paths", async () => {
+  function petstorePackagingArtifacts(): {
+    contract: ContractArtifact;
+    http: HttpArtifact;
+    persistence: PersistenceArtifact;
+  } {
+    return {
+      contract: {
+        artifactVersion: 1,
+        openapiVersion: "3.1.0",
+        application: {
+          title: "Hexkit Petstore PoC",
+          version: "1.0.0",
+          slug: "hexkit-petstore-poc",
+        },
+        schemas: [],
+        operations: [],
+      },
+      http: {
+        artifactVersion: 1,
+        controllersFilePath: "src/adapters/http/controllers.ts",
+        routesFilePath: "src/adapters/http/routes.ts",
+        runtimeFilePath: "src/runtime/app.ts",
+        createAppFactoryName: "createApp",
+        createHonoAppFactoryName: "createHonoApp",
+        runtimeRepositoriesTypeName: "RuntimeRepositories",
+        repositories: [
+          {
+            parameterName: "orders",
+            repositoryName: "OrderRepository",
+            repositoryFilePath: "src/core/ports/order-repository.ts",
+          },
+          {
+            parameterName: "pets",
+            repositoryName: "PetRepository",
+            repositoryFilePath: "src/core/ports/pet-repository.ts",
+          },
+        ],
+        operations: [],
+      },
+      persistence: {
+        artifactVersion: 1,
+        schemaFilePath: "src/adapters/db/schema.ts",
+        mapperFilePath: "src/adapters/db/mappers.ts",
+        migrationPath: "drizzle/0000_hexkit-petstore-poc.sql",
+        tables: [],
+        mappers: [],
+        repositories: [
+          {
+            aggregate: "Order",
+            portName: "OrderRepository",
+            factoryName: "createDrizzleOrderRepository",
+            filePath: "src/adapters/db/order-repository.ts",
+            runtimeKey: "orders",
+          },
+          {
+            aggregate: "Pet",
+            portName: "PetRepository",
+            factoryName: "createDrizzlePetRepository",
+            filePath: "src/adapters/db/pet-repository.ts",
+            runtimeKey: "pets",
+          },
+        ],
+      },
+    };
+  }
+
+  function libraryPackagingArtifacts(): {
+    contract: ContractArtifact;
+    http: HttpArtifact;
+    persistence: PersistenceArtifact;
+  } {
+    return {
+      contract: {
+        artifactVersion: 1,
+        openapiVersion: "3.1.0",
+        application: {
+          title: "Hexkit Library API",
+          version: "1.0.0",
+          slug: "hexkit-library-api",
+        },
+        schemas: [],
+        operations: [],
+      },
+      http: {
+        artifactVersion: 1,
+        controllersFilePath: "src/adapters/http/controllers.ts",
+        routesFilePath: "src/adapters/http/routes.ts",
+        runtimeFilePath: "src/runtime/app.ts",
+        createAppFactoryName: "createApp",
+        createHonoAppFactoryName: "createHonoApp",
+        runtimeRepositoriesTypeName: "RuntimeRepositories",
+        repositories: [
+          {
+            parameterName: "authors",
+            repositoryName: "AuthorRepository",
+            repositoryFilePath: "src/core/ports/author-repository.ts",
+          },
+          {
+            parameterName: "books",
+            repositoryName: "BookRepository",
+            repositoryFilePath: "src/core/ports/book-repository.ts",
+          },
+        ],
+        operations: [],
+      },
+      persistence: {
+        artifactVersion: 1,
+        schemaFilePath: "src/adapters/db/schema.ts",
+        mapperFilePath: "src/adapters/db/mappers.ts",
+        migrationPath: "drizzle/0000_hexkit-library-api.sql",
+        tables: [],
+        mappers: [],
+        repositories: [
+          {
+            aggregate: "Author",
+            portName: "AuthorRepository",
+            factoryName: "createDrizzleAuthorRepository",
+            filePath: "src/adapters/db/author-repository.ts",
+            runtimeKey: "authors",
+          },
+          {
+            aggregate: "Book",
+            portName: "BookRepository",
+            factoryName: "createDrizzleBookRepository",
+            filePath: "src/adapters/db/book-repository.ts",
+            runtimeKey: "books",
+          },
+        ],
+      },
+    };
+  }
+
+  async function runPackaging(
+    artifacts: ReturnType<typeof petstorePackagingArtifacts>,
+  ): Promise<GeneratedFile[]> {
     const files: GeneratedFile[] = [];
+    const registry = createArtifactRegistry();
+    registry.publish(APICAL_CONTRACT_ARTIFACT, artifacts.contract);
+    registry.publish(HTTP_ARTIFACT, artifacts.http);
+    registry.publish(PERSISTENCE_ARTIFACT, artifacts.persistence);
 
     await createPackagingPlugin().generate({
-      inputPath: "petstore.yaml",
-      outputDirectory: "generated/petstore",
-      artifacts: createArtifactRegistry(),
+      inputPath: "openapi.yaml",
+      outputDirectory: "generated/app",
+      artifacts: registry,
       writeFile(file: GeneratedFile) {
         files.push(file);
       },
       log() {},
     });
+
+    return files;
+  }
+
+  it("when the packaging plugin runs, then it emits the snapshotted container and startup paths", async () => {
+    const files = await runPackaging(petstorePackagingArtifacts());
 
     expect(files.map(({ path, ownership }) => ({ path, ownership }))).toMatchInlineSnapshot(`
       [
@@ -406,11 +556,11 @@ describe("Given compose-ready generated packaging", () => {
         postgres:
           image: postgres:17-alpine
           environment:
-            POSTGRES_DB: petstore
-            POSTGRES_USER: petstore
-            POSTGRES_PASSWORD: petstore
+            POSTGRES_DB: \${POSTGRES_DB:-hexkit_petstore_poc}
+            POSTGRES_USER: \${POSTGRES_USER:-hexkit_petstore_poc}
+            POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-hexkit_petstore_poc}
           healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U petstore -d petstore"]
+            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
             interval: 2s
             timeout: 5s
             retries: 15
@@ -420,7 +570,7 @@ describe("Given compose-ready generated packaging", () => {
         app:
           build: .
           environment:
-            DATABASE_URL: postgres://petstore:petstore@postgres:5432/petstore
+            DATABASE_URL: postgres://\${POSTGRES_USER:-hexkit_petstore_poc}:\${POSTGRES_PASSWORD:-hexkit_petstore_poc}@postgres:5432/\${POSTGRES_DB:-hexkit_petstore_poc}
             PORT: "3000"
           depends_on:
             postgres:
@@ -432,27 +582,53 @@ describe("Given compose-ready generated packaging", () => {
         postgres-data:
       "
     `);
+
+    const server = files.find((file: GeneratedFile) => file.path === "src/runtime/server.ts");
+    expect(server?.contents).toContain("createDrizzleOrderRepository");
+    expect(server?.contents).toContain("createDrizzlePetRepository");
+    expect(server?.contents).toContain("orders: createDrizzleOrderRepository(db)");
+    expect(server?.contents).toContain("pets: createDrizzlePetRepository(db)");
+    expect(server?.contents).toContain("Hexkit Petstore PoC listening on");
+  });
+
+  it("when packaging Library artifacts, then names and wiring come from the contract slug", async () => {
+    const files = await runPackaging(libraryPackagingArtifacts());
+    const packageFile = files.find((file: GeneratedFile) => file.path === "package.json");
+    const manifest = JSON.parse(packageFile?.contents ?? "") as {
+      name: string;
+      scripts: Record<string, string>;
+    };
+
+    expect(manifest.name).toBe("generated-hexkit-library-api");
+    expect(manifest.scripts.migrate).toBe(
+      'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_hexkit-library-api.sql',
+    );
+
+    const server = files.find((file: GeneratedFile) => file.path === "src/runtime/server.ts");
+    expect(server?.contents).toContain("createDrizzleAuthorRepository");
+    expect(server?.contents).toContain("createDrizzleBookRepository");
+    expect(server?.contents).toContain("authors: createDrizzleAuthorRepository(db)");
+    expect(server?.contents).toContain("books: createDrizzleBookRepository(db)");
+    expect(server?.contents).not.toContain("Pet");
+    expect(server?.contents).not.toContain("Order");
+    expect(server?.contents).not.toContain("petstore");
   });
 
   it("when the package manifest is emitted, then source build and runtime dependencies use current versions", async () => {
-    const files: GeneratedFile[] = [];
-
-    await createPackagingPlugin().generate({
-      inputPath: "petstore.yaml",
-      outputDirectory: "generated/petstore",
-      artifacts: createArtifactRegistry(),
-      writeFile(file: GeneratedFile) {
-        files.push(file);
-      },
-      log() {},
-    });
+    const files = await runPackaging(petstorePackagingArtifacts());
 
     const packageFile = files.find((file: GeneratedFile) => file.path === "package.json");
     expect(packageFile).toBeDefined();
     const manifest = JSON.parse(packageFile?.contents ?? "") as {
+      name: string;
       dependencies: Record<string, string>;
+      scripts: Record<string, string>;
     };
 
+    expect(manifest.name).toBe("generated-hexkit-petstore-poc");
+    expect(manifest.scripts.migrate).toBe(
+      'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_hexkit-petstore-poc.sql',
+    );
     expect(manifest.dependencies).toEqual({
       "@hono/node-server": "2.0.12",
       "@standard-schema/spec": "1.1.0",
@@ -464,17 +640,7 @@ describe("Given compose-ready generated packaging", () => {
   });
 
   it("when TypeScript config is emitted, then it remains compatible with Apical generated imports", async () => {
-    const files: GeneratedFile[] = [];
-
-    await createPackagingPlugin().generate({
-      inputPath: "petstore.yaml",
-      outputDirectory: "generated/petstore",
-      artifacts: createArtifactRegistry(),
-      writeFile(file: GeneratedFile) {
-        files.push(file);
-      },
-      log() {},
-    });
+    const files = await runPackaging(petstorePackagingArtifacts());
 
     const tsconfigFile = files.find((file: GeneratedFile) => file.path === "tsconfig.json");
     expect(tsconfigFile).toBeDefined();
@@ -483,5 +649,25 @@ describe("Given compose-ready generated packaging", () => {
     };
 
     expect(tsconfig.compilerOptions).not.toHaveProperty("noUnusedLocals");
+  });
+
+  it("when HTTP and persistence repository keys diverge, then packaging fails clearly", async () => {
+    const artifacts = petstorePackagingArtifacts();
+    artifacts.persistence = {
+      ...artifacts.persistence,
+      repositories: [
+        {
+          aggregate: "Pet",
+          portName: "PetRepository",
+          factoryName: "createDrizzlePetRepository",
+          filePath: "src/adapters/db/pet-repository.ts",
+          runtimeKey: "animals",
+        },
+      ],
+    };
+
+    await expect(runPackaging(artifacts)).rejects.toThrow(
+      'PersistenceArtifact repository runtime key "animals" is missing from HttpArtifact repositories.',
+    );
   });
 });
