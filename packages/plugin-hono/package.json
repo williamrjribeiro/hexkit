@@ -35,11 +35,12 @@
     "prepublishOnly": "vp run build"
   },
   "dependencies": {
-    "@hexkit/plugin-api": "workspace:*"
+    "@hexkit/codegen": "workspace:*",
+    "@hexkit/plugin-api": "workspace:*",
+    "@hexkit/plugin-apical": "workspace:*",
+    "@hexkit/plugin-architecture-hexagonal": "workspace:*"
   },
   "devDependencies": {
-    "@hexkit/plugin-apical": "workspace:*",
-    "@hexkit/plugin-architecture-hexagonal": "workspace:*",
     "@standard-schema/spec": "catalog:",
     "@types/node": "catalog:",
     "hono": "catalog:",

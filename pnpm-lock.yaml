@@ -434,9 +434,18 @@ importers:
 
   packages/plugin-drizzle:
     dependencies:
+      '@hexkit/codegen':
+        specifier: workspace:*
+        version: link:../codegen
       '@hexkit/plugin-api':
         specifier: workspace:*
         version: link:../plugin-api
+      '@hexkit/plugin-apical':
+        specifier: workspace:*
+        version: link:../plugin-apical
+      '@hexkit/plugin-architecture-hexagonal':
+        specifier: workspace:*
+        version: link:../plugin-architecture-hexagonal
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -453,16 +462,19 @@ importers:
 
   packages/plugin-hono:
     dependencies:
+      '@hexkit/codegen':
+        specifier: workspace:*
+        version: link:../codegen
       '@hexkit/plugin-api':
         specifier: workspace:*
         version: link:../plugin-api
-    devDependencies:
       '@hexkit/plugin-apical':
         specifier: workspace:*
         version: link:../plugin-apical
       '@hexkit/plugin-architecture-hexagonal':
         specifier: workspace:*
         version: link:../plugin-architecture-hexagonal
+    devDependencies:
       '@standard-schema/spec':
         specifier: 'catalog:'
         version: 1.1.0
