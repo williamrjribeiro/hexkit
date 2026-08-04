@@ -73,4 +73,7 @@ fetch(`${baseUrl}/pet/2147483647`)
   sleep 1
 done
 
-PETSTORE_API_URL="$API_BASE_URL" vp run @hexkit/petstore-sample#test:api
+(
+  cd "$SAMPLE_DIR"
+  PETSTORE_API_URL="$API_BASE_URL" vp test run tests/api.test.ts
+)

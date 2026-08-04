@@ -1,19 +1,19 @@
 import { describe, it } from "vite-plus/test";
 import { request, spec } from "pactum";
 
+import { createAcceptanceIds } from "./api-fixtures.ts";
+
 const apiBaseUrl = process.env.PETSTORE_API_URL ?? "http://127.0.0.1:3000";
-const runId = Math.floor(Date.now() / 1000) % 1_000_000_000;
-const petId = runId;
-const orderId = runId;
+const { invalidOrderId, missingPetId, orderId, petId } = createAcceptanceIds();
 
 const addedPet = {
   id: petId,
-  name: `Hexkit dogfood pet ${String(runId)}`,
+  name: `Hexkit dogfood pet ${String(petId)}`,
   status: "available",
 };
 const updatedPet = {
   ...addedPet,
-  name: `Updated Hexkit dogfood pet ${String(runId)}`,
+  name: `Updated Hexkit dogfood pet ${String(petId)}`,
   status: "sold",
 };
 const placedOrder = {
@@ -81,8 +81,8 @@ describe.sequential("Given the generated Petstore API", () => {
         .post("/store/order")
         .withJson({
           ...placedOrder,
-          id: orderId + 1,
-          petId: petId + 1,
+          id: invalidOrderId,
+          petId: missingPetId,
         })
         .expectStatus(500)
         .expectJson({ error: "Internal Server Error" }),
