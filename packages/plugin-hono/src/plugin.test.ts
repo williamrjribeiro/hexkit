@@ -265,27 +265,27 @@ describe("Given the seven generated JSON operations and protected application us
     const malformedRepositoryResult = { id: 1, name: 42 };
     const app = createApp({
       pets: {
-        async add(pet: unknown) {
+        async addPet(pet: unknown) {
           addCalls += 1;
           return pet;
         },
-        async update(pet: unknown) {
+        async updatePet(pet: unknown) {
           return pet;
         },
-        async getById() {
+        async getPetById() {
           databaseReads += 1;
           return malformedRepositoryResult;
         },
-        async delete() {},
+        async deletePet() {},
       },
       orders: {
-        async place(order: unknown) {
+        async placeOrder(order: unknown) {
           return order;
         },
-        async getById() {
+        async getOrderById() {
           return undefined;
         },
-        async delete() {},
+        async deleteOrder() {},
       },
     });
 
