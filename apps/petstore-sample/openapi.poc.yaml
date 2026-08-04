@@ -100,14 +100,14 @@ components:
       required: true
       schema:
         type: integer
-        format: int64
+        format: int32
     OrderId:
       name: orderId
       in: path
       required: true
       schema:
         type: integer
-        format: int64
+        format: int32
   schemas:
     Pet:
       type: object

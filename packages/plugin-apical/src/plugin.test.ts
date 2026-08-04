@@ -100,15 +100,37 @@ describe("Given the Petstore PoC contract", () => {
     expect(contract).not.toMatch(/^  securitySchemes:/m);
   });
 
-  it("when persisted identifier formats are inspected, then they use exact int32 numbers", () => {
+  it("when all identifier formats are inspected, then path and persisted IDs use exact int32 numbers", () => {
     const contract = readContract();
-    const identifierFormats = [
+    const pathParameterFormats = [
+      ...contract.matchAll(
+        /^    (?:PetId|OrderId):\n(?:      .+\n){4}        type: integer\n        format: (\w+)$/gm,
+      ),
+    ].map((match) => match[1]);
+    const persistedPropertyFormats = [
       ...contract.matchAll(
         /^        (?:id|petId):\n          type: integer\n          format: (\w+)$/gm,
       ),
     ].map((match) => match[1]);
 
-    expect(identifierFormats).toEqual(["int32", "int32", "int32"]);
+    expect({
+      pathParameterFormats,
+      persistedPropertyFormats,
+      remainingInt64Formats: contract.match(/format: int64/g) ?? [],
+    }).toMatchInlineSnapshot(`
+      {
+        "pathParameterFormats": [
+          "int32",
+          "int32",
+        ],
+        "persistedPropertyFormats": [
+          "int32",
+          "int32",
+          "int32",
+        ],
+        "remainingInt64Formats": [],
+      }
+    `);
   });
 });
 
