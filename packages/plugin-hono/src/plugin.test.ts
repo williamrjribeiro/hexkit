@@ -82,9 +82,21 @@ describe("Given the seven generated JSON operations and protected application us
             line.includes("/generated/contracts/") &&
             (line.includes("Wrapper") || line.includes("ResponseMap")),
         ),
+      requestValidationCalls: file.contents
+        .split("\n")
+        .filter((line) => /^\s+\w+: \w+Wrapper\(async \(request\) => \{$/.test(line)),
+      responseValidationCalls: file.contents
+        .split("\n")
+        .filter(
+          (line) =>
+            line.includes("data: ") && line.includes("ResponseMap") && line.includes(".parse("),
+        ),
       routes: file.contents
         .split("\n")
         .filter((line) => /^\s*app\.(?:delete|get|post|put)\(/.test(line)),
+      routeControllerCalls: file.contents
+        .split("\n")
+        .filter((line) => line.includes("respond(await controllers.")),
       bindings: file.contents
         .split("\n")
         .filter((line) =>
@@ -123,6 +135,23 @@ describe("Given the seven generated JSON operations and protected application us
           ],
           "ownership": "generated",
           "path": "src/adapters/http/controllers.ts",
+          "requestValidationCalls": [
+            "    addPet: addPetWrapper(async (request) => {",
+            "    updatePet: updatePetWrapper(async (request) => {",
+            "    getPetById: getPetByIdWrapper(async (request) => {",
+            "    deletePet: deletePetWrapper(async (request) => {",
+            "    placeOrder: placeOrderWrapper(async (request) => {",
+            "    getOrderById: getOrderByIdWrapper(async (request) => {",
+            "    deleteOrder: deleteOrderWrapper(async (request) => {",
+          ],
+          "responseValidationCalls": [
+            "        data: addPetResponseMap["201"]["application/json"].parse(pet),",
+            "        data: updatePetResponseMap["200"]["application/json"].parse(pet),",
+            "        data: getPetByIdResponseMap["200"]["application/json"].parse(pet),",
+            "        data: placeOrderResponseMap["201"]["application/json"].parse(order),",
+            "        data: getOrderByIdResponseMap["200"]["application/json"].parse(order),",
+          ],
+          "routeControllerCalls": [],
           "routes": [],
         },
         {
@@ -139,6 +168,17 @@ describe("Given the seven generated JSON operations and protected application us
           ],
           "ownership": "generated",
           "path": "src/adapters/http/routes.ts",
+          "requestValidationCalls": [],
+          "responseValidationCalls": [],
+          "routeControllerCalls": [
+            "    respond(await controllers.addPet(await jsonRequest(context))),",
+            "    respond(await controllers.updatePet(await jsonRequest(context))),",
+            "    respond(await controllers.getPetById(request(context))),",
+            "    respond(await controllers.deletePet(request(context))),",
+            "    respond(await controllers.placeOrder(await jsonRequest(context))),",
+            "    respond(await controllers.getOrderById(request(context))),",
+            "    respond(await controllers.deleteOrder(request(context))),",
+          ],
           "routes": [
             "  app.post("/pet", async (context) =>",
             "  app.put("/pet", async (context) =>",
@@ -171,6 +211,9 @@ describe("Given the seven generated JSON operations and protected application us
           ],
           "ownership": "generated",
           "path": "src/runtime/app.ts",
+          "requestValidationCalls": [],
+          "responseValidationCalls": [],
+          "routeControllerCalls": [],
           "routes": [],
         },
       ]
@@ -207,22 +250,17 @@ describe("Given the seven generated JSON operations and protected application us
     }).toEqual({ status: 0, stdout: "", stderr: "" });
   });
 
-  it("when generated runtime boundaries receive invalid input and a malformed database row, then neither value crosses the boundary", async () => {
+  it("when generated runtime boundaries receive invalid input and a raw malformed repository result, then neither value crosses the boundary", async () => {
     const outputDirectory = materializeGeneratedApp();
     const runtimeUrl = pathToFileURL(join(outputDirectory, "src/runtime/app.ts")).href;
-    const petSchemaUrl = pathToFileURL(
-      join(outputDirectory, "src/generated/contracts/schemas/Pet.ts"),
-    ).href;
     const { createApp } = (await import(/* @vite-ignore */ runtimeUrl)) as {
       createApp: (repositories: unknown) => {
         request(input: string | Request, init?: RequestInit): Promise<Response>;
       };
     };
-    const { Pet } = (await import(/* @vite-ignore */ petSchemaUrl)) as {
-      Pet: { parse(value: unknown): unknown };
-    };
     let addCalls = 0;
     let databaseReads = 0;
+    const malformedRepositoryResult = { id: 1, name: 42 };
     const app = createApp({
       pets: {
         async add(pet: unknown) {
@@ -234,7 +272,7 @@ describe("Given the seven generated JSON operations and protected application us
         },
         async getById() {
           databaseReads += 1;
-          return Pet.parse({ id: 1, name: 42 });
+          return malformedRepositoryResult;
         },
         async delete() {},
       },
@@ -254,6 +292,7 @@ describe("Given the seven generated JSON operations and protected application us
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ id: 1 }),
     });
+    const addCallsAfterInvalidRequest = addCalls;
     const validRequest = await app.request("http://hexkit.test/pet", {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },
@@ -265,7 +304,7 @@ describe("Given the seven generated JSON operations and protected application us
       invalidRequest: {
         status: invalidRequest.status,
         body: await invalidRequest.json(),
-        addCallsBeforeValidRequest: addCalls - 1,
+        addCallsAfterInvalidRequest,
       },
       validRequest: {
         status: validRequest.status,
@@ -281,7 +320,7 @@ describe("Given the seven generated JSON operations and protected application us
       invalidRequest: {
         status: 400,
         body: { error: "Bad Request" },
-        addCallsBeforeValidRequest: 0,
+        addCallsAfterInvalidRequest: 0,
       },
       validRequest: {
         status: 201,
