@@ -21,7 +21,7 @@ import {
   runCli,
 } from "./index.ts";
 
-const apicalContractPaths = [
+const petstoreApicalContractPaths = [
   "package.json",
   "routes/addPet.ts",
   "routes/deleteOrder.ts",
@@ -53,15 +53,35 @@ const apicalContractPaths = [
   "standard-schema.ts",
   "tsconfig.json",
 ] as const;
-const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", import.meta.url);
 
-const schemasIndex = `
+const libraryApicalContractPaths = [
+  "package.json",
+  "routes/createBook.ts",
+  "routes/getBook.ts",
+  "routes/index.ts",
+  "schemas/Author.ts",
+  "schemas/Book.ts",
+  "schemas/createBookParameters.ts",
+  "schemas/getBookParameters.ts",
+  "schemas/index.ts",
+  "schemas/runtime.ts",
+  "server/createBook.ts",
+  "server/getBook.ts",
+  "server/index.ts",
+  "standard-schema.ts",
+  "tsconfig.json",
+] as const;
+
+const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", import.meta.url);
+const libraryContract = new URL("../../fixtures/library-api/openapi.yaml", import.meta.url);
+
+const petstoreSchemasIndex = `
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
 export { Order, Pet };
 `;
 
-const routesIndex = `
+const petstoreRoutesIndex = `
 import { serverRoute as addPetRoute } from "./addPet.ts";
 import { serverRoute as updatePetRoute } from "./updatePet.ts";
 import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
@@ -79,6 +99,76 @@ export const routes = {
   deleteOrder: deleteOrderRoute,
 } as const;
 `;
+
+const librarySchemasIndex = `
+import { Author } from "./Author.ts";
+import { Book } from "./Book.ts";
+export { Author, Book };
+`;
+
+const libraryRoutesIndex = `
+import { serverRoute as createBookRoute } from "./createBook.ts";
+import { serverRoute as getBookRoute } from "./getBook.ts";
+export const routes = {
+  createBook: createBookRoute,
+  getBook: getBookRoute,
+} as const;
+`;
+
+async function runAssembledCliGeneration(options: {
+  inputName: string;
+  outputDirectory: string;
+  openApiPath: string;
+  apicalPaths: readonly string[];
+  schemasIndex: string;
+  routesIndex: string;
+}): Promise<{ exitCode: number; craftCalls: string[][]; files: Map<string, string> }> {
+  const files = new Map<string, string>();
+  const craftCalls: string[][] = [];
+  const actions: FileWriterActions = {
+    exists(path: string) {
+      return files.has(path);
+    },
+    write(path: string, contents: string) {
+      files.set(path, contents);
+    },
+    log() {},
+  };
+
+  const exitCode = await main(["generate", options.inputName, options.outputDirectory], {
+    actions,
+    inputExists: (path: string) => path === options.inputName,
+    log() {},
+    apical: {
+      async runCraft(arguments_: readonly string[]) {
+        craftCalls.push([...arguments_]);
+        const outputFlag = arguments_.indexOf("-o");
+        const contractsDirectory = arguments_[outputFlag + 1];
+        if (!contractsDirectory) throw new Error("Craft output argument is missing");
+
+        for (const path of options.apicalPaths) {
+          const contents =
+            path === "schemas/index.ts"
+              ? options.schemasIndex
+              : path === "routes/index.ts"
+                ? options.routesIndex
+                : "";
+          actions.write(join(contractsDirectory, path), contents);
+        }
+      },
+      loadOpenApi: () => loadValidatedOpenApi(options.openApiPath),
+      async readGeneratedFile(path) {
+        const contents = files.get(path);
+        if (contents === undefined) {
+          throw new Error(`Missing virtual Apical output: ${path}`);
+        }
+        return contents;
+      },
+    },
+  });
+
+  return { exitCode, craftCalls, files };
+}
 
 describe("Given a Hexkit CLI invocation", () => {
   it("when help is requested, then it prints the snapshotted command help and succeeds", async () => {
@@ -196,50 +286,15 @@ describe("Given the default generation pipeline", () => {
     ]);
   });
 
-  it("when the assembled CLI generates, then injected Craft and filesystem edges receive the complete application", async () => {
+  it("when the assembled CLI generates Petstore, then injected Craft and filesystem edges receive the complete application", async () => {
     const outputDirectory = "/virtual/generated-petstore";
-    const files = new Map<string, string>();
-    const actions: FileWriterActions = {
-      exists(path: string) {
-        return files.has(path);
-      },
-      write(path: string, contents: string) {
-        files.set(path, contents);
-      },
-      log() {},
-    };
-    const craftCalls: string[][] = [];
-
-    const exitCode = await main(["generate", "petstore.yaml", outputDirectory], {
-      actions,
-      inputExists: (path: string) => path === "petstore.yaml",
-      log() {},
-      apical: {
-        async runCraft(arguments_: readonly string[]) {
-          craftCalls.push([...arguments_]);
-          const outputFlag = arguments_.indexOf("-o");
-          const contractsDirectory = arguments_[outputFlag + 1];
-          if (!contractsDirectory) throw new Error("Craft output argument is missing");
-
-          for (const path of apicalContractPaths) {
-            const contents =
-              path === "schemas/index.ts"
-                ? schemasIndex
-                : path === "routes/index.ts"
-                  ? routesIndex
-                  : "";
-            actions.write(join(contractsDirectory, path), contents);
-          }
-        },
-        loadOpenApi: () => loadValidatedOpenApi(petstoreContract.pathname),
-        async readGeneratedFile(path) {
-          const contents = files.get(path);
-          if (contents === undefined) {
-            throw new Error(`Missing virtual Apical output: ${path}`);
-          }
-          return contents;
-        },
-      },
+    const { exitCode, craftCalls, files } = await runAssembledCliGeneration({
+      inputName: "petstore.yaml",
+      outputDirectory,
+      openApiPath: petstoreContract.pathname,
+      apicalPaths: petstoreApicalContractPaths,
+      schemasIndex: petstoreSchemasIndex,
+      routesIndex: petstoreRoutesIndex,
     });
 
     expect(exitCode).toBe(0);
@@ -316,6 +371,63 @@ describe("Given the default generation pipeline", () => {
         "tsconfig.json",
       ]
     `);
+  });
+
+  it("when the assembled CLI generates Library, then author/book artifacts emit without Petstore output", async () => {
+    const outputDirectory = "/virtual/generated-library";
+    const { exitCode, files } = await runAssembledCliGeneration({
+      inputName: "library.yaml",
+      outputDirectory,
+      openApiPath: libraryContract.pathname,
+      apicalPaths: libraryApicalContractPaths,
+      schemasIndex: librarySchemasIndex,
+      routesIndex: libraryRoutesIndex,
+    });
+
+    expect(exitCode).toBe(0);
+
+    const relativePaths = [...files.keys()].map((path) => relative(outputDirectory, path)).sort();
+    const source = [...files.values()].join("\n");
+    const packageManifest = JSON.parse(
+      files.get(join(outputDirectory, "package.json")) ?? "{}",
+    ) as { name: string; scripts: Record<string, string> };
+    const schema = files.get(join(outputDirectory, "src/adapters/db/schema.ts")) ?? "";
+    const migration = files.get(join(outputDirectory, "drizzle/0000_hexkit-library-api.sql")) ?? "";
+    const routes = files.get(join(outputDirectory, "src/adapters/http/routes.ts")) ?? "";
+
+    expect(relativePaths).toEqual(
+      expect.arrayContaining([
+        "drizzle/0000_hexkit-library-api.sql",
+        "src/adapters/db/book-repository.ts",
+        "src/adapters/db/schema.ts",
+        "src/adapters/http/routes.ts",
+        "src/core/application/create-book.ts",
+        "src/core/application/get-book.ts",
+        "src/core/domain/author.ts",
+        "src/core/domain/book.ts",
+        "src/core/ports/book-repository.ts",
+        "src/generated/contracts/routes/createBook.ts",
+        "src/generated/contracts/schemas/Author.ts",
+        "src/generated/contracts/schemas/Book.ts",
+      ]),
+    );
+    expect(relativePaths).not.toEqual(
+      expect.arrayContaining([
+        "drizzle/0000_hexkit-petstore-poc.sql",
+        "src/adapters/db/pet-repository.ts",
+        "src/core/domain/pet.ts",
+        "src/adapters/db/author-repository.ts",
+      ]),
+    );
+    expect(packageManifest.name).toBe("generated-hexkit-library-api");
+    expect(packageManifest.scripts.migrate).toContain("drizzle/0000_hexkit-library-api.sql");
+    expect(schema).toContain('pgTable("authors"');
+    expect(schema).toContain('pgTable("books"');
+    expect(schema).toContain(".references(() => authors.id)");
+    expect(migration).toContain('FOREIGN KEY ("author_id") REFERENCES "public"."authors"("id")');
+    expect(routes).toContain('app.post("/books"');
+    expect(routes).toContain('app.get("/books/:bookId"');
+    expect(source).not.toMatch(/\bPet\b|\bOrder\b|petstore|addPet|placeOrder/);
   });
 
   it("when the assembled CLI receives a nonexistent OpenAPI path, then it reports the path and fails without generation", async () => {
