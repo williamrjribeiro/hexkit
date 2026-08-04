@@ -6,6 +6,8 @@ catalogMode: prefer
 
 catalog:
   "@apical-ts/craft": 0.26.0
+  "@babel/parser": ^8.0.4
+  "@readme/openapi-parser": ^6.3.1
   "@standard-schema/spec": ^1.1.0
   "@types/node": ^24
   "@types/pg": ^8.20.3
