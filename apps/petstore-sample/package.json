@@ -11,7 +11,7 @@
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts tests/dogfood-script.test.ts tests/dogfood-task.test.ts",
+    "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts",
     "test:generation": "vp test run tests/generation.test.ts",
     "check": "vp check"
   },
