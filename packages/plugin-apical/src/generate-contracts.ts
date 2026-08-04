@@ -17,7 +17,7 @@ const require = createRequire(import.meta.url);
 
 /**
  * Pure calculation: craft CLI args for a generate invocation.
- * Keeping this free of I/O makes Petstore wiring easy to unit test.
+ * Keeping this free of I/O makes craft argument wiring easy to unit test.
  */
 export function buildCraftGenerateArgs(options: GenerateContractsOptions): string[] {
   const args = ["generate", "-i", options.input, "-o", options.output];

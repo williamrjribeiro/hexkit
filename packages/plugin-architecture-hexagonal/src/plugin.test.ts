@@ -22,10 +22,8 @@ import { createHexagonalPlugin } from "./plugin.ts";
 
 const petstoreOpenApi = new URL("../../../apps/petstore-sample/openapi.poc.yaml", import.meta.url)
   .pathname;
-const libraryOpenApi = new URL(
-  "../../plugin-apical/src/__fixtures__/library-api.yaml",
-  import.meta.url,
-).pathname;
+const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
+  .pathname;
 
 async function loadContract(
   openApiPath: string,

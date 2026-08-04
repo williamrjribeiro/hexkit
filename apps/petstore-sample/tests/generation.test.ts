@@ -98,8 +98,8 @@ function listFiles(root: string, directory = root): string[] {
     .sort();
 }
 
-function generate(outputDirectory: string, logs: string[] = []): void {
-  generateApplication(contractPath, outputDirectory, {
+async function generate(outputDirectory: string, logs: string[] = []): Promise<void> {
+  await generateApplication(contractPath, outputDirectory, {
     actions: {
       exists: existsSync,
       write(path: string, contents: string) {
@@ -114,18 +114,18 @@ function generate(outputDirectory: string, logs: string[] = []): void {
 }
 
 describe("Given the canonical Petstore contract", () => {
-  it("when the real generator runs, then it emits every required application path", () => {
+  it("when the real generator runs, then it emits every required application path", async () => {
     const outputDirectory = createOutputDirectory();
 
-    generate(outputDirectory);
+    await generate(outputDirectory);
 
     expect(listFiles(outputDirectory)).toEqual(requiredOutputPaths);
   });
 
-  it("when the real generator runs, then the deployable manifest matches the dogfood contract", () => {
+  it("when the real generator runs, then the deployable manifest matches the dogfood contract", async () => {
     const outputDirectory = createOutputDirectory();
 
-    generate(outputDirectory);
+    await generate(outputDirectory);
 
     const manifest = JSON.parse(readFileSync(join(outputDirectory, "package.json"), "utf8"));
     expect(manifest).toMatchInlineSnapshot(`
@@ -160,17 +160,17 @@ describe("Given the canonical Petstore contract", () => {
     `);
   });
 
-  it("when a protected use case is hand-edited and regenerated, then the edit survives with a skip log", () => {
+  it("when a protected use case is hand-edited and regenerated, then the edit survives with a skip log", async () => {
     const outputDirectory = createOutputDirectory();
     const protectedPath = join(outputDirectory, "src/core/application/add-pet.ts");
     const handEdit = `// Deliberate dogfood customization.
 export const protectedUseCase = "survives regeneration";
 `;
     const logs: string[] = [];
-    generate(outputDirectory);
+    await generate(outputDirectory);
     writeFileSync(protectedPath, handEdit, "utf8");
 
-    generate(outputDirectory, logs);
+    await generate(outputDirectory, logs);
 
     expect({
       contents: readFileSync(protectedPath, "utf8"),
@@ -182,12 +182,12 @@ export const protectedUseCase = "survives regeneration";
       ",
         "protectedLogs": [
           "Skipped existing protected file: src/core/application/add-pet.ts",
-          "Skipped existing protected file: src/core/application/update-pet.ts",
-          "Skipped existing protected file: src/core/application/get-pet-by-id.ts",
-          "Skipped existing protected file: src/core/application/delete-pet.ts",
-          "Skipped existing protected file: src/core/application/place-order.ts",
-          "Skipped existing protected file: src/core/application/get-order-by-id.ts",
           "Skipped existing protected file: src/core/application/delete-order.ts",
+          "Skipped existing protected file: src/core/application/delete-pet.ts",
+          "Skipped existing protected file: src/core/application/get-order-by-id.ts",
+          "Skipped existing protected file: src/core/application/get-pet-by-id.ts",
+          "Skipped existing protected file: src/core/application/place-order.ts",
+          "Skipped existing protected file: src/core/application/update-pet.ts",
         ],
       }
     `);

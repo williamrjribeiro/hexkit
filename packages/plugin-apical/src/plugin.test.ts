@@ -15,7 +15,7 @@ import { APICAL_CONTRACT_ARTIFACT } from "./contract/index.ts";
 import { createApicalPlugin } from "./plugin.ts";
 
 const pocContract = new URL("../../../apps/petstore-sample/openapi.poc.yaml", import.meta.url);
-const libraryContract = new URL("./__fixtures__/library-api.yaml", import.meta.url);
+const libraryContract = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url);
 
 type ContractOperation = {
   method: string;
