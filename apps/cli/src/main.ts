@@ -32,35 +32,55 @@ function createNodeFileActions(log: (text: string) => void): FileWriterActions {
   };
 }
 
+export type GenerateApplicationOptions = {
+  actions?: FileWriterActions;
+  inputExists?: (path: string) => boolean;
+  plugins?: readonly HexkitPlugin[];
+  runCraft?: CraftRunner;
+};
+
 export function generateApplication(
   inputPath: string,
   outputDirectory: string,
-  options: {
-    plugins?: readonly HexkitPlugin[];
-    actions?: FileWriterActions;
-  } = {},
+  options: GenerateApplicationOptions = {},
 ): void {
   const actions = options.actions ?? createNodeFileActions(console.log);
+
+  if (!(options.inputExists ?? existsSync)(inputPath)) {
+    throw new Error(`OpenAPI input not found: ${inputPath}`);
+  }
 
   runPipeline(
     {
       inputPath,
       outputDirectory,
-      plugins: options.plugins ?? createDefaultPlugins(),
+      plugins: options.plugins ?? createDefaultPlugins(options.runCraft),
     },
     actions,
   );
 }
 
+export type MainOptions = {
+  actions?: FileWriterActions;
+  inputExists?: (path: string) => boolean;
+  log?: (text: string) => void;
+  runCraft?: CraftRunner;
+};
+
 export function main(
   arguments_: readonly string[],
-  log: (text: string) => void = console.log,
+  options: MainOptions | ((text: string) => void) = {},
 ): number {
+  const resolvedOptions = typeof options === "function" ? { log: options } : options;
+  const log = resolvedOptions.log ?? console.log;
+
   try {
     return runCli(arguments_, {
       generate(inputPath, outputDirectory) {
         generateApplication(inputPath, outputDirectory, {
-          actions: createNodeFileActions(log),
+          actions: resolvedOptions.actions ?? createNodeFileActions(log),
+          inputExists: resolvedOptions.inputExists,
+          runCraft: resolvedOptions.runCraft,
         });
       },
       log,

@@ -22,16 +22,29 @@ export const orders = pgTable("orders", {
 });
 `;
 
-const migrationSource = `CREATE TYPE "pet_status" AS ENUM ('available', 'pending', 'sold');
-CREATE TYPE "order_status" AS ENUM ('placed', 'approved', 'delivered');
+const migrationSource = `DO $$
+BEGIN
+  CREATE TYPE "pet_status" AS ENUM ('available', 'pending', 'sold');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
 
-CREATE TABLE "pets" (
+DO $$
+BEGIN
+  CREATE TYPE "order_status" AS ENUM ('placed', 'approved', 'delivered');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END
+$$;
+
+CREATE TABLE IF NOT EXISTS "pets" (
   "id" integer PRIMARY KEY NOT NULL,
   "name" text NOT NULL,
   "status" "pet_status"
 );
 
-CREATE TABLE "orders" (
+CREATE TABLE IF NOT EXISTS "orders" (
   "id" integer PRIMARY KEY NOT NULL,
   "pet_id" integer NOT NULL,
   "quantity" integer NOT NULL,

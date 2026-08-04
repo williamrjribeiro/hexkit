@@ -8,6 +8,7 @@ import { main } from "./main.ts";
 export { HELP_TEXT, parseArguments, runCli } from "./command.ts";
 export type { CliDependencies, ParsedArguments } from "./command.ts";
 export { createDefaultPlugins, generateApplication, main } from "./main.ts";
+export type { GenerateApplicationOptions, MainOptions } from "./main.ts";
 export { createPackagingPlugin, generatePackagingFiles } from "./packaging-plugin.ts";
 
 const executablePath = process.argv[1];

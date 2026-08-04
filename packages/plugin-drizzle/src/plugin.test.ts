@@ -55,16 +55,29 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
           "path": "src/adapters/db/schema.ts",
         },
         {
-          "contents": "CREATE TYPE "pet_status" AS ENUM ('available', 'pending', 'sold');
-      CREATE TYPE "order_status" AS ENUM ('placed', 'approved', 'delivered');
+          "contents": "DO $$
+      BEGIN
+        CREATE TYPE "pet_status" AS ENUM ('available', 'pending', 'sold');
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END
+      $$;
 
-      CREATE TABLE "pets" (
+      DO $$
+      BEGIN
+        CREATE TYPE "order_status" AS ENUM ('placed', 'approved', 'delivered');
+      EXCEPTION
+        WHEN duplicate_object THEN NULL;
+      END
+      $$;
+
+      CREATE TABLE IF NOT EXISTS "pets" (
         "id" integer PRIMARY KEY NOT NULL,
         "name" text NOT NULL,
         "status" "pet_status"
       );
 
-      CREATE TABLE "orders" (
+      CREATE TABLE IF NOT EXISTS "orders" (
         "id" integer PRIMARY KEY NOT NULL,
         "pet_id" integer NOT NULL,
         "quantity" integer NOT NULL,
@@ -79,6 +92,16 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
         },
       ]
     `);
+  });
+
+  it("when the generated migration is applied again, then existing enums and tables are tolerated", () => {
+    const migration = collectGeneratedFiles().find(
+      (file) => file.path === "drizzle/0000_petstore.sql",
+    );
+
+    expect(migration?.contents.match(/WHEN duplicate_object THEN NULL;/g) ?? []).toHaveLength(2);
+    expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "pets"');
+    expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "orders"');
   });
 
   it("when repository adapters are generated, then they implement every Pet and Order port operation", () => {

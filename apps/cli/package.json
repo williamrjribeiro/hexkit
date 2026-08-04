@@ -4,7 +4,7 @@
   "private": true,
   "description": "Command-line interface for Hexkit.",
   "bin": {
-    "cli": "./dist/index.mjs"
+    "hexkit": "./dist/index.mjs"
   },
   "type": "module",
   "exports": {

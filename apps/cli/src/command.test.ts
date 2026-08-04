@@ -1,8 +1,51 @@
+import { readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
 import { describe, expect, it } from "vite-plus/test";
 
+import type { FileWriterActions } from "@hexkit/core";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import { createDefaultPlugins, createPackagingPlugin, parseArguments, runCli } from "./index.ts";
+import {
+  createDefaultPlugins,
+  createPackagingPlugin,
+  main,
+  parseArguments,
+  runCli,
+} from "./index.ts";
+
+const apicalContractPaths = [
+  "package.json",
+  "routes/addPet.ts",
+  "routes/deleteOrder.ts",
+  "routes/deletePet.ts",
+  "routes/getOrderById.ts",
+  "routes/getPetById.ts",
+  "routes/index.ts",
+  "routes/placeOrder.ts",
+  "routes/updatePet.ts",
+  "schemas/Order.ts",
+  "schemas/Pet.ts",
+  "schemas/addPetParameters.ts",
+  "schemas/deleteOrderParameters.ts",
+  "schemas/deletePetParameters.ts",
+  "schemas/getOrderByIdParameters.ts",
+  "schemas/getPetByIdParameters.ts",
+  "schemas/index.ts",
+  "schemas/placeOrderParameters.ts",
+  "schemas/runtime.ts",
+  "schemas/updatePetParameters.ts",
+  "server/addPet.ts",
+  "server/deleteOrder.ts",
+  "server/deletePet.ts",
+  "server/getOrderById.ts",
+  "server/getPetById.ts",
+  "server/index.ts",
+  "server/placeOrder.ts",
+  "server/updatePet.ts",
+  "standard-schema.ts",
+  "tsconfig.json",
+] as const;
 
 describe("Given a Hexkit CLI invocation", () => {
   it("when help is requested, then it prints the snapshotted command help and succeeds", () => {
@@ -89,6 +132,149 @@ describe("Given the default generation pipeline", () => {
       "drizzle",
       "packaging",
     ]);
+  });
+
+  it("when the assembled CLI generates, then injected Craft and filesystem edges receive the complete application", () => {
+    const outputDirectory = "/virtual/generated-petstore";
+    const files = new Map<string, string>();
+    const actions: FileWriterActions = {
+      exists(path) {
+        return files.has(path);
+      },
+      write(path, contents) {
+        files.set(path, contents);
+      },
+      log() {},
+    };
+    const craftCalls: string[][] = [];
+
+    const exitCode = main(["generate", "petstore.yaml", outputDirectory], {
+      actions,
+      inputExists: (path) => path === "petstore.yaml",
+      log() {},
+      runCraft(arguments_) {
+        craftCalls.push([...arguments_]);
+        const outputFlag = arguments_.indexOf("-o");
+        const contractsDirectory = arguments_[outputFlag + 1];
+        if (!contractsDirectory) throw new Error("Craft output argument is missing");
+
+        for (const path of apicalContractPaths) {
+          actions.write(join(contractsDirectory, path), "");
+        }
+      },
+    });
+
+    expect(exitCode).toBe(0);
+    expect(craftCalls).toEqual([
+      [
+        "generate",
+        "-i",
+        "petstore.yaml",
+        "-o",
+        "/virtual/generated-petstore/src/generated/contracts",
+        "--server",
+        "--routes",
+      ],
+    ]);
+    expect([...files.keys()].map((path) => relative(outputDirectory, path)).sort())
+      .toMatchInlineSnapshot(`
+      [
+        ".dockerignore",
+        "Dockerfile",
+        "docker-compose.yml",
+        "drizzle/0000_petstore.sql",
+        "package.json",
+        "scripts/start.sh",
+        "src/adapters/db/mappers.ts",
+        "src/adapters/db/order-repository.ts",
+        "src/adapters/db/pet-repository.ts",
+        "src/adapters/db/schema.ts",
+        "src/adapters/http/controllers.ts",
+        "src/adapters/http/routes.ts",
+        "src/core/application/add-pet.ts",
+        "src/core/application/delete-order.ts",
+        "src/core/application/delete-pet.ts",
+        "src/core/application/get-order-by-id.ts",
+        "src/core/application/get-pet-by-id.ts",
+        "src/core/application/place-order.ts",
+        "src/core/application/update-pet.ts",
+        "src/core/domain/order.ts",
+        "src/core/domain/pet.ts",
+        "src/core/ports/order-repository.ts",
+        "src/core/ports/pet-repository.ts",
+        "src/generated/contracts/package.json",
+        "src/generated/contracts/routes/addPet.ts",
+        "src/generated/contracts/routes/deleteOrder.ts",
+        "src/generated/contracts/routes/deletePet.ts",
+        "src/generated/contracts/routes/getOrderById.ts",
+        "src/generated/contracts/routes/getPetById.ts",
+        "src/generated/contracts/routes/index.ts",
+        "src/generated/contracts/routes/placeOrder.ts",
+        "src/generated/contracts/routes/updatePet.ts",
+        "src/generated/contracts/schemas/Order.ts",
+        "src/generated/contracts/schemas/Pet.ts",
+        "src/generated/contracts/schemas/addPetParameters.ts",
+        "src/generated/contracts/schemas/deleteOrderParameters.ts",
+        "src/generated/contracts/schemas/deletePetParameters.ts",
+        "src/generated/contracts/schemas/getOrderByIdParameters.ts",
+        "src/generated/contracts/schemas/getPetByIdParameters.ts",
+        "src/generated/contracts/schemas/index.ts",
+        "src/generated/contracts/schemas/placeOrderParameters.ts",
+        "src/generated/contracts/schemas/runtime.ts",
+        "src/generated/contracts/schemas/updatePetParameters.ts",
+        "src/generated/contracts/server/addPet.ts",
+        "src/generated/contracts/server/deleteOrder.ts",
+        "src/generated/contracts/server/deletePet.ts",
+        "src/generated/contracts/server/getOrderById.ts",
+        "src/generated/contracts/server/getPetById.ts",
+        "src/generated/contracts/server/index.ts",
+        "src/generated/contracts/server/placeOrder.ts",
+        "src/generated/contracts/server/updatePet.ts",
+        "src/generated/contracts/standard-schema.ts",
+        "src/generated/contracts/tsconfig.json",
+        "src/runtime/app.ts",
+        "src/runtime/server.ts",
+        "tsconfig.json",
+      ]
+    `);
+  });
+
+  it("when the assembled CLI receives a nonexistent OpenAPI path, then it reports the path and fails without generation", () => {
+    const messages: string[] = [];
+    let craftCalled = false;
+
+    const exitCode = main(["generate", "missing.yaml", "/virtual/output"], {
+      actions: {
+        exists: () => false,
+        write() {
+          throw new Error("nonexistent input must not write");
+        },
+        log() {},
+      },
+      inputExists: () => false,
+      log(text) {
+        messages.push(text);
+      },
+      runCraft() {
+        craftCalled = true;
+      },
+    });
+
+    expect(exitCode).toBe(1);
+    expect(craftCalled).toBe(false);
+    expect(messages).toEqual(["Error: OpenAPI input not found: missing.yaml"]);
+  });
+});
+
+describe("Given the published CLI package", () => {
+  it("when package binaries are resolved, then the advertised hexkit command points to the build", () => {
+    const packageJson = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { bin?: Record<string, string> };
+
+    expect(packageJson.bin).toEqual({
+      hexkit: "./dist/index.mjs",
+    });
   });
 });
 
