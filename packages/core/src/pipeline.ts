@@ -1,4 +1,8 @@
-import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
+import {
+  createArtifactRegistry,
+  type GenerationContext,
+  type HexkitPlugin,
+} from "@hexkit/plugin-api";
 
 import { createFileWriter, type FileWriterActions } from "./file-writer.ts";
 
@@ -8,10 +12,14 @@ export type PipelineOptions = {
   plugins: readonly HexkitPlugin[];
 };
 
-export function runPipeline(options: PipelineOptions, actions: FileWriterActions): void {
+export async function runPipeline(
+  options: PipelineOptions,
+  actions: FileWriterActions,
+): Promise<void> {
   const context: GenerationContext = {
     inputPath: options.inputPath,
     outputDirectory: options.outputDirectory,
+    artifacts: createArtifactRegistry(),
     writeFile: createFileWriter(options.outputDirectory, actions),
     log(message: string) {
       actions.log(message);
@@ -19,6 +27,6 @@ export function runPipeline(options: PipelineOptions, actions: FileWriterActions
   };
 
   for (const plugin of options.plugins) {
-    plugin.generate(context);
+    await plugin.generate(context);
   }
 }

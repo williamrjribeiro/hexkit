@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
+import { createArtifactKey, type GenerationContext, type HexkitPlugin } from "@hexkit/plugin-api";
 
 import { runPipeline } from "./pipeline.ts";
 
 describe("Given generated and protected files that already exist", () => {
-  it("when the pipeline runs, then it overwrites generated output and skips and logs protected output", () => {
+  it("when the pipeline runs, then it overwrites generated output and skips and logs protected output", async () => {
     const writes: Array<{ path: string; contents: string }> = [];
     const messages: string[] = [];
     const plugin: HexkitPlugin = {
@@ -24,7 +24,7 @@ describe("Given generated and protected files that already exist", () => {
       },
     };
 
-    runPipeline(
+    await runPipeline(
       {
         inputPath: "openapi.yaml",
         outputDirectory: "/tmp/generated-app",
@@ -52,16 +52,18 @@ describe("Given generated and protected files that already exist", () => {
 });
 
 describe("Given plugins in a declared order", () => {
-  it("when the pipeline runs, then each plugin executes in that order", () => {
+  it("when the pipeline runs, then each async plugin completes before the next starts", async () => {
     const pluginOrder: string[] = [];
     const createPlugin = (name: string): HexkitPlugin => ({
       name,
-      generate() {
-        pluginOrder.push(name);
+      async generate() {
+        pluginOrder.push(`${name}:start`);
+        await Promise.resolve();
+        pluginOrder.push(`${name}:end`);
       },
     });
 
-    runPipeline(
+    await runPipeline(
       {
         inputPath: "openapi.yaml",
         outputDirectory: "/tmp/generated-app",
@@ -74,12 +76,19 @@ describe("Given plugins in a declared order", () => {
       },
     );
 
-    expect(pluginOrder).toEqual(["contracts", "architecture", "http"]);
+    expect(pluginOrder).toEqual([
+      "contracts:start",
+      "contracts:end",
+      "architecture:start",
+      "architecture:end",
+      "http:start",
+      "http:end",
+    ]);
   });
 });
 
 describe("Given an injected logger that uses its action context", () => {
-  it("when a plugin logs, then the pipeline preserves the logger receiver", () => {
+  it("when a plugin logs, then the pipeline preserves the logger receiver", async () => {
     const actions = {
       messages: [] as string[],
       exists: () => false,
@@ -89,7 +98,7 @@ describe("Given an injected logger that uses its action context", () => {
       },
     };
 
-    runPipeline(
+    await runPipeline(
       {
         inputPath: "openapi.yaml",
         outputDirectory: "/tmp/generated-app",
@@ -106,5 +115,153 @@ describe("Given an injected logger that uses its action context", () => {
     );
 
     expect(actions.messages).toEqual(["generation started"]);
+  });
+});
+
+describe("Given plugins that exchange typed artifacts", () => {
+  it("uses one registry for the complete pipeline run", async () => {
+    const contractKey = createArtifactKey<{ title: string }>("contract");
+    let consumedTitle: string | undefined;
+
+    await runPipeline(
+      {
+        inputPath: "openapi.yaml",
+        outputDirectory: "/tmp/generated-app",
+        plugins: [
+          {
+            name: "producer",
+            generate(context) {
+              context.artifacts.publish(contractKey, { title: "Library" });
+            },
+          },
+          {
+            name: "consumer",
+            generate(context) {
+              consumedTitle = context.artifacts.require(contractKey).title;
+            },
+          },
+        ],
+      },
+      {
+        exists: () => false,
+        write() {},
+        log() {},
+      },
+    );
+
+    expect(consumedTitle).toBe("Library");
+  });
+
+  it("creates an isolated registry for each pipeline run", async () => {
+    const contractKey = createArtifactKey<{ title: string }>("isolated-contract");
+    const actions = {
+      exists: () => false,
+      write() {},
+      log() {},
+    };
+
+    await runPipeline(
+      {
+        inputPath: "first.yaml",
+        outputDirectory: "/tmp/first",
+        plugins: [
+          {
+            name: "producer",
+            generate(context) {
+              context.artifacts.publish(contractKey, { title: "First" });
+            },
+          },
+        ],
+      },
+      actions,
+    );
+
+    await expect(
+      runPipeline(
+        {
+          inputPath: "second.yaml",
+          outputDirectory: "/tmp/second",
+          plugins: [
+            {
+              name: "consumer",
+              generate(context) {
+                context.artifacts.require(contractKey);
+              },
+            },
+          ],
+        },
+        actions,
+      ),
+    ).rejects.toThrow('Required artifact "isolated-contract" has not been published.');
+  });
+
+  it("surfaces missing artifacts and does not continue", async () => {
+    const missingKey = createArtifactKey<{ title: string }>("missing-contract");
+    const invoked: string[] = [];
+
+    await expect(
+      runPipeline(
+        {
+          inputPath: "openapi.yaml",
+          outputDirectory: "/tmp/generated-app",
+          plugins: [
+            {
+              name: "consumer",
+              generate(context) {
+                invoked.push("consumer");
+                context.artifacts.require(missingKey);
+              },
+            },
+            {
+              name: "must-not-run",
+              generate() {
+                invoked.push("must-not-run");
+              },
+            },
+          ],
+        },
+        {
+          exists: () => false,
+          write() {},
+          log() {},
+        },
+      ),
+    ).rejects.toThrow('Required artifact "missing-contract" has not been published.');
+    expect(invoked).toEqual(["consumer"]);
+  });
+
+  it("propagates plugin failures and does not invoke later plugins", async () => {
+    const invoked: string[] = [];
+
+    await expect(
+      runPipeline(
+        {
+          inputPath: "openapi.yaml",
+          outputDirectory: "/tmp/generated-app",
+          plugins: [
+            {
+              name: "failing",
+              async generate() {
+                invoked.push("failing");
+                await Promise.resolve();
+                throw new Error("generation failed");
+              },
+            },
+            {
+              name: "must-not-run",
+              generate() {
+                invoked.push("must-not-run");
+              },
+            },
+          ],
+        },
+        {
+          exists: () => false,
+          write() {},
+          log() {},
+        },
+      ),
+    ).rejects.toThrow("generation failed");
+    expect(invoked).toEqual(["failing"]);
   });
 });
