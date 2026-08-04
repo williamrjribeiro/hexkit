@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { GeneratedFile } from "@hexkit/plugin-api";
+import { createArtifactRegistry, type GeneratedFile } from "@hexkit/plugin-api";
 
 import { createDrizzlePlugin } from "./plugin.ts";
 
-function collectGeneratedFiles(): GeneratedFile[] {
+async function collectGeneratedFiles(): Promise<GeneratedFile[]> {
   const files: GeneratedFile[] = [];
 
-  createDrizzlePlugin().generate({
+  await createDrizzlePlugin().generate({
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
+    artifacts: createArtifactRegistry(),
     writeFile(file: GeneratedFile) {
       files.push(file);
     },
@@ -20,8 +21,8 @@ function collectGeneratedFiles(): GeneratedFile[] {
 }
 
 describe("Given the Petstore domain and generated Apical contracts", () => {
-  it("when the Drizzle plugin runs, then it generates Postgres tables and a pet-order foreign key", () => {
-    const [schema, migration] = collectGeneratedFiles();
+  it("when the Drizzle plugin runs, then it generates Postgres tables and a pet-order foreign key", async () => {
+    const [schema, migration] = await collectGeneratedFiles();
 
     expect([schema, migration]).toMatchInlineSnapshot(`
       [
@@ -90,8 +91,8 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
     `);
   });
 
-  it("when the generated migration is applied again, then existing enums and tables are tolerated", () => {
-    const migration = collectGeneratedFiles().find(
+  it("when the generated migration is applied again, then existing enums and tables are tolerated", async () => {
+    const migration = (await collectGeneratedFiles()).find(
       (file: GeneratedFile) => file.path === "drizzle/0000_petstore.sql",
     );
 
@@ -100,8 +101,8 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
     expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "orders"');
   });
 
-  it("when repository adapters are generated, then they implement every Pet and Order port operation", () => {
-    const files = collectGeneratedFiles();
+  it("when repository adapters are generated, then they implement every Pet and Order port operation", async () => {
+    const files = await collectGeneratedFiles();
     const repositories = files.filter((file: GeneratedFile) =>
       file.path.endsWith("-repository.ts"),
     );
@@ -183,8 +184,8 @@ describe("Given the Petstore domain and generated Apical contracts", () => {
     `);
   });
 
-  it("when database rows are mapped, then generated Apical Zod contracts validate every read", () => {
-    const mapper = collectGeneratedFiles().find(
+  it("when database rows are mapped, then generated Apical Zod contracts validate every read", async () => {
+    const mapper = (await collectGeneratedFiles()).find(
       (file: GeneratedFile) => file.path === "src/adapters/db/mappers.ts",
     );
 

@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { createHexagonalPlugin } from "@hexkit/plugin-architecture-hexagonal";
 import { createApicalPlugin } from "@hexkit/plugin-apical";
-import type { GeneratedFile } from "@hexkit/plugin-api";
+import { createArtifactRegistry, type GeneratedFile } from "@hexkit/plugin-api";
 
 import { createHonoPlugin } from "./plugin.ts";
 
@@ -26,9 +26,10 @@ const operationIds = [
 async function collectGeneratedFiles(): Promise<GeneratedFile[]> {
   const files: GeneratedFile[] = [];
 
-  createHonoPlugin().generate({
+  await createHonoPlugin().generate({
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
+    artifacts: createArtifactRegistry(),
     writeFile(file: GeneratedFile) {
       files.push(file);
     },
@@ -46,13 +47,14 @@ afterEach(() => {
   }
 });
 
-function materializeGeneratedApp(): string {
+async function materializeGeneratedApp(): Promise<string> {
   const outputDirectory = mkdtempSync(join(import.meta.dirname, "../.generated-app-"));
   generatedDirectories.push(outputDirectory);
 
   const context = {
     inputPath: join(import.meta.dirname, "../../../apps/petstore-sample/openapi.poc.yaml"),
     outputDirectory,
+    artifacts: createArtifactRegistry(),
     writeFile(file: GeneratedFile) {
       const path = join(outputDirectory, file.path);
       mkdirSync(dirname(path), { recursive: true });
@@ -61,9 +63,9 @@ function materializeGeneratedApp(): string {
     log() {},
   };
 
-  createApicalPlugin().generate(context);
-  createHexagonalPlugin().generate(context);
-  createHonoPlugin().generate(context);
+  await createApicalPlugin().generate(context);
+  await createHexagonalPlugin().generate(context);
+  await createHonoPlugin().generate(context);
 
   return outputDirectory;
 }
@@ -222,8 +224,8 @@ describe("Given the seven generated JSON operations and protected application us
     expect(files.map((file: GeneratedFile) => file.contents).join("\n")).not.toContain("z.object");
   });
 
-  it("when the generated runtime is type checked, then every preceding generator import contract resolves", () => {
-    const outputDirectory = materializeGeneratedApp();
+  it("when the generated runtime is type checked, then every preceding generator import contract resolves", async () => {
+    const outputDirectory = await materializeGeneratedApp();
     const result = spawnSync(
       process.execPath,
       [
@@ -251,7 +253,7 @@ describe("Given the seven generated JSON operations and protected application us
   });
 
   it("when generated runtime boundaries receive invalid input and a raw malformed repository result, then neither value crosses the boundary", async () => {
-    const outputDirectory = materializeGeneratedApp();
+    const outputDirectory = await materializeGeneratedApp();
     const runtimeUrl = pathToFileURL(join(outputDirectory, "src/runtime/app.ts")).href;
     const { createApp } = (await import(/* @vite-ignore */ runtimeUrl)) as {
       createApp: (repositories: unknown) => {

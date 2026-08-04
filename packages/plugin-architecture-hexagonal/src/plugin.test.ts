@@ -1,28 +1,33 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import { runPipeline } from "@hexkit/core";
-import type { GeneratedFile, GenerationContext } from "@hexkit/plugin-api";
+import {
+  createArtifactRegistry,
+  type GeneratedFile,
+  type GenerationContext,
+} from "@hexkit/plugin-api";
 
 import { createHexagonalPlugin } from "./plugin.ts";
 
-function collectGeneratedFiles(): GeneratedFile[] {
+async function collectGeneratedFiles(): Promise<GeneratedFile[]> {
   const files: GeneratedFile[] = [];
   const context: GenerationContext = {
     inputPath: "/workspace/apps/petstore-sample/openapi.poc.yaml",
     outputDirectory: "/tmp/generated-petstore",
+    artifacts: createArtifactRegistry(),
     writeFile(file: GeneratedFile) {
       files.push(file);
     },
     log() {},
   };
 
-  createHexagonalPlugin().generate(context);
+  await createHexagonalPlugin().generate(context);
   return files;
 }
 
 describe("Given the Pet and Order source contract", () => {
-  it("when the hexagonal plugin runs, then it generates entities, repository ports, and protected operation use cases", () => {
-    expect(collectGeneratedFiles()).toMatchInlineSnapshot(`
+  it("when the hexagonal plugin runs, then it generates entities, repository ports, and protected operation use cases", async () => {
+    expect(await collectGeneratedFiles()).toMatchInlineSnapshot(`
       [
         {
           "contents": "export type PetStatus = "available" | "pending" | "sold";
@@ -170,7 +175,7 @@ describe("Given the Pet and Order source contract", () => {
 });
 
 describe("Given a generated core with a customized protected use case", () => {
-  it("when generation runs again, then the custom source survives and a missing protected skeleton is restored", () => {
+  it("when generation runs again, then the custom source survives and a missing protected skeleton is restored", async () => {
     const outputDirectory = "/tmp/generated-petstore";
     const files = new Map<string, string>();
     const messages: string[] = [];
@@ -191,7 +196,7 @@ describe("Given a generated core with a customized protected use case", () => {
       plugins: [createHexagonalPlugin()],
     };
 
-    runPipeline(options, actions);
+    await runPipeline(options, actions);
 
     const customizedPath = `${outputDirectory}/src/core/application/add-pet.ts`;
     const missingPath = `${outputDirectory}/src/core/application/get-order-by-id.ts`;
@@ -199,7 +204,7 @@ describe("Given a generated core with a customized protected use case", () => {
     files.set(customizedPath, customizedSource);
     files.delete(missingPath);
 
-    runPipeline(options, actions);
+    await runPipeline(options, actions);
 
     expect({
       customizedSource: files.get(customizedPath),
