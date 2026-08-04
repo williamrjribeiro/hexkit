@@ -48,13 +48,14 @@ describe("buildCraftGenerateArgs", () => {
 });
 
 describe("generateContracts", () => {
-  it("calls the craft runner with Petstore generate args", () => {
+  it("awaits the craft runner with Petstore generate args", async () => {
     const calls: string[][] = [];
-    const runCraft: CraftRunner = (args) => {
+    const runCraft: CraftRunner = async (args) => {
+      await Promise.resolve();
       calls.push([...args]);
     };
 
-    generateContracts(petstoreOptions, runCraft);
+    await generateContracts(petstoreOptions, runCraft);
 
     expect(calls).toEqual([buildCraftGenerateArgs(petstoreOptions)]);
   });

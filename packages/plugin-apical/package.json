@@ -37,7 +37,9 @@
   },
   "dependencies": {
     "@apical-ts/craft": "catalog:",
-    "@hexkit/plugin-api": "workspace:*"
+    "@babel/parser": "catalog:",
+    "@hexkit/plugin-api": "workspace:*",
+    "@readme/openapi-parser": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
