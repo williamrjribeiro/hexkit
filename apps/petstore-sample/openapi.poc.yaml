@@ -111,6 +111,10 @@ components:
   schemas:
     Pet:
       type: object
+      x-hexkit:
+        persistence:
+          table: pets
+          identity: id
       required:
         - id
         - name
@@ -128,6 +132,10 @@ components:
             - sold
     Order:
       type: object
+      x-hexkit:
+        persistence:
+          table: orders
+          identity: id
       required:
         - id
         - petId
@@ -141,6 +149,10 @@ components:
         petId:
           type: integer
           format: int32
+          x-hexkit:
+            reference:
+              schema: Pet
+              property: id
         quantity:
           type: integer
           format: int32
