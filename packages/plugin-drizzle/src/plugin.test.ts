@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vite-plus/test";
+import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import {
   APICAL_CONTRACT_ARTIFACT,
@@ -28,6 +28,45 @@ const petstoreOpenApi = new URL("../../../apps/petstore-sample/openapi.poc.yaml"
   .pathname;
 const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
   .pathname;
+
+const petstoreModules = {
+  schemas: new Map([
+    ["Order", "schemas/Order.ts"],
+    ["Pet", "schemas/Pet.ts"],
+  ]),
+  operations: new Map([
+    ["addPet", "routes/addPet.ts"],
+    ["updatePet", "routes/updatePet.ts"],
+    ["getPetById", "routes/getPetById.ts"],
+    ["deletePet", "routes/deletePet.ts"],
+    ["placeOrder", "routes/placeOrder.ts"],
+    ["getOrderById", "routes/getOrderById.ts"],
+    ["deleteOrder", "routes/deleteOrder.ts"],
+  ]),
+};
+
+const libraryModules = {
+  schemas: new Map([
+    ["Author", "schemas/Author.ts"],
+    ["Book", "schemas/Book.ts"],
+  ]),
+  operations: new Map([
+    ["createBook", "routes/createBook.ts"],
+    ["getBook", "routes/getBook.ts"],
+  ]),
+};
+
+let petstoreContract: ContractArtifact;
+let libraryContract: ContractArtifact;
+let petstoreApplication: ApplicationArtifact;
+
+beforeAll(async () => {
+  [petstoreContract, libraryContract] = await Promise.all([
+    loadContract(petstoreOpenApi, petstoreModules),
+    loadContract(libraryOpenApi, libraryModules),
+  ]);
+  petstoreApplication = applicationFromContract(petstoreContract);
+});
 
 async function loadContract(
   openApiPath: string,
@@ -70,23 +109,7 @@ async function collectGeneratedFiles(
 
 describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
   it("when the Drizzle plugin runs, then it generates pets/orders, explicit Pet FK, and PersistenceArtifact", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-    const application = applicationFromContract(contract);
-    const { files, artifact } = await collectGeneratedFiles(contract, application);
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract, petstoreApplication);
 
     const schema = files.find((file) => file.path === "src/adapters/db/schema.ts");
     const migration = files.find((file) => file.path === "drizzle/0000_hexkit-petstore-poc.sql");
@@ -154,27 +177,11 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
   });
 
   it("when repository adapters are generated, then they implement every ApplicationArtifact port method", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-    const application = applicationFromContract(contract);
-    const { files } = await collectGeneratedFiles(contract, application);
+    const { files } = await collectGeneratedFiles(petstoreContract, petstoreApplication);
     const repositories = files.filter((file) => file.path.endsWith("-repository.ts"));
     const source = repositories.map((file) => file.contents).join("\n");
 
-    for (const repository of application.repositories) {
+    for (const repository of petstoreApplication.repositories) {
       for (const method of repository.methods) {
         expect(source).toContain(`async ${method.name}(`);
       }
@@ -221,22 +228,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
   });
 
   it("when database rows are mapped, then generated Apical Zod contracts validate every read", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-    const { files } = await collectGeneratedFiles(contract, applicationFromContract(contract));
+    const { files } = await collectGeneratedFiles(petstoreContract, petstoreApplication);
     const mapper = files.find((file) => file.path === "src/adapters/db/mappers.ts");
 
     expect(mapper?.contents).toContain("PetSchema.parse");
@@ -268,19 +260,9 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
 
 describe("Given ContractArtifact and ApplicationArtifact for Library", () => {
   it("when the Drizzle plugin runs, then it emits authors/books with an explicit Author FK and no Petstore output", async () => {
-    const contract = await loadContract(libraryOpenApi, {
-      schemas: new Map([
-        ["Author", "schemas/Author.ts"],
-        ["Book", "schemas/Book.ts"],
-      ]),
-      operations: new Map([
-        ["createBook", "routes/createBook.ts"],
-        ["getBook", "routes/getBook.ts"],
-      ]),
-    });
     const { files, artifact } = await collectGeneratedFiles(
-      contract,
-      applicationFromContract(contract),
+      libraryContract,
+      applicationFromContract(libraryContract),
     );
     const source = files.map((file) => file.contents).join("\n");
 
