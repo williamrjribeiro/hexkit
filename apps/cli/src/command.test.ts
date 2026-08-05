@@ -487,6 +487,8 @@ describe("Given compose-ready generated packaging", () => {
           slug: "hexkit-petstore-poc",
         },
         schemas: [],
+        securitySchemes: [],
+        globalSecurity: [],
         operations: [],
       },
       http: {
@@ -553,6 +555,8 @@ describe("Given compose-ready generated packaging", () => {
           slug: "hexkit-library-api",
         },
         schemas: [],
+        securitySchemes: [],
+        globalSecurity: [],
         operations: [],
       },
       http: {
