@@ -343,6 +343,8 @@ describe("Given a schema with an *Id property and no x-hexkit.reference", () => 
           ],
         },
       ],
+      securitySchemes: [],
+      globalSecurity: [],
       operations: [
         {
           operationId: "createWidget",
@@ -362,6 +364,11 @@ describe("Given a schema with an *Id property and no x-hexkit.reference", () => 
               ],
             },
           ],
+          security: {
+            overridesGlobal: false,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
           requestBody: {
             required: true,
             media: [
