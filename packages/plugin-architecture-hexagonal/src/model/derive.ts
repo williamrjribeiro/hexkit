@@ -312,6 +312,15 @@ function deriveParameters(operation: ContractOperation): {
   parameters: ApplicationParameter[];
   referencedSchemas: string[];
 } {
+  const unsupportedParameter = operation.parameters.find(
+    (parameter) => parameter.location !== "path",
+  );
+  if (unsupportedParameter !== undefined) {
+    throw new Error(
+      `Operation "${operation.operationId}" declares unsupported ${unsupportedParameter.location} parameter "${unsupportedParameter.name}".`,
+    );
+  }
+
   const requestMedia = operation.requestBody?.media.find(
     (media) => media.mediaType === "application/json" && media.type !== undefined,
   );
@@ -339,6 +348,12 @@ function deriveParameters(operation: ContractOperation): {
       ],
       referencedSchemas: [...rendered.referencedSchemas],
     };
+  }
+
+  if (operation.requestBody !== undefined) {
+    throw new Error(
+      `Operation "${operation.operationId}" declares an unsupported request body. Hexagonal generation supports application/json request bodies with a schema.`,
+    );
   }
 
   const pathParameters = operation.parameters.filter((parameter) => parameter.location === "path");
