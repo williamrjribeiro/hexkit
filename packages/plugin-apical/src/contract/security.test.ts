@@ -6,7 +6,11 @@ import { join } from "node:path";
 import { parse } from "@babel/parser";
 import { describe, expect, it } from "vite-plus/test";
 
-import { createArtifactRegistry, type GeneratedFile, type GenerationContext } from "@hexkit/plugin-api";
+import {
+  createArtifactRegistry,
+  type GeneratedFile,
+  type GenerationContext,
+} from "@hexkit/plugin-api";
 
 import { APICAL_CONTRACT_ARTIFACT } from "./index.ts";
 import { normalizeContractArtifact } from "./normalize.ts";
