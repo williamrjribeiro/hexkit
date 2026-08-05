@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { parse } from "@babel/parser";
-import { describe, expect, it } from "vite-plus/test";
+import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import {
   createArtifactRegistry,
@@ -32,9 +32,11 @@ const authGeneratedModules = {
   ]),
 };
 
-async function loadAuthDocument(): Promise<Record<string, unknown>> {
-  return (await loadValidatedOpenApi(authContract.pathname)) as Record<string, unknown>;
-}
+let authDocument: Record<string, unknown>;
+
+beforeAll(async () => {
+  authDocument = (await loadValidatedOpenApi(authContract.pathname)) as Record<string, unknown>;
+});
 
 function operationAt(
   document: Record<string, unknown>,
@@ -88,14 +90,13 @@ function serverHeadersSchemaKeys(source: string, schemaName: string): readonly s
 }
 
 describe("OpenAPI security normalization", () => {
-  it("when global bearer is set, then listItems requires authorization server header", async () => {
-    const document = await loadAuthDocument();
-    const schemes = normalizeSecuritySchemes(document);
-    const globalSecurity = normalizeGlobalSecurity(document);
+  it("when global bearer is set, then listItems requires authorization server header", () => {
+    const schemes = normalizeSecuritySchemes(authDocument);
+    const globalSecurity = normalizeGlobalSecurity(authDocument);
 
     const security = resolveOperationSecurity(
-      document,
-      operationAt(document, "/items", "get"),
+      authDocument,
+      operationAt(authDocument, "/items", "get"),
       schemes,
       globalSecurity,
     );
@@ -103,14 +104,13 @@ describe("OpenAPI security normalization", () => {
     expect(security.apicalServerHeaderNames).toEqual(["authorization"]);
   });
 
-  it("when security is empty, then getHealth has no auth headers", async () => {
-    const document = await loadAuthDocument();
-    const schemes = normalizeSecuritySchemes(document);
-    const globalSecurity = normalizeGlobalSecurity(document);
+  it("when security is empty, then getHealth has no auth headers", () => {
+    const schemes = normalizeSecuritySchemes(authDocument);
+    const globalSecurity = normalizeGlobalSecurity(authDocument);
 
     const security = resolveOperationSecurity(
-      document,
-      operationAt(document, "/health", "get"),
+      authDocument,
+      operationAt(authDocument, "/health", "get"),
       schemes,
       globalSecurity,
     );
@@ -119,14 +119,13 @@ describe("OpenAPI security normalization", () => {
     expect(security.apicalServerHeaderNames).toEqual([]);
   });
 
-  it("when operation overrides with apiKey, then createItem requires x-api-key only", async () => {
-    const document = await loadAuthDocument();
-    const schemes = normalizeSecuritySchemes(document);
-    const globalSecurity = normalizeGlobalSecurity(document);
+  it("when operation overrides with apiKey, then createItem requires x-api-key only", () => {
+    const schemes = normalizeSecuritySchemes(authDocument);
+    const globalSecurity = normalizeGlobalSecurity(authDocument);
 
     const security = resolveOperationSecurity(
-      document,
-      operationAt(document, "/items", "post"),
+      authDocument,
+      operationAt(authDocument, "/items", "post"),
       schemes,
       globalSecurity,
     );
@@ -134,8 +133,8 @@ describe("OpenAPI security normalization", () => {
     expect(security.apicalServerHeaderNames).toEqual(["x-api-key"]);
   });
 
-  it("when oauth2 scheme is declared, then it is marked unsupported", async () => {
-    const schemes = normalizeSecuritySchemes(await loadAuthDocument());
+  it("when oauth2 scheme is declared, then it is marked unsupported", () => {
+    const schemes = normalizeSecuritySchemes(authDocument);
 
     expect(schemes).toContainEqual({
       name: "implicitOAuth",
@@ -147,8 +146,8 @@ describe("OpenAPI security normalization", () => {
 });
 
 describe("ContractArtifact security metadata", () => {
-  it("when auth OpenAPI is normalized, then artifact and operations expose security metadata", async () => {
-    const artifact = normalizeContractArtifact(await loadAuthDocument(), authGeneratedModules);
+  it("when auth OpenAPI is normalized, then artifact and operations expose security metadata", () => {
+    const artifact = normalizeContractArtifact(authDocument, authGeneratedModules);
     const operationsById = new Map(
       artifact.operations.map((operation) => [operation.operationId, operation]),
     );

@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { afterEach, describe, expect, it } from "vite-plus/test";
+import { afterEach, beforeAll, describe, expect, it } from "vite-plus/test";
 
 import {
   APPLICATION_ARTIFACT,
@@ -34,7 +34,44 @@ const petstoreOpenApi = new URL("../../../apps/petstore-sample/openapi.poc.yaml"
 const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
   .pathname;
 
+const petstoreModules = {
+  schemas: new Map([
+    ["Order", "schemas/Order.ts"],
+    ["Pet", "schemas/Pet.ts"],
+  ]),
+  operations: new Map([
+    ["addPet", "routes/addPet.ts"],
+    ["updatePet", "routes/updatePet.ts"],
+    ["getPetById", "routes/getPetById.ts"],
+    ["deletePet", "routes/deletePet.ts"],
+    ["placeOrder", "routes/placeOrder.ts"],
+    ["getOrderById", "routes/getOrderById.ts"],
+    ["deleteOrder", "routes/deleteOrder.ts"],
+  ]),
+};
+
+const libraryModules = {
+  schemas: new Map([
+    ["Author", "schemas/Author.ts"],
+    ["Book", "schemas/Book.ts"],
+  ]),
+  operations: new Map([
+    ["createBook", "routes/createBook.ts"],
+    ["getBook", "routes/getBook.ts"],
+  ]),
+};
+
 const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
+
+let petstoreContract: ContractArtifact;
+let libraryContract: ContractArtifact;
+
+beforeAll(async () => {
+  [petstoreContract, libraryContract] = await Promise.all([
+    loadContract(petstoreOpenApi, petstoreModules),
+    loadContract(libraryOpenApi, libraryModules),
+  ]);
+});
 
 async function loadContract(
   openApiPath: string,
@@ -288,23 +325,7 @@ function createAuthContract(): ContractArtifact {
 
 describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
   it("when Hono generation runs, then routes, controllers, runtime, and HttpArtifact preserve validation boundaries", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-
-    const { files, artifact } = await collectGeneratedFiles(contract);
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract);
     const controllers = files.find((file) => file.path === "src/adapters/http/controllers.ts");
     const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
     const runtime = files.find((file) => file.path === "src/runtime/app.ts");
@@ -364,18 +385,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
 
 describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
   it("when Hono generation runs, then it emits book routes without Petstore output", async () => {
-    const contract = await loadContract(libraryOpenApi, {
-      schemas: new Map([
-        ["Author", "schemas/Author.ts"],
-        ["Book", "schemas/Book.ts"],
-      ]),
-      operations: new Map([
-        ["createBook", "routes/createBook.ts"],
-        ["getBook", "routes/getBook.ts"],
-      ]),
-    });
-
-    const { files, artifact } = await collectGeneratedFiles(contract);
+    const { files, artifact } = await collectGeneratedFiles(libraryContract);
     const source = files.map((file) => file.contents).join("\n");
 
     expect(source).not.toMatch(/\bPet\b|\bOrder\b|petstore|addPet|placeOrder/);
@@ -505,23 +515,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
   });
 
   it("when contract has no security, then auth adapter and middleware are not emitted", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-
-    const { files, artifact } = await collectGeneratedFiles(contract);
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract);
     const source = files.map((file) => file.contents).join("\n");
 
     expect(files.map((file) => file.path)).not.toContain(

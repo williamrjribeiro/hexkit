@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vite-plus/test";
+import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { runPipeline } from "@hexkit/core";
 import {
@@ -24,6 +24,43 @@ const petstoreOpenApi = new URL("../../../apps/petstore-sample/openapi.poc.yaml"
   .pathname;
 const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
   .pathname;
+
+const petstoreModules = {
+  schemas: new Map([
+    ["Order", "schemas/Order.ts"],
+    ["Pet", "schemas/Pet.ts"],
+  ]),
+  operations: new Map([
+    ["addPet", "routes/addPet.ts"],
+    ["updatePet", "routes/updatePet.ts"],
+    ["getPetById", "routes/getPetById.ts"],
+    ["deletePet", "routes/deletePet.ts"],
+    ["placeOrder", "routes/placeOrder.ts"],
+    ["getOrderById", "routes/getOrderById.ts"],
+    ["deleteOrder", "routes/deleteOrder.ts"],
+  ]),
+};
+
+const libraryModules = {
+  schemas: new Map([
+    ["Author", "schemas/Author.ts"],
+    ["Book", "schemas/Book.ts"],
+  ]),
+  operations: new Map([
+    ["createBook", "routes/createBook.ts"],
+    ["getBook", "routes/getBook.ts"],
+  ]),
+};
+
+let petstoreContract: ContractArtifact;
+let libraryContract: ContractArtifact;
+
+beforeAll(async () => {
+  [petstoreContract, libraryContract] = await Promise.all([
+    loadContract(petstoreOpenApi, petstoreModules),
+    loadContract(libraryOpenApi, libraryModules),
+  ]);
+});
 
 async function loadContract(
   openApiPath: string,
@@ -70,23 +107,7 @@ async function collectGeneratedFiles(contract: ContractArtifact): Promise<{
 
 describe("Given a ContractArtifact for Petstore", () => {
   it("when the hexagonal plugin runs, then it generates domain, ports, protected use cases, and ApplicationArtifact", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-
-    const { files, artifact } = await collectGeneratedFiles(contract);
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract);
 
     expect(files.map((file) => ({ path: file.path, ownership: file.ownership }))).toEqual([
       { path: "src/core/domain/order.ts", ownership: "generated" },
@@ -189,18 +210,7 @@ describe("Given a ContractArtifact for Petstore", () => {
 
 describe("Given a ContractArtifact for Library", () => {
   it("when the hexagonal plugin runs, then it emits author/book domain files without Petstore output", async () => {
-    const contract = await loadContract(libraryOpenApi, {
-      schemas: new Map([
-        ["Author", "schemas/Author.ts"],
-        ["Book", "schemas/Book.ts"],
-      ]),
-      operations: new Map([
-        ["createBook", "routes/createBook.ts"],
-        ["getBook", "routes/getBook.ts"],
-      ]),
-    });
-
-    const { files, artifact } = await collectGeneratedFiles(contract);
+    const { files, artifact } = await collectGeneratedFiles(libraryContract);
     const source = files.map((file) => file.contents).join("\n");
 
     expect(files.map((file) => file.path)).toEqual([
@@ -341,22 +351,6 @@ describe("Given a ContractArtifact with secured and public operations", () => {
 
 describe("Given a generated core with a customized protected use case", () => {
   it("when generation runs again, then the custom source survives and a missing protected skeleton is restored", async () => {
-    const contract = await loadContract(petstoreOpenApi, {
-      schemas: new Map([
-        ["Order", "schemas/Order.ts"],
-        ["Pet", "schemas/Pet.ts"],
-      ]),
-      operations: new Map([
-        ["addPet", "routes/addPet.ts"],
-        ["updatePet", "routes/updatePet.ts"],
-        ["getPetById", "routes/getPetById.ts"],
-        ["deletePet", "routes/deletePet.ts"],
-        ["placeOrder", "routes/placeOrder.ts"],
-        ["getOrderById", "routes/getOrderById.ts"],
-        ["deleteOrder", "routes/deleteOrder.ts"],
-      ]),
-    });
-
     const outputDirectory = "/tmp/generated-petstore";
     const files = new Map<string, string>();
     const messages: string[] = [];
@@ -374,7 +368,7 @@ describe("Given a generated core with a customized protected use case", () => {
     const options = {
       inputPath: petstoreOpenApi,
       outputDirectory,
-      plugins: [createContractPublisher(contract), createHexagonalPlugin()],
+      plugins: [createContractPublisher(petstoreContract), createHexagonalPlugin()],
     };
 
     await runPipeline(options, actions);
