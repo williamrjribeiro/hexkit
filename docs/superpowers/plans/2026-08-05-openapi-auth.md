@@ -395,19 +395,38 @@ git commit -m "feat(hexagonal): generate Principal and Authenticator port for se
 
 **Interfaces:**
 - Consumes: `ContractOperation.security`, application authenticator port path, Apical wrappers
-- Produces: controllers that authenticate then invoke use cases; `AuthenticationError` → HTTP 401
+- Produces: Hono **auth middleware** (typed `Variables`) + controllers that pass `c.var.principal` into secured use cases; auth failures → HTTP 401
 
-Conceptual generated shape for a secured operation:
+Hono-aligned shape (preferred over authenticating inside every controller):
 
 ```ts
-createItem: createItemWrapper(async (request) => {
+type AppVariables = { principal: Principal };
+
+export function createAuthenticateMiddleware(
+  authenticator: Authenticator,
+  securityMeta: OperationSecurityMeta,
+) {
+  return createMiddleware<{ Variables: AppVariables }>(async (c, next) => {
+    const credentials = extractCredentials(c.req.raw.headers, securityMeta);
+    if (!credentials) return c.json({ error: "Unauthorized" }, 401);
+    const principal = await authenticator.authenticate(credentials);
+    if (!principal) return c.json({ error: "Unauthorized" }, 401);
+    c.set("principal", principal);
+    await next();
+  });
+}
+
+// Secured route registration
+app.post("/items", authenticateCreateItem, async (context) =>
+  respond(await controllers.createItem(await jsonRequest(context), context.var.principal)),
+);
+
+// Controller still uses Apical wrapper for contract validation; secured handlers receive Principal
+createItem: createItemWrapper(async (request, principal) => {
   if (!request.isValid) {
     if (request.kind === "headers-error") throw new AuthenticationError("headers-error");
     throw new RequestValidationError(request.kind);
   }
-  const credentials = extractCredentials(request.value.headers, securityMeta);
-  const principal = await authenticator.authenticate(credentials);
-  if (!principal) throw new AuthenticationError("invalid-credentials");
   const result = await useCases.createItem(principal, request.value.body);
   // ...response mapping
 }),
@@ -422,13 +441,7 @@ export class AuthenticationError extends Error {
 }
 ```
 
-Routes `onError`:
-
-```ts
-if (error instanceof AuthenticationError) {
-  return context.json({ error: "Unauthorized" }, 401);
-}
-```
+Routes `onError` still maps `AuthenticationError` → 401 as a safety net for Apical header-shape failures after middleware.
 
 Auth adapter stub (`src/adapters/auth/in-memory-authenticator.ts`, ownership `generated`):
 
