@@ -481,7 +481,13 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
       'import { createInMemoryAuthenticator } from "../adapters/auth/in-memory-authenticator.ts";',
     );
     expect(runtime?.contents).toContain(
-      "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({}))",
+      "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({",
+    );
+    expect(runtime?.contents).toContain(
+      'bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
+    );
+    expect(runtime?.contents).toContain(
+      'apiKeys: new Map([["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
     );
     expect(runtime?.contents).toContain("}, authenticator);");
     expect(adapter?.contents).toContain("export function createInMemoryAuthenticator(options: {");

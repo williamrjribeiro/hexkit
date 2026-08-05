@@ -342,11 +342,7 @@ function deriveParameters(operation: ContractOperation): {
   }
 
   const pathParameters = operation.parameters.filter((parameter) => parameter.location === "path");
-  if (pathParameters.length === 0) {
-    throw new Error(
-      `Operation "${operation.operationId}" has no request body or path parameters to bind as use-case input.`,
-    );
-  }
+  if (pathParameters.length === 0) return { parameters: [], referencedSchemas: [] };
 
   const parameters: ApplicationParameter[] = [];
   const referencedSchemas: string[] = [];
