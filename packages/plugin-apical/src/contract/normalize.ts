@@ -16,8 +16,15 @@ import type {
   ContractResponse,
   ContractScalarValue,
   ContractSchema,
+  ContractSecurityRequirement,
+  ContractSecurityScheme,
   ContractType,
 } from "./types.ts";
+import {
+  normalizeGlobalSecurity,
+  normalizeSecuritySchemes,
+  resolveOperationSecurity,
+} from "./security.ts";
 import {
   asRecord,
   optionalBoolean,
@@ -397,6 +404,8 @@ function normalizeSchemas(
 function normalizeOperations(
   document: Record<string, unknown>,
   generatedModules: GeneratedApicalModules,
+  securitySchemes: readonly ContractSecurityScheme[],
+  globalSecurity: readonly ContractSecurityRequirement[],
 ): readonly ContractOperation[] {
   const paths = asRecord(document.paths, "OpenAPI paths");
   const operations: ContractOperation[] = [];
@@ -434,6 +443,7 @@ function normalizeOperations(
         modulePath,
         parameters: normalizeParameters(document, pathItem, operation, location),
         responses: normalizeResponses(document, operation.responses, `${location}.responses`),
+        security: resolveOperationSecurity(document, operation, securitySchemes, globalSecurity),
         ...(requestBody === undefined ? {} : { requestBody }),
         ...(extension === undefined ? {} : { extension }),
         ...optionalDescription(operation, location),
@@ -532,6 +542,8 @@ export function normalizeContractArtifact(
   const title = requiredString(info.title, "OpenAPI info.title");
   const version = requiredString(info.version, "OpenAPI info.version");
   const description = optionalString(info.description, "OpenAPI info.description");
+  const securitySchemes = normalizeSecuritySchemes(document);
+  const globalSecurity = normalizeGlobalSecurity(document);
 
   const artifact: ContractArtifact = {
     artifactVersion: 1,
@@ -543,7 +555,9 @@ export function normalizeContractArtifact(
       ...(description === undefined ? {} : { description }),
     },
     schemas: normalizeSchemas(document, generatedModules),
-    operations: normalizeOperations(document, generatedModules),
+    securitySchemes,
+    globalSecurity,
+    operations: normalizeOperations(document, generatedModules, securitySchemes, globalSecurity),
   };
 
   validateArtifactReferences(artifact);

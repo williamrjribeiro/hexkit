@@ -135,6 +135,7 @@ export type ContractOperation = {
   modulePath: string;
   parameters: readonly ContractParameter[];
   responses: readonly ContractResponse[];
+  security: ContractOperationSecurity;
   requestBody?: ContractRequestBody;
   extension?: ContractOperationExtension;
   summary?: string;
@@ -146,5 +147,7 @@ export type ContractArtifact = {
   openapiVersion: string;
   application: ContractApplication;
   schemas: readonly ContractSchema[];
+  securitySchemes: readonly ContractSecurityScheme[];
+  globalSecurity: readonly ContractSecurityRequirement[];
   operations: readonly ContractOperation[];
 };
