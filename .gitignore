@@ -37,3 +37,6 @@ packages/plugin-apical/generated/
 !.vscode/
 !.vscode/settings.json
 !.vscode/extensions.json
+
+# SDD scratch
+.superpowers/sdd/
