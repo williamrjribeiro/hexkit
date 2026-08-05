@@ -264,8 +264,14 @@ describe("Given a ContractArtifact with secured and public operations", () => {
       (file) => file.path === "src/core/application/get-health.ts",
     )?.contents;
 
-    expect(source).toContain("export type GetHealth = (itemId: string) => Promise<Item>;");
+    expect(source).toContain("export type GetHealth = () => Promise<Item>;");
     expect(source).not.toContain("Principal");
+  });
+
+  it("when an operation only has a query parameter, then generation reports unsupported input", async () => {
+    await expect(collectGeneratedFiles(createQueryOnlyContract())).rejects.toThrow(
+      'Operation "searchItems" declares unsupported query parameter "term".',
+    );
   });
 
   it("when any secured operation exists, then principal and authenticator port files are emitted", async () => {
@@ -443,16 +449,9 @@ function createAuthContract(): ContractArtifact {
       {
         operationId: "getHealth",
         method: "get",
-        path: "/health/{itemId}",
+        path: "/health",
         modulePath: "routes/getHealth.ts",
-        parameters: [
-          {
-            name: "itemId",
-            location: "path",
-            required: true,
-            type: stringType,
-          },
-        ],
+        parameters: [],
         responses: [
           {
             status: "200",
@@ -462,6 +461,36 @@ function createAuthContract(): ContractArtifact {
         ],
         security: publicSecurity,
         extension: { aggregate: "Item", action: "getHealth" },
+      },
+    ],
+  };
+}
+
+function createQueryOnlyContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const contract = createAuthContract();
+  const getHealth = contract.operations.find((operation) => operation.operationId === "getHealth");
+  if (getHealth === undefined) {
+    throw new Error("Missing getHealth operation in auth contract fixture.");
+  }
+
+  return {
+    ...contract,
+    operations: [
+      {
+        ...getHealth,
+        operationId: "searchItems",
+        path: "/items/search",
+        modulePath: "routes/searchItems.ts",
+        parameters: [
+          {
+            name: "term",
+            location: "query",
+            required: false,
+            type: stringType,
+          },
+        ],
+        extension: { aggregate: "Item", action: "search" },
       },
     ],
   };
