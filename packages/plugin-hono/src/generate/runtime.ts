@@ -52,8 +52,15 @@ export function renderRuntimeFile(model: HttpModel): GeneratedFile {
     ["export type RuntimeRepositories = {", repositoryFields, "};"].join("\n"),
     [
       hasAuth
-        ? "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({})) {"
+        ? "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({"
         : "export function createApp(repositories: RuntimeRepositories) {",
+      ...(hasAuth
+        ? [
+            '  bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
+            '  apiKeys: new Map([["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
+            "})) {",
+          ]
+        : []),
       "  return createHonoApp({",
       bindings,
       hasAuth ? "  }, authenticator);" : "  });",

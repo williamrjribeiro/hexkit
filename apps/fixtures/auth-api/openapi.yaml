@@ -8,6 +8,10 @@ paths:
   /health:
     get:
       operationId: getHealth
+      x-hexkit:
+        operation:
+          aggregate: Item
+          action: getHealth
       security: []
       responses:
         "200":
@@ -21,6 +25,10 @@ paths:
   /items:
     get:
       operationId: listItems
+      x-hexkit:
+        operation:
+          aggregate: Item
+          action: list
       responses:
         "200":
           description: ok
@@ -32,6 +40,10 @@ paths:
                   $ref: "#/components/schemas/Item"
     post:
       operationId: createItem
+      x-hexkit:
+        operation:
+          aggregate: Item
+          action: create
       security:
         - apiKey: []
       requestBody:
@@ -51,6 +63,10 @@ components:
   schemas:
     Item:
       type: object
+      x-hexkit:
+        persistence:
+          table: items
+          identity: id
       required: [id, name]
       properties:
         id: { type: string }
