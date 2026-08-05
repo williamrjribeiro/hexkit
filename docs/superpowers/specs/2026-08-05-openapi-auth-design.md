@@ -248,23 +248,27 @@ Protected use-case bodies remain user-owned; regeneration must not clobber autho
 
 Repository ports remain persistence-only. Do **not** fold auth into repositories.
 
-### 5.4 HTTP adapter (`plugin-hono`)
+### 5.4 HTTP adapter (`plugin-hono`) + Hono auth practices
 
-Responsibilities:
+Authentication belongs in **Hono middleware**, not scattered inside every controller body. That matches Hono’s usual pattern: authenticate once, attach identity to typed context `Variables`, then let the handler focus on the use case.
 
-1. Pass `context.req.raw.headers` into Apical wrappers (already done).
-2. On validation failure:
-   - If `kind === "headers-error"` **and** operation has `apicalServerHeaderNames.length > 0` → treat as **401 Unauthorized** (missing/malformed auth material).
-   - Otherwise keep **400** for query/path/body (and non-auth header params if we later distinguish them).
-3. On success for secured ops:
-   - Extract credentials from validated `request.value.headers` using IR scheme metadata (not stringly Petstore names).
-   - Call `Authenticator.authenticate`.
-   - `null` → **401**; success → invoke use case with `Principal`.
-4. Public ops (`requirements: []`) skip authenticator.
+#### Hono practices we follow (authentication only)
 
-Wire `Authenticator` in `src/runtime/app.ts` alongside repositories.
+1. **Middleware owns authentication** — `createMiddleware` from `hono/factory`; secured routes register the middleware, public routes (`security: []`) do not.
+2. **Typed context Variables** — `Hono<{ Variables: { principal: Principal } }>`; middleware does `c.set("principal", principal)`, handlers read `c.var.principal` (never re-parse `Authorization` in the handler).
+3. **Fail closed with 401** — missing credential, malformed header, or `authenticate` → `null` short-circuits in middleware with **401**; do not call `next()`.
+4. **Call the port from middleware** — middleware extracts wire credentials, then calls `Authenticator` (hexagonal). Prefer this over Hono’s built-in `bearerAuth({ token })` as the primary mechanism so verification stays swappable and OpenAPI-scheme-driven. Built-ins may inspire shape (`verifyToken`-style), but Hexkit should not hardcode a single static token helper as the architecture.
+5. **Apical stays boundary validation** — controllers still run Apical wrappers for path/query/body/(header) *shape*. Auth *identity* is established in middleware before the controller runs. If Apical later reports `headers-error` on a secured op, map that to **401** as a safety net; prefer middleware catching missing auth first.
+6. **No authorization in v1** — middleware does not check scopes/roles; it only establishes `Principal`.
 
-Map HTTP status carefully:
+#### Adapter responsibilities
+
+1. Generate per-scheme (or per-operation) auth middleware from security IR.
+2. Extract credentials from request headers using IR (`bearer` / `apiKey` header names).
+3. `await authenticator.authenticate(credentials)`; on success `c.set("principal", …)` then `await next()`.
+4. Controllers invoke `useCase(c.var.principal, …args)` for secured ops; public ops omit principal.
+5. Pass headers into Apical wrappers for contract validation as today.
+6. Wire `Authenticator` in `src/runtime/app.ts` alongside repositories.
 
 | Condition                         | Status |
 | --------------------------------- | ------ |
@@ -272,6 +276,84 @@ Map HTTP status carefully:
 | Present header, verify failed     | 401    |
 | Authenticated but not allowed     | 403 *(follow-up; not v1)* |
 | Other request validation          | 400    |
+
+#### Architecture diagram (Solution B)
+
+```mermaid
+flowchart TB
+  subgraph Driving["Driving adapters (north)"]
+    Client["HTTP Client"]
+    HonoApp["Hono app<br/>typed Variables: principal"]
+    AuthMw["authenticate middleware<br/>createMiddleware + c.set('principal')"]
+    Ctrl["Controllers<br/>Apical request/response wrappers"]
+  end
+
+  subgraph Application["Application core"]
+    UC["Use cases<br/>secured: useCase(principal, …)<br/>public: useCase(…)"]
+    Principal["Principal<br/>domain type"]
+  end
+
+  subgraph Ports["Ports"]
+    AuthPort["Authenticator port<br/>authenticate(credentials) → Principal \| null"]
+    RepoPort["Repository ports"]
+  end
+
+  subgraph Driven["Driven adapters (south)"]
+    AuthAdapter["Auth adapter<br/>in-memory / JWT / API-key store"]
+    DbAdapter["Drizzle repositories"]
+    Apical["Apical-generated Zod<br/>header/body/path schemas"]
+  end
+
+  Client --> HonoApp
+  HonoApp -->|"secured routes only"| AuthMw
+  HonoApp -->|"public security: []"| Ctrl
+  AuthMw -->|"extract bearer / apiKey"| AuthPort
+  AuthPort --> AuthAdapter
+  AuthMw -->|"401 if null / missing"| Client
+  AuthMw -->|"c.set principal → next()"| Ctrl
+  Ctrl --> Apical
+  Ctrl -->|"principal from c.var"| UC
+  UC --> Principal
+  UC --> RepoPort
+  RepoPort --> DbAdapter
+```
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant Hono as Hono router
+  participant Mw as Auth middleware
+  participant Auth as Authenticator port
+  participant Adapter as Auth adapter
+  participant Ctrl as Controller + Apical
+  participant UC as Use case
+
+  Client->>Hono: GET /items (Authorization: Bearer …)
+  Hono->>Mw: secured route middleware
+  Mw->>Mw: extract AuthCredentials from headers
+  alt missing / malformed credential
+    Mw-->>Client: 401 Unauthorized
+  else credential present
+    Mw->>Auth: authenticate(credentials)
+    Auth->>Adapter: verify token / API key
+    Adapter-->>Auth: Principal or null
+    Auth-->>Mw: Principal or null
+    alt null
+      Mw-->>Client: 401 Unauthorized
+    else Principal
+      Mw->>Mw: c.set("principal", principal)
+      Mw->>Ctrl: next()
+      Ctrl->>Ctrl: Apical validate path/query/body/headers shape
+      alt contract validation failure
+        Ctrl-->>Client: 400 or 401 if auth header shape
+      else valid
+        Ctrl->>UC: useCase(c.var.principal, …)
+        UC-->>Ctrl: result
+        Ctrl-->>Client: 2xx + Apical response map
+      end
+    end
+  end
+```
 
 ### 5.5 Auth adapter (generated)
 
