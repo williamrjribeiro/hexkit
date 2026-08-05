@@ -109,7 +109,7 @@ describe("Given the Auth fixture contract", () => {
       'import { createInMemoryAuthenticator } from "../adapters/auth/in-memory-authenticator.ts";',
     );
     expect(runtime).toContain(
-      "bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? \"test-token\").split(\",\")),",
+      'bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
     );
     expect(runtime).toContain(
       'apiKeys: new Map([["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
