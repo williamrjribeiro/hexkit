@@ -98,6 +98,23 @@ Hono
 Drizzle
 SST
 AWS Lambda
+
+Authentication (v1, post-PoC)
+
+OpenAPI `securitySchemes` and per-operation `security` drive authentication in generated apps. The pipeline is:
+
+OpenAPI security
+    ↓
+Apical header validation (wire presence only)
+    ↓
+Hono middleware (401 on missing/invalid headers; extract credentials)
+    ↓
+Authenticator port (adapter implements credential verification)
+    ↓
+Principal (passed into secured use cases)
+
+v1 supports `apiKey` (header) and HTTP bearer only. Authorization (scopes, 403) is out of scope. The PoC dogfood contract (`openapi.poc.yaml`) stays auth-free; auth is verified via a separate fixture (`apps/fixtures/auth-api/`). See `docs/superpowers/specs/2026-08-05-openapi-auth-design.md`.
+
 Project Structure
 Monorepo Layout
 hexkit/
