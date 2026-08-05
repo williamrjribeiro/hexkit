@@ -172,12 +172,12 @@ function createAuthContract(): ContractArtifact {
   } as const;
   const bearerSecurity = {
     overridesGlobal: false,
-    requirements: [{ schemes: ["bearerAuth"], scopes: { bearerAuth: [] } }],
+    requirements: [{ schemes: ["adminBearer"], scopes: { adminBearer: [] } }],
     apicalServerHeaderNames: ["authorization"],
   } as const;
   const apiKeySecurity = {
     overridesGlobal: true,
-    requirements: [{ schemes: ["apiKey"], scopes: { apiKey: [] } }],
+    requirements: [{ schemes: ["internalKey"], scopes: { internalKey: [] } }],
     apicalServerHeaderNames: ["x-api-key"],
   } as const;
 
@@ -201,15 +201,15 @@ function createAuthContract(): ContractArtifact {
     ],
     securitySchemes: [
       {
-        name: "bearerAuth",
+        name: "adminBearer",
         type: "http",
         scheme: "bearer",
         headerName: "Authorization",
         bearerFormat: "JWT",
       },
-      { name: "apiKey", type: "apiKey", in: "header", headerName: "X-API-Key" },
+      { name: "internalKey", type: "apiKey", in: "header", headerName: "X-API-Key" },
     ],
-    globalSecurity: [{ schemes: ["bearerAuth"], scopes: { bearerAuth: [] } }],
+    globalSecurity: [{ schemes: ["adminBearer"], scopes: { adminBearer: [] } }],
     operations: [
       {
         operationId: "createItem",
@@ -435,6 +435,12 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
       "  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, {",
     );
     expect(routes?.contents).toContain(
+      '{ name: "internalKey", type: "apiKey", headerName: "X-API-Key" }',
+    );
+    expect(routes?.contents).toContain(
+      '{ name: "adminBearer", type: "http", scheme: "bearer", headerName: "Authorization" }',
+    );
+    expect(routes?.contents).toContain(
       '  app.post("/items", authenticateCreateItem, async (context) =>',
     );
     expect(routes?.contents).toContain(
@@ -480,6 +486,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
     expect(runtime?.contents).toContain("}, authenticator);");
     expect(adapter?.contents).toContain("export function createInMemoryAuthenticator(options: {");
     expect(adapter?.contents).toContain('if (credentials.kind === "bearer") {');
+    expect(adapter?.contents).toContain("scheme: credentials.schemeName");
     expect(adapter?.contents).toContain(
       "const allowed = options.apiKeys?.get(credentials.headerName.toLowerCase());",
     );
