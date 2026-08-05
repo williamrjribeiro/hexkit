@@ -7,6 +7,26 @@ export type HttpRepositoryBinding = {
   repositoryFilePath: string;
 };
 
+export type HttpAuthSchemeBinding =
+  | {
+      name: string;
+      type: "apiKey";
+      headerName: string;
+    }
+  | {
+      name: string;
+      type: "http";
+      scheme: "bearer";
+      headerName: "Authorization";
+    };
+
+export type HttpAuthenticatorBinding = {
+  portName: "Authenticator";
+  portFilePath: "src/core/ports/authenticator.ts";
+  adapterFilePath: "src/adapters/auth/in-memory-authenticator.ts";
+  adapterFactoryName: "createInMemoryAuthenticator";
+};
+
 export type HttpOperationBinding = {
   operationId: string;
   method: ContractHttpMethod;
@@ -25,6 +45,9 @@ export type HttpOperationBinding = {
   hasJsonRequestBody: boolean;
   hasJsonSuccessBody: boolean;
   successMediaType?: string;
+  requiresAuth: boolean;
+  authMiddlewareName?: string;
+  authSchemes: readonly HttpAuthSchemeBinding[];
   useCaseArgumentExpressions: readonly string[];
 };
 
@@ -38,6 +61,7 @@ export type HttpArtifact = {
   runtimeRepositoriesTypeName: string;
   repositories: readonly HttpRepositoryBinding[];
   operations: readonly HttpOperationBinding[];
+  authenticator?: HttpAuthenticatorBinding;
 };
 
 export const HTTP_ARTIFACT = createArtifactKey<HttpArtifact>("hono.http.v1");

@@ -162,6 +162,130 @@ function readProductionSources(): string {
   return chunks.join("\n");
 }
 
+function createAuthContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
+  const publicSecurity = {
+    overridesGlobal: true,
+    requirements: [],
+    apicalServerHeaderNames: [],
+  } as const;
+  const bearerSecurity = {
+    overridesGlobal: false,
+    requirements: [{ schemes: ["bearerAuth"], scopes: { bearerAuth: [] } }],
+    apicalServerHeaderNames: ["authorization"],
+  } as const;
+  const apiKeySecurity = {
+    overridesGlobal: true,
+    requirements: [{ schemes: ["apiKey"], scopes: { apiKey: [] } }],
+    apicalServerHeaderNames: ["x-api-key"],
+  } as const;
+
+  return {
+    artifactVersion: 1,
+    openapiVersion: "3.1.0",
+    application: {
+      title: "Auth API Fixture",
+      version: "1.0.0",
+      slug: "auth-api-fixture",
+    },
+    schemas: [
+      {
+        name: "Item",
+        modulePath: "schemas/Item.ts",
+        properties: [
+          { name: "id", required: true, type: stringType },
+          { name: "name", required: true, type: stringType },
+        ],
+      },
+    ],
+    securitySchemes: [
+      {
+        name: "bearerAuth",
+        type: "http",
+        scheme: "bearer",
+        headerName: "Authorization",
+        bearerFormat: "JWT",
+      },
+      { name: "apiKey", type: "apiKey", in: "header", headerName: "X-API-Key" },
+    ],
+    globalSecurity: [{ schemes: ["bearerAuth"], scopes: { bearerAuth: [] } }],
+    operations: [
+      {
+        operationId: "createItem",
+        method: "post",
+        path: "/items",
+        modulePath: "routes/createItem.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "201",
+            description: "created",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+        security: apiKeySecurity,
+        requestBody: {
+          required: true,
+          media: [{ mediaType: "application/json", type: itemReference }],
+        },
+        extension: { aggregate: "Item", action: "create" },
+      },
+      {
+        operationId: "getHealth",
+        method: "get",
+        path: "/health/{itemId}",
+        modulePath: "routes/getHealth.ts",
+        parameters: [
+          {
+            name: "itemId",
+            location: "path",
+            required: true,
+            type: stringType,
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+        security: publicSecurity,
+        extension: { aggregate: "Item", action: "getHealth" },
+      },
+      {
+        operationId: "listItems",
+        method: "get",
+        path: "/items/{itemId}",
+        modulePath: "routes/listItems.ts",
+        parameters: [
+          {
+            name: "itemId",
+            location: "path",
+            required: true,
+            type: stringType,
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "array", nullable: false, items: itemReference },
+              },
+            ],
+          },
+        ],
+        security: bearerSecurity,
+        extension: { aggregate: "Item", action: "list" },
+      },
+    ],
+  };
+}
+
 describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
   it("when Hono generation runs, then routes, controllers, runtime, and HttpArtifact preserve validation boundaries", async () => {
     const contract = await loadContract(petstoreOpenApi, {
@@ -270,6 +394,130 @@ describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
         repositoryFilePath: "src/core/ports/book-repository.ts",
       },
     ]);
+  });
+});
+
+describe("Given ContractArtifact + ApplicationArtifact with secured and public operations", () => {
+  it("when Hono generation runs, then secured routes use auth middleware and pass Principal to controllers", async () => {
+    const { files } = await collectGeneratedFiles(createAuthContract());
+    const controllers = files.find((file) => file.path === "src/adapters/http/controllers.ts");
+    const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+
+    expect(controllers?.contents).toContain(
+      'import type { Principal } from "../../core/domain/principal.ts";',
+    );
+    expect(controllers?.contents).toContain(
+      'import type { Authenticator } from "../../core/ports/authenticator.ts";',
+    );
+    expect(controllers?.contents).toContain("export class AuthenticationError extends Error");
+    expect(controllers?.contents).toContain(
+      "export function createHttpControllers(useCases: HttpUseCases, authenticator?: Authenticator)",
+    );
+    expect(controllers?.contents).toContain(
+      "type ControllerRequest<TController> = TController extends (request: infer Request) => Promise<unknown> ? Request : never;",
+    );
+    expect(controllers?.contents).toContain("createItem: async (");
+    expect(controllers?.contents).toContain(
+      "request: ControllerRequest<ReturnType<typeof createItemWrapper>>,",
+    );
+    expect(controllers?.contents).toContain("principal: Principal,");
+    expect(controllers?.contents).toContain(") => createItemWrapper(async (request) => {");
+    expect(controllers?.contents).toContain(
+      "const result = await useCases.createItem(principal, request.value.body);",
+    );
+    expect(controllers?.contents).toContain("getHealth: getHealthWrapper(async (request) => {");
+
+    expect(routes?.contents).toContain('import { createMiddleware } from "hono/factory";');
+    expect(routes?.contents).toContain("type AppVariables = { principal: Principal };");
+    expect(routes?.contents).toContain("function createAuthenticateMiddleware(");
+    expect(routes?.contents).toContain('context.set("principal", principal);');
+    expect(routes?.contents).toContain(
+      "  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, {",
+    );
+    expect(routes?.contents).toContain(
+      '  app.post("/items", authenticateCreateItem, async (context) =>',
+    );
+    expect(routes?.contents).toContain(
+      "    respond(await controllers.createItem(await jsonRequest(context), context.var.principal)),",
+    );
+    expect(routes?.contents).toContain('  app.get("/health/:itemId", async (context) =>');
+  });
+
+  it("when request validation fails, then secured header errors map to AuthenticationError and body errors remain RequestValidationError", async () => {
+    const { files } = await collectGeneratedFiles(createAuthContract());
+    const controllers = files.find((file) => file.path === "src/adapters/http/controllers.ts");
+    const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+
+    expect(controllers?.contents).toContain(
+      'if (!request.isValid && request.kind === "headers-error") {',
+    );
+    expect(controllers?.contents).toContain("throw new AuthenticationError(request.kind);");
+    expect(controllers?.contents).toContain(
+      'throw new RequestValidationError(request.isValid ? "body-error" : request.kind);',
+    );
+    expect(routes?.contents).toContain("if (error instanceof AuthenticationError) {");
+    expect(routes?.contents).toContain('return context.json({ error: "Unauthorized" }, 401);');
+  });
+
+  it("when secured operations exist, then runtime wires the in-memory authenticator adapter", async () => {
+    const { files, artifact } = await collectGeneratedFiles(createAuthContract());
+    const runtime = files.find((file) => file.path === "src/runtime/app.ts");
+    const adapter = files.find(
+      (file) => file.path === "src/adapters/auth/in-memory-authenticator.ts",
+    );
+
+    expect(files.map((file) => ({ path: file.path, ownership: file.ownership }))).toEqual(
+      expect.arrayContaining([
+        { path: "src/adapters/auth/in-memory-authenticator.ts", ownership: "generated" },
+      ]),
+    );
+    expect(runtime?.contents).toContain(
+      'import { createInMemoryAuthenticator } from "../adapters/auth/in-memory-authenticator.ts";',
+    );
+    expect(runtime?.contents).toContain(
+      "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({}))",
+    );
+    expect(runtime?.contents).toContain("}, authenticator);");
+    expect(adapter?.contents).toContain("export function createInMemoryAuthenticator(options: {");
+    expect(adapter?.contents).toContain('if (credentials.kind === "bearer") {');
+    expect(adapter?.contents).toContain(
+      "const allowed = options.apiKeys?.get(credentials.headerName.toLowerCase());",
+    );
+    expect(artifact.authenticator).toEqual({
+      portName: "Authenticator",
+      portFilePath: "src/core/ports/authenticator.ts",
+      adapterFilePath: "src/adapters/auth/in-memory-authenticator.ts",
+      adapterFactoryName: "createInMemoryAuthenticator",
+    });
+  });
+
+  it("when contract has no security, then auth adapter and middleware are not emitted", async () => {
+    const contract = await loadContract(petstoreOpenApi, {
+      schemas: new Map([
+        ["Order", "schemas/Order.ts"],
+        ["Pet", "schemas/Pet.ts"],
+      ]),
+      operations: new Map([
+        ["addPet", "routes/addPet.ts"],
+        ["updatePet", "routes/updatePet.ts"],
+        ["getPetById", "routes/getPetById.ts"],
+        ["deletePet", "routes/deletePet.ts"],
+        ["placeOrder", "routes/placeOrder.ts"],
+        ["getOrderById", "routes/getOrderById.ts"],
+        ["deleteOrder", "routes/deleteOrder.ts"],
+      ]),
+    });
+
+    const { files, artifact } = await collectGeneratedFiles(contract);
+    const source = files.map((file) => file.contents).join("\n");
+
+    expect(files.map((file) => file.path)).not.toContain(
+      "src/adapters/auth/in-memory-authenticator.ts",
+    );
+    expect(source).not.toContain("createAuthenticateMiddleware");
+    expect(source).not.toContain("createMiddleware");
+    expect(source).not.toContain("context.var.principal");
+    expect(artifact.authenticator).toBeUndefined();
   });
 });
 

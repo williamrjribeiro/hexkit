@@ -9,15 +9,25 @@ import type {
   ContractResponse,
 } from "@hexkit/plugin-apical";
 
-import type { HttpArtifact, HttpOperationBinding, HttpRepositoryBinding } from "../artifact.ts";
+import type {
+  HttpArtifact,
+  HttpAuthSchemeBinding,
+  HttpAuthenticatorBinding,
+  HttpOperationBinding,
+  HttpRepositoryBinding,
+} from "../artifact.ts";
+
+type ContractSecurityScheme = ContractArtifact["securitySchemes"][number];
 
 export const CONTROLLERS_FILE_PATH = "src/adapters/http/controllers.ts";
 export const ROUTES_FILE_PATH = "src/adapters/http/routes.ts";
 export const RUNTIME_FILE_PATH = "src/runtime/app.ts";
+export const AUTH_ADAPTER_FILE_PATH = "src/adapters/auth/in-memory-authenticator.ts";
 
 export type HttpModel = {
   repositories: readonly HttpRepositoryBinding[];
   operations: readonly HttpOperationBinding[];
+  authenticator?: HttpAuthenticatorBinding;
 };
 
 export function deriveHttpModel(
@@ -37,7 +47,7 @@ export function deriveHttpModel(
           `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
         );
       }
-      return deriveOperation(operation, useCase);
+      return deriveOperation(operation, useCase, contract.securitySchemes);
     });
 
   const repositories = application.repositories
@@ -50,7 +60,21 @@ export function deriveHttpModel(
       }),
     );
 
-  return { repositories, operations };
+  const authenticator =
+    application.authenticatorPort === undefined
+      ? undefined
+      : ({
+          portName: application.authenticatorPort.name,
+          portFilePath: application.authenticatorPort.filePath,
+          adapterFilePath: AUTH_ADAPTER_FILE_PATH,
+          adapterFactoryName: "createInMemoryAuthenticator",
+        } satisfies HttpAuthenticatorBinding);
+
+  return {
+    repositories,
+    operations,
+    ...(authenticator === undefined ? {} : { authenticator }),
+  };
 }
 
 export function toHttpArtifact(model: HttpModel): HttpArtifact {
@@ -64,12 +88,14 @@ export function toHttpArtifact(model: HttpModel): HttpArtifact {
     runtimeRepositoriesTypeName: "RuntimeRepositories",
     repositories: model.repositories,
     operations: model.operations,
+    ...(model.authenticator === undefined ? {} : { authenticator: model.authenticator }),
   };
 }
 
 function deriveOperation(
   operation: ContractOperation,
   useCase: ApplicationUseCase,
+  securitySchemes: readonly ContractSecurityScheme[],
 ): HttpOperationBinding {
   const successResponse = findSuccessResponse(operation);
   if (successResponse === undefined) {
@@ -88,6 +114,7 @@ function deriveOperation(
   const wrapperName = `${operation.operationId}Wrapper`;
   const responseMapName =
     jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
+  const authSchemes = deriveAuthSchemes(operation, securitySchemes);
 
   return {
     operationId: operation.operationId,
@@ -111,6 +138,9 @@ function deriveOperation(
     hasJsonRequestBody,
     hasJsonSuccessBody: jsonSuccessMedia !== undefined,
     ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
+    requiresAuth: useCase.requiresAuth,
+    ...(useCase.requiresAuth ? { authMiddlewareName: `authenticate${useCase.typeName}` } : {}),
+    authSchemes,
     useCaseArgumentExpressions: deriveUseCaseArguments(useCase, hasJsonRequestBody),
   };
 }
@@ -119,11 +149,43 @@ function deriveUseCaseArguments(
   useCase: ApplicationUseCase,
   hasJsonRequestBody: boolean,
 ): string[] {
+  const principalExpression = useCase.requiresAuth ? ["principal"] : [];
   if (hasJsonRequestBody) {
-    return ["request.value.body"];
+    return [...principalExpression, "request.value.body"];
   }
 
-  return useCase.parameters.map((parameter) => `request.value.path.${parameter.name}`);
+  return [
+    ...principalExpression,
+    ...useCase.parameters.map((parameter) => `request.value.path.${parameter.name}`),
+  ];
+}
+
+function deriveAuthSchemes(
+  operation: ContractOperation,
+  securitySchemes: readonly ContractSecurityScheme[],
+): HttpAuthSchemeBinding[] {
+  if (operation.security.apicalServerHeaderNames.length === 0) return [];
+
+  const schemesByName = new Map(securitySchemes.map((scheme) => [scheme.name, scheme] as const));
+  const orderedNames = unique(
+    operation.security.requirements.flatMap((requirement) => requirement.schemes),
+  );
+
+  return orderedNames.flatMap((name): HttpAuthSchemeBinding[] => {
+    const scheme = schemesByName.get(name);
+    if (scheme === undefined || scheme.type === "unsupported") return [];
+    if (scheme.type === "apiKey") {
+      return [{ name: scheme.name, type: "apiKey", headerName: scheme.headerName }];
+    }
+    return [
+      {
+        name: scheme.name,
+        type: "http",
+        scheme: "bearer",
+        headerName: scheme.headerName,
+      },
+    ];
+  });
 }
 
 function findSuccessResponse(operation: ContractOperation): ContractResponse | undefined {
@@ -144,4 +206,8 @@ function isSuccessStatus(status: string): boolean {
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function unique<T>(values: readonly T[]): T[] {
+  return [...new Set(values)];
 }

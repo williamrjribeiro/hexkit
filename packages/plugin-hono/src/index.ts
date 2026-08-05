@@ -1,6 +1,8 @@
 export {
   HTTP_ARTIFACT,
   type HttpArtifact,
+  type HttpAuthenticatorBinding,
+  type HttpAuthSchemeBinding,
   type HttpOperationBinding,
   type HttpRepositoryBinding,
 } from "./artifact.ts";
