@@ -11,6 +11,15 @@ export function renderUseCaseFile(useCase: UseCaseModel): GeneratedFile {
       names: [schema],
       typeOnly: true,
     })),
+    ...(useCase.requiresAuth
+      ? [
+          {
+            from: "../domain/principal.ts",
+            names: ["Principal"],
+            typeOnly: true,
+          },
+        ]
+      : []),
     {
       from: `../ports/${toKebabCase(useCase.aggregate)}-repository.ts`,
       names: [useCase.repositoryName],
@@ -18,15 +27,21 @@ export function renderUseCaseFile(useCase: UseCaseModel): GeneratedFile {
     },
   ];
 
-  const parameterList = useCase.parameters
-    .map((parameter) => `${parameter.name}: ${parameter.typeExpression}`)
-    .join(", ");
+  const typeParameters = [
+    ...(useCase.requiresAuth ? ["principal: Principal"] : []),
+    ...useCase.parameters.map((parameter) => `${parameter.name}: ${parameter.typeExpression}`),
+  ];
+  const parameterList = typeParameters.join(", ");
+  const factoryParameters = [
+    ...(useCase.requiresAuth ? ["principal"] : []),
+    ...useCase.parameters.map((parameter) => parameter.name),
+  ];
   const argumentList = useCase.parameters.map((parameter) => parameter.name).join(", ");
   const statements = [
     `export type ${useCase.typeName} = (${parameterList}) => Promise<${useCase.returnTypeExpression}>;`,
     [
       `export function ${useCase.factoryName}(${useCase.repositoryParameterName}: ${useCase.repositoryName}): ${useCase.typeName} {`,
-      `  return (${argumentList}) => ${useCase.repositoryParameterName}.${useCase.methodName}(${argumentList});`,
+      `  return (${factoryParameters.join(", ")}) => ${useCase.repositoryParameterName}.${useCase.methodName}(${argumentList});`,
       "}",
     ].join("\n"),
   ];

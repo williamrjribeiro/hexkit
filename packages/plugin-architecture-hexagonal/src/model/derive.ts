@@ -9,6 +9,7 @@ import { pluralizeCamelCase, toCamelCase, toKebabCase, toPascalCase } from "@hex
 
 import type {
   ApplicationArtifact,
+  ApplicationAuthenticatorPort,
   ApplicationEntity,
   ApplicationParameter,
   ApplicationRepository,
@@ -55,15 +56,19 @@ export type UseCaseModel = {
   repositoryName: string;
   repositoryParameterName: string;
   methodName: string;
+  requiresAuth: boolean;
   parameters: readonly ApplicationParameter[];
   returnTypeExpression: string;
   referencedSchemas: readonly string[];
 };
 
+export type AuthenticatorPortModel = ApplicationAuthenticatorPort;
+
 export type ApplicationModel = {
   entities: readonly DomainEntityModel[];
   repositories: readonly RepositoryModel[];
   useCases: readonly UseCaseModel[];
+  authenticatorPort?: AuthenticatorPortModel;
 };
 
 export function deriveApplicationModel(contract: ContractArtifact): ApplicationModel {
@@ -103,8 +108,19 @@ export function deriveApplicationModel(contract: ContractArtifact): ApplicationM
       }
       return deriveUseCase(operation, repository);
     });
+  const authenticatorPort = useCases.some((useCase) => useCase.requiresAuth)
+    ? ({
+        name: "Authenticator",
+        filePath: "src/core/ports/authenticator.ts",
+      } satisfies AuthenticatorPortModel)
+    : undefined;
 
-  return { entities, repositories, useCases };
+  return {
+    entities,
+    repositories,
+    useCases,
+    ...(authenticatorPort === undefined ? {} : { authenticatorPort }),
+  };
 }
 
 export function toApplicationArtifact(model: ApplicationModel): ApplicationArtifact {
@@ -133,6 +149,7 @@ export function toApplicationArtifact(model: ApplicationModel): ApplicationArtif
     typeName: useCase.typeName,
     factoryName: useCase.factoryName,
     filePath: useCase.filePath,
+    requiresAuth: useCase.requiresAuth,
     repositoryName: useCase.repositoryName,
     repositoryParameterName: useCase.repositoryParameterName,
     methodName: useCase.methodName,
@@ -145,6 +162,9 @@ export function toApplicationArtifact(model: ApplicationModel): ApplicationArtif
     entities,
     repositories,
     useCases,
+    ...(model.authenticatorPort === undefined
+      ? {}
+      : { authenticatorPort: model.authenticatorPort }),
   };
 }
 
@@ -219,10 +239,15 @@ function deriveUseCase(operation: ContractOperation, repository: RepositoryModel
     repositoryName: repository.name,
     repositoryParameterName: repository.parameterName,
     methodName: method.name,
+    requiresAuth: requiresAuth(operation),
     parameters: method.parameters,
     returnTypeExpression: method.returnTypeExpression,
     referencedSchemas: method.referencedSchemas,
   };
+}
+
+function requiresAuth(operation: ContractOperation): boolean {
+  return operation.security.apicalServerHeaderNames.length > 0;
 }
 
 function resolveAggregate(operation: ContractOperation, schemaNames: ReadonlySet<string>): string {

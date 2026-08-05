@@ -32,6 +32,7 @@ export type ApplicationUseCase = {
   typeName: string;
   factoryName: string;
   filePath: string;
+  requiresAuth: boolean;
   repositoryName: string;
   repositoryParameterName: string;
   methodName: string;
@@ -39,11 +40,17 @@ export type ApplicationUseCase = {
   returnTypeExpression: string;
 };
 
+export type ApplicationAuthenticatorPort = {
+  name: "Authenticator";
+  filePath: "src/core/ports/authenticator.ts";
+};
+
 export type ApplicationArtifact = {
   artifactVersion: 1;
   entities: readonly ApplicationEntity[];
   repositories: readonly ApplicationRepository[];
   useCases: readonly ApplicationUseCase[];
+  authenticatorPort?: ApplicationAuthenticatorPort;
 };
 
 export const APPLICATION_ARTIFACT = createArtifactKey<ApplicationArtifact>(
