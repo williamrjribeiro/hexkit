@@ -29,26 +29,26 @@ Apical (`@apical-ts/craft` **0.26.0**) does **not** verify credentials. It turns
 
 From Apical’s `analyzeSecurityScheme`:
 
-| OpenAPI scheme                         | Apical behavior                                      |
-| -------------------------------------- | ---------------------------------------------------- |
-| `apiKey` + `in: header` + `name`       | Header named by `name` (normalized casing)           |
-| `http` + `scheme: bearer`              | Header `Authorization`                               |
-| `apiKey` in `query` / `cookie`         | **Ignored** (not header-based)                       |
-| `http` + `basic` (and other HTTP auth) | **Ignored**                                          |
-| `oauth2` / `openIdConnect`             | **Ignored** as header emitters                       |
-| `mutualTLS`                            | **Ignored**                                          |
+| OpenAPI scheme                         | Apical behavior                            |
+| -------------------------------------- | ------------------------------------------ |
+| `apiKey` + `in: header` + `name`       | Header named by `name` (normalized casing) |
+| `http` + `scheme: bearer`              | Header `Authorization`                     |
+| `apiKey` in `query` / `cookie`         | **Ignored** (not header-based)             |
+| `http` + `basic` (and other HTTP auth) | **Ignored**                                |
+| `oauth2` / `openIdConnect`             | **Ignored** as header emitters             |
+| `mutualTLS`                            | **Ignored**                                |
 
-OAuth2 / OIDC in OpenAPI are documentation of *how clients obtain tokens*. Apical only models the wire credential when it is a bearer/API-key **header**.
+OAuth2 / OIDC in OpenAPI are documentation of _how clients obtain tokens_. Apical only models the wire credential when it is a bearer/API-key **header**.
 
 ### 2.2 Global vs operation `security`
 
-| Spec shape                         | Apical meaning                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| Root `security: [{ scheme: [] }]`  | Global auth headers; client optional; **server schema requires** the header(s) |
-| Operation omits `security`         | Inherit global                                                                 |
-| `security: []`                     | Override that **disables** auth for that operation                             |
-| `security: [{ scheme: [] }]`       | Override; those headers are **required** on the operation                      |
-| Multiple objects in `security` OR  | Spec OR; Apical **merges headers into one Zod object** (effectively AND)       |
+| Spec shape                        | Apical meaning                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| Root `security: [{ scheme: [] }]` | Global auth headers; client optional; **server schema requires** the header(s) |
+| Operation omits `security`        | Inherit global                                                                 |
+| `security: []`                    | Override that **disables** auth for that operation                             |
+| `security: [{ scheme: [] }]`      | Override; those headers are **required** on the operation                      |
+| Multiple objects in `security` OR | Spec OR; Apical **merges headers into one Zod object** (effectively AND)       |
 
 **Important limitation:** OpenAPI `security: [ {A:[]}, {B:[]} ]` means A **or** B. Apical currently emits a single object requiring **both** headers. Hexkit must document this and, for v1, either:
 
@@ -70,23 +70,23 @@ For secured operations (with `--server`):
 
 Given global `bearerAuth`, `security: []` on `/public/health`, override `apiKey` on `POST /pets`, and OR `bearerAuth|apiKey` on `GET /pets/{id}`:
 
-| Operation   | Server headers schema                                      |
-| ----------- | ---------------------------------------------------------- |
-| `getHealth` | *(none — no header validation)*                            |
-| `listPets`  | `{ authorization: z.string() }` (global, required server)  |
-| `createPet` | `{ "x-api-key": z.string() }` (override)                   |
-| `getPet`    | `{ authorization, "x-api-key" }` both required (AND bug)   |
+| Operation   | Server headers schema                                     |
+| ----------- | --------------------------------------------------------- |
+| `getHealth` | _(none — no header validation)_                           |
+| `listPets`  | `{ authorization: z.string() }` (global, required server) |
+| `createPet` | `{ "x-api-key": z.string() }` (override)                  |
+| `getPet`    | `{ authorization, "x-api-key" }` both required (AND bug)  |
 
 ## 3. Hexkit gap analysis
 
-| Layer                         | Today                                                              | Needed for auth                                              |
-| ----------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
-| OpenAPI input                 | PoC fixture has no security                                        | Dogfood fixture with apiKey and/or bearer                    |
-| `plugin-apical` IR            | Schemas + operations only                                          | Security schemes + resolved per-operation requirements       |
-| `plugin-architecture-hexagonal` | Domain, repos, use cases                                       | Optional `Principal`, `AuthPort`, use-case context           |
-| `plugin-hono`                 | Routes + controllers; all invalid → 400                            | Distinguish auth header failure → 401; wire authenticator    |
-| Runtime / adapters            | DB + HTTP only                                                     | Auth adapter stub (verify API key / bearer) — protected zone |
-| Apical contracts              | Already emit header schemas when security present                  | Consume as boundary validation (do not re-model headers)     |
+| Layer                           | Today                                             | Needed for auth                                              |
+| ------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| OpenAPI input                   | PoC fixture has no security                       | Dogfood fixture with apiKey and/or bearer                    |
+| `plugin-apical` IR              | Schemas + operations only                         | Security schemes + resolved per-operation requirements       |
+| `plugin-architecture-hexagonal` | Domain, repos, use cases                          | Optional `Principal`, `AuthPort`, use-case context           |
+| `plugin-hono`                   | Routes + controllers; all invalid → 400           | Distinguish auth header failure → 401; wire authenticator    |
+| Runtime / adapters              | DB + HTTP only                                    | Auth adapter stub (verify API key / bearer) — protected zone |
+| Apical contracts                | Already emit header schemas when security present | Consume as boundary validation (do not re-model headers)     |
 
 ## 4. Approaches considered
 
@@ -94,38 +94,38 @@ Given global `bearerAuth`, `security: []` on `/public/health`, override `apiKey`
 
 **Idea:** Extend IR enough to know which operations are secured. Map Apical `headers-error` on secured ops to HTTP 401. No principal, no verification port.
 
-| Pros | Cons |
-| ---- | ---- |
+| Pros                                 | Cons                                                  |
+| ------------------------------------ | ----------------------------------------------------- |
 | Smallest change; reuses Apical fully | Not real authentication — any non-empty header passes |
-| Good first milestone | Business logic cannot authorize by identity/scopes |
-| Matches Apical’s own ceiling | Easy to over-claim “auth support” |
+| Good first milestone                 | Business logic cannot authorize by identity/scopes    |
+| Matches Apical’s own ceiling         | Easy to over-claim “auth support”                     |
 
 ### Approach B — Hexagonal Auth Port + Principal (recommended)
 
 **Idea:** Treat “credential on the wire” (Apical) and “identity in the domain” (Hexkit) as separate concerns.
 
 1. **Contract IR** carries schemes + effective requirements per operation (derived from OpenAPI the same way Apical does, for generator decisions).
-2. **HTTP adapter** uses Apical wrappers for header *presence*; maps auth-related header failures to **401**.
+2. **HTTP adapter** uses Apical wrappers for header _presence_; maps auth-related header failures to **401**.
 3. **Auth port** in `core/ports` verifies credentials → `Principal | null`.
 4. **Auth adapter** (generated stub, protected or regenerable-with-hook) implements verification (API key lookup / JWT verify) — details stay out of domain.
 5. **Use cases** that require auth receive `Principal` (or a request context), never raw headers or Hono `Context`.
 
-| Pros | Cons |
-| ---- | ---- |
-| Correct hexagonal boundaries | More IR + generation surface than A |
-| Verification swappable (in-memory, DB, IdP JWKS) | OAuth *flows* still deferred |
-| Aligns with RFC “clear extension points” | Must carefully avoid double-validating headers |
-| Dogfoodable with apiKey + bearer without Petstore hardcoding | Scope/roles authorization is a follow-up |
+| Pros                                                         | Cons                                           |
+| ------------------------------------------------------------ | ---------------------------------------------- |
+| Correct hexagonal boundaries                                 | More IR + generation surface than A            |
+| Verification swappable (in-memory, DB, IdP JWKS)             | OAuth _flows_ still deferred                   |
+| Aligns with RFC “clear extension points”                     | Must carefully avoid double-validating headers |
+| Dogfoodable with apiKey + bearer without Petstore hardcoding | Scope/roles authorization is a follow-up       |
 
 ### Approach C — Dedicated `@hexkit/plugin-auth`
 
 **Idea:** New pipeline plugin owns auth adapters, env config, and scheme-specific generators. Hexagonal/Hono plugins only consume an auth artifact.
 
-| Pros | Cons |
-| ---- | ---- |
-| Matches PRD follow-up wording (“Auth plugins”) | Extra package before the model is proven |
-| Isolates JWT/OAuth complexity later | Premature split if v1 is only apiKey + bearer verify stubs |
-| Clean SST/env integration later | More pipeline coordination |
+| Pros                                           | Cons                                                       |
+| ---------------------------------------------- | ---------------------------------------------------------- |
+| Matches PRD follow-up wording (“Auth plugins”) | Extra package before the model is proven                   |
+| Isolates JWT/OAuth complexity later            | Premature split if v1 is only apiKey + bearer verify stubs |
+| Clean SST/env integration later                | More pipeline coordination                                 |
 
 ### Recommendation
 
@@ -141,12 +141,12 @@ Phase mapping:
 
 ### 5.1 Principles
 
-1. **OpenAPI remains source of truth** for *which* operations need *which* schemes.
-2. **Apical remains source of truth** for *header Zod schemas* and wrapper validation — Hexkit must not invent parallel header schemas.
+1. **OpenAPI remains source of truth** for _which_ operations need _which_ schemes.
+2. **Apical remains source of truth** for _header Zod schemas_ and wrapper validation — Hexkit must not invent parallel header schemas.
 3. **Domain never sees Hono or raw headers** — only a `Principal` (and later scopes/roles).
 4. **Verification is an adapter** behind `AuthPort`.
 5. **Plugins stay domain-agnostic** — fixtures live under `apps/*`; generators consume IR only.
-6. **YAGNI for v1:** support header-based schemes Apical already models (`apiKey` header, `http` bearer). Defer oauth2 *flows*, mutualTLS, cookie/query API keys, and OpenAPI OR semantics beyond documenting Apical’s AND limitation.
+6. **YAGNI for v1:** support header-based schemes Apical already models (`apiKey` header, `http` bearer). Defer oauth2 _flows_, mutualTLS, cookie/query API keys, and OpenAPI OR semantics beyond documenting Apical’s AND limitation.
 
 ### 5.2 Contract IR additions (`plugin-apical`)
 
@@ -228,8 +228,7 @@ export type Principal = {
 ```ts
 // src/core/ports/authenticator.ts
 export type AuthCredentials =
-  | { kind: "bearer"; token: string }
-  | { kind: "apiKey"; headerName: string; apiKey: string };
+  { kind: "bearer"; token: string } | { kind: "apiKey"; headerName: string; apiKey: string };
 
 export type Authenticator = {
   authenticate(credentials: AuthCredentials): Promise<Principal | null>;
@@ -258,7 +257,7 @@ Authentication belongs in **Hono middleware**, not scattered inside every contro
 2. **Typed context Variables** — `Hono<{ Variables: { principal: Principal } }>`; middleware does `c.set("principal", principal)`, handlers read `c.var.principal` (never re-parse `Authorization` in the handler).
 3. **Fail closed with 401** — missing credential, malformed header, or `authenticate` → `null` short-circuits in middleware with **401**; do not call `next()`.
 4. **Call the port from middleware** — middleware extracts wire credentials, then calls `Authenticator` (hexagonal). Prefer this over Hono’s built-in `bearerAuth({ token })` as the primary mechanism so verification stays swappable and OpenAPI-scheme-driven. Built-ins may inspire shape (`verifyToken`-style), but Hexkit should not hardcode a single static token helper as the architecture.
-5. **Apical stays boundary validation** — controllers still run Apical wrappers for path/query/body/(header) *shape*. Auth *identity* is established in middleware before the controller runs. If Apical later reports `headers-error` on a secured op, map that to **401** as a safety net; prefer middleware catching missing auth first.
+5. **Apical stays boundary validation** — controllers still run Apical wrappers for path/query/body/(header) _shape_. Auth _identity_ is established in middleware before the controller runs. If Apical later reports `headers-error` on a secured op, map that to **401** as a safety net; prefer middleware catching missing auth first.
 6. **No authorization in v1** — middleware does not check scopes/roles; it only establishes `Principal`.
 
 #### Adapter responsibilities
@@ -270,12 +269,12 @@ Authentication belongs in **Hono middleware**, not scattered inside every contro
 5. Pass headers into Apical wrappers for contract validation as today.
 6. Wire `Authenticator` in `src/runtime/app.ts` alongside repositories.
 
-| Condition                         | Status |
-| --------------------------------- | ------ |
-| Missing/invalid auth header shape | 401    |
-| Present header, verify failed     | 401    |
-| Authenticated but not allowed     | 403 *(follow-up; not v1)* |
-| Other request validation          | 400    |
+| Condition                         | Status                    |
+| --------------------------------- | ------------------------- |
+| Missing/invalid auth header shape | 401                       |
+| Present header, verify failed     | 401                       |
+| Authenticated but not allowed     | 403 _(follow-up; not v1)_ |
+| Other request validation          | 400                       |
 
 #### Architecture diagram (Solution B)
 
@@ -382,8 +381,8 @@ OpenAPI
 
 No new plugin required for v1. Auth adapter generation can live in `plugin-hono` (HTTP-adjacent) **or** a thin module inside `plugin-architecture-hexagonal` for the port + `plugin-hono` for the adapter. Prefer:
 
-- **Port + Principal** → hexagonal plugin  
-- **HTTP status + credential extraction + adapter stub** → hono plugin  
+- **Port + Principal** → hexagonal plugin
+- **HTTP status + credential extraction + adapter stub** → hono plugin
 
 ### 5.7 Dogfood fixture
 
@@ -417,13 +416,13 @@ Add a **separate** auth-focused OpenAPI fixture (do not break current PoC green 
 
 ## 7. Risks & mitigations
 
-| Risk | Mitigation |
-| ---- | ---------- |
-| Drift from Apical security rules | Golden tests vs craft output; comment links to Apical behavior |
+| Risk                                                    | Mitigation                                                             |
+| ------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Drift from Apical security rules                        | Golden tests vs craft output; comment links to Apical behavior         |
 | Claiming “OAuth support” when only bearer header exists | Docs + IR `unsupported` for oauth2 schemes; dogfood uses bearer/apiKey |
-| Polluting use cases with headers | Principal-only application API |
-| Breaking PoC | Separate auth fixture; poc YAML untouched |
-| OR schemes silently wrong | Fixture policy: one scheme per requirement; document limitation |
+| Polluting use cases with headers                        | Principal-only application API                                         |
+| Breaking PoC                                            | Separate auth fixture; poc YAML untouched                              |
+| OR schemes silently wrong                               | Fixture policy: one scheme per requirement; document limitation        |
 
 ## 8. Success criteria
 
@@ -438,13 +437,13 @@ Auth support is successful when Hexkit can:
 
 ## 9. Decision summary
 
-| Topic | Decision |
-| ----- | -------- |
-| Strategy | Hexagonal Auth Port + Principal (Approach B), phased |
-| Wire validation | Delegate to Apical header Zod / wrappers |
-| Verification | Hexkit `Authenticator` port + adapter stub |
-| Domain identity | Minimal `Principal` |
-| v1 schemes | `apiKey` header + `http` bearer only |
-| New plugin | Not for v1; extract `plugin-auth` later |
-| PoC fixture | Unchanged; add separate auth fixture |
-| OpenAPI OR | Document Apical AND limitation; avoid in fixtures |
+| Topic           | Decision                                             |
+| --------------- | ---------------------------------------------------- |
+| Strategy        | Hexagonal Auth Port + Principal (Approach B), phased |
+| Wire validation | Delegate to Apical header Zod / wrappers             |
+| Verification    | Hexkit `Authenticator` port + adapter stub           |
+| Domain identity | Minimal `Principal`                                  |
+| v1 schemes      | `apiKey` header + `http` bearer only                 |
+| New plugin      | Not for v1; extract `plugin-auth` later              |
+| PoC fixture     | Unchanged; add separate auth fixture                 |
+| OpenAPI OR      | Document Apical AND limitation; avoid in fixtures    |

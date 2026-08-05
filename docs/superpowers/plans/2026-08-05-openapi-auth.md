@@ -23,27 +23,28 @@
 
 ## File map (what each new/changed unit owns)
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `packages/plugin-apical/src/contract/types.ts` | Security IR types on artifact/operations |
-| `packages/plugin-apical/src/contract/security.ts` | Pure OpenAPI → effective security normalize (Apical-parity) |
-| `packages/plugin-apical/src/contract/normalize.ts` | Wire security into artifact/operations |
-| `packages/plugin-apical/src/contract/security.test.ts` | Normalize + Apical golden parity tests |
-| `apps/fixtures/auth-api/openapi.yaml` | Domain-agnostic auth dogfood contract |
-| `packages/plugin-architecture-hexagonal/src/generate/principal.ts` | Emit `Principal` domain type |
-| `packages/plugin-architecture-hexagonal/src/generate/authenticator-port.ts` | Emit `Authenticator` port |
-| `packages/plugin-architecture-hexagonal/src/generate/use-case.ts` | Secured use cases take `Principal` first arg |
-| `packages/plugin-architecture-hexagonal/src/model/derive.ts` | Derive which ops need principal |
-| `packages/plugin-hono/src/generate/controllers.ts` | 401 vs 400; authenticate then invoke |
-| `packages/plugin-hono/src/generate/auth-adapter.ts` | Stub in-memory authenticator adapter |
-| `packages/plugin-hono/src/generate/routes.ts` / `runtime.ts` | Wire authenticator into app factory |
-| `apps/cli/src/auth-generation.test.ts` | Integration: generate auth-api and assert artifacts |
+| Path                                                                        | Responsibility                                              |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `packages/plugin-apical/src/contract/types.ts`                              | Security IR types on artifact/operations                    |
+| `packages/plugin-apical/src/contract/security.ts`                           | Pure OpenAPI → effective security normalize (Apical-parity) |
+| `packages/plugin-apical/src/contract/normalize.ts`                          | Wire security into artifact/operations                      |
+| `packages/plugin-apical/src/contract/security.test.ts`                      | Normalize + Apical golden parity tests                      |
+| `apps/fixtures/auth-api/openapi.yaml`                                       | Domain-agnostic auth dogfood contract                       |
+| `packages/plugin-architecture-hexagonal/src/generate/principal.ts`          | Emit `Principal` domain type                                |
+| `packages/plugin-architecture-hexagonal/src/generate/authenticator-port.ts` | Emit `Authenticator` port                                   |
+| `packages/plugin-architecture-hexagonal/src/generate/use-case.ts`           | Secured use cases take `Principal` first arg                |
+| `packages/plugin-architecture-hexagonal/src/model/derive.ts`                | Derive which ops need principal                             |
+| `packages/plugin-hono/src/generate/controllers.ts`                          | 401 vs 400; authenticate then invoke                        |
+| `packages/plugin-hono/src/generate/auth-adapter.ts`                         | Stub in-memory authenticator adapter                        |
+| `packages/plugin-hono/src/generate/routes.ts` / `runtime.ts`                | Wire authenticator into app factory                         |
+| `apps/cli/src/auth-generation.test.ts`                                      | Integration: generate auth-api and assert artifacts         |
 
 ---
 
 ### Task 1: Security IR types and pure normalizer
 
 **Files:**
+
 - Create: `packages/plugin-apical/src/contract/security.ts`
 - Create: `packages/plugin-apical/src/contract/security.test.ts`
 - Modify: `packages/plugin-apical/src/contract/types.ts`
@@ -51,6 +52,7 @@
 - Create: `apps/fixtures/auth-api/openapi.yaml` (minimal fixture for tests)
 
 **Interfaces:**
+
 - Consumes: raw OpenAPI document (`Record<string, unknown>` / validated bundle)
 - Produces:
 
@@ -233,12 +235,14 @@ git commit -m "feat(plugin-apical): add OpenAPI security IR normalizer"
 ### Task 2: Wire security into ContractArtifact + Apical golden parity
 
 **Files:**
+
 - Modify: `packages/plugin-apical/src/contract/normalize.ts`
 - Modify: `packages/plugin-apical/src/contract/types.ts` (`ContractArtifact`, `ContractOperation`)
 - Modify: `packages/plugin-apical/src/contract/security.test.ts` (or new `security.parity.test.ts`)
 - Modify: any snapshots that serialize full artifacts
 
 **Interfaces:**
+
 - Consumes: `normalizeSecuritySchemes`, `normalizeGlobalSecurity`, `resolveOperationSecurity`
 - Produces: `ContractArtifact` with `securitySchemes`, `globalSecurity`; each `ContractOperation.security`
 
@@ -296,6 +300,7 @@ git commit -m "feat(plugin-apical): attach security metadata to contract artifac
 ### Task 3: Hexagonal Principal + Authenticator port
 
 **Files:**
+
 - Create: `packages/plugin-architecture-hexagonal/src/generate/principal.ts`
 - Create: `packages/plugin-architecture-hexagonal/src/generate/authenticator-port.ts`
 - Modify: `packages/plugin-architecture-hexagonal/src/generate/files.ts`
@@ -305,6 +310,7 @@ git commit -m "feat(plugin-apical): attach security metadata to contract artifac
 - Modify: `packages/plugin-architecture-hexagonal/src/plugin.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ContractOperation.security`
 - Produces:
 
@@ -318,8 +324,7 @@ export type Principal = {
 
 // emitted src/core/ports/authenticator.ts
 export type AuthCredentials =
-  | { kind: "bearer"; token: string }
-  | { kind: "apiKey"; headerName: string; apiKey: string };
+  { kind: "bearer"; token: string } | { kind: "apiKey"; headerName: string; apiKey: string };
 
 export type Authenticator = {
   authenticate(credentials: AuthCredentials): Promise<Principal | null>;
@@ -384,6 +389,7 @@ git commit -m "feat(hexagonal): generate Principal and Authenticator port for se
 ### Task 4: Hono 401 mapping + authenticator wiring
 
 **Files:**
+
 - Modify: `packages/plugin-hono/src/artifact.ts`
 - Modify: `packages/plugin-hono/src/model/derive.ts`
 - Modify: `packages/plugin-hono/src/generate/controllers.ts`
@@ -394,6 +400,7 @@ git commit -m "feat(hexagonal): generate Principal and Authenticator port for se
 - Modify: `packages/plugin-hono/src/plugin.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ContractOperation.security`, application authenticator port path, Apical wrappers
 - Produces: Hono **auth middleware** (typed `Variables`) + controllers that pass `c.var.principal` into secured use cases; auth failures → HTTP 401
 
@@ -471,10 +478,7 @@ Runtime factory gains `authenticator: Authenticator` when any secured op exists;
 Prefer optional authenticator arg to minimize PoC churn:
 
 ```ts
-export function createHttpControllers(
-  useCases: HttpUseCases,
-  authenticator?: Authenticator,
-)
+export function createHttpControllers(useCases: HttpUseCases, authenticator?: Authenticator);
 ```
 
 Secured entries must throw if `authenticator` is missing.
@@ -486,11 +490,17 @@ it("when headers-error occurs on a secured operation, then AuthenticationError i
   // snapshot or string contains AuthenticationError + headers-error
 });
 
-it("when validation fails on body, then RequestValidationError remains", () => { /* ... */ });
+it("when validation fails on body, then RequestValidationError remains", () => {
+  /* ... */
+});
 
-it("when secured ops exist, then runtime wires createInMemoryAuthenticator", () => { /* ... */ });
+it("when secured ops exist, then runtime wires createInMemoryAuthenticator", () => {
+  /* ... */
+});
 
-it("when contract has no security, then no auth adapter file is emitted", () => { /* PoC contract */ });
+it("when contract has no security, then no auth adapter file is emitted", () => {
+  /* PoC contract */
+});
 ```
 
 - [ ] **Step 2: Run test — expect FAIL**
@@ -515,23 +525,25 @@ git commit -m "feat(plugin-hono): wire Authenticator and map auth failures to 40
 ### Task 5: Auth fixture dogfood + generation matrix
 
 **Files:**
+
 - Ensure: `apps/fixtures/auth-api/openapi.yaml` (from Task 1)
 - Create: `apps/cli/src/auth-generation.test.ts`
 
 **Interfaces:**
+
 - Consumes: full CLI pipeline with `apps/fixtures/auth-api/openapi.yaml`
 - Produces: generated app asserting paths and source fragments for Principal, Authenticator, 401 wiring
 
 Expected request matrix (document for later Compose/Pactum; this task asserts generation + optional in-process checks):
 
-| Request | Expected |
-| ------- | -------- |
-| `GET /health` no auth | 200 |
-| `GET /items` no `Authorization` | 401 |
-| `GET /items` with `Authorization: Bearer good` | 200 |
-| `GET /items` with `Authorization: Bearer bad` | 401 |
-| `POST /items` with only bearer (wrong scheme) | 401 |
-| `POST /items` with `X-API-Key: good` | 201 |
+| Request                                        | Expected |
+| ---------------------------------------------- | -------- |
+| `GET /health` no auth                          | 200      |
+| `GET /items` no `Authorization`                | 401      |
+| `GET /items` with `Authorization: Bearer good` | 200      |
+| `GET /items` with `Authorization: Bearer bad`  | 401      |
+| `POST /items` with only bearer (wrong scheme)  | 401      |
+| `POST /items` with `X-API-Key: good`           | 201      |
 
 - [ ] **Step 1: Write failing CLI/auth generation test**
 
@@ -553,9 +565,7 @@ Default dogfood env in generated runtime:
 ```ts
 createInMemoryAuthenticator({
   bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),
-  apiKeys: new Map([
-    ["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))],
-  ]),
+  apiKeys: new Map([["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),
 });
 ```
 
@@ -577,6 +587,7 @@ git commit -m "test: dogfood OpenAPI auth fixture through Hexkit generation"
 ### Task 6: Docs sync (RFC/PRD follow-up note)
 
 **Files:**
+
 - Modify: `PRD.md` §11 follow-ups (point to design; clarify v1 scope)
 - Modify: `docs/README.md` to link the new spec/plan
 - Optional: short Authentication note in `RFC.md` under Architectural Principles
