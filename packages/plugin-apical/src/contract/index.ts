@@ -18,6 +18,11 @@ export type { GeneratedApicalModules } from "./generated-index.ts";
 export { normalizeContractArtifact, normalizeContractType } from "./normalize.ts";
 export { loadValidatedOpenApi } from "./openapi.ts";
 export type { OpenApiLoader } from "./openapi.ts";
+export {
+  normalizeGlobalSecurity,
+  normalizeSecuritySchemes,
+  resolveOperationSecurity,
+} from "./security.ts";
 export type {
   ContractApplication,
   ContractArtifact,
@@ -38,5 +43,8 @@ export type {
   ContractScalarType,
   ContractScalarValue,
   ContractSchema,
+  ContractOperationSecurity,
+  ContractSecurityRequirement,
+  ContractSecurityScheme,
   ContractType,
 } from "./types.ts";

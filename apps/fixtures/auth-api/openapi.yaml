@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Auth API Fixture
+  version: 1.0.0
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+  /items:
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+    post:
+      operationId: createItem
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Item"
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+components:
+  schemas:
+    Item:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKey:
+      type: apiKey
+      name: X-API-Key
+      in: header
+    petstore_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://example.com/oauth/authorize
+          scopes:
+            read: read items

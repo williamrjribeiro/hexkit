@@ -96,6 +96,28 @@ export type ContractOperationExtension = {
   action: string;
 };
 
+export type ContractSecurityScheme =
+  | { name: string; type: "apiKey"; in: "header"; headerName: string }
+  | {
+      name: string;
+      type: "http";
+      scheme: "bearer";
+      headerName: "Authorization";
+      bearerFormat?: string;
+    }
+  | { name: string; type: "unsupported"; openApiType: string; reason: string };
+
+export type ContractSecurityRequirement = {
+  schemes: readonly string[];
+  scopes: Readonly<Record<string, readonly string[]>>;
+};
+
+export type ContractOperationSecurity = {
+  overridesGlobal: boolean;
+  requirements: readonly ContractSecurityRequirement[];
+  apicalServerHeaderNames: readonly string[];
+};
+
 export type ContractHttpMethod =
   | "delete"
   | "get"
