@@ -24,7 +24,7 @@ export function renderRoutesFile(model: HttpModel): GeneratedFile {
             names: ["createMiddleware"],
           },
           {
-            from: "../../core/domain/principal.ts",
+            from: "../../core/domain/auth-principal.ts",
             names: ["Principal"],
             typeOnly: true,
           },

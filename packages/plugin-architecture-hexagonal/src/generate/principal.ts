@@ -3,7 +3,7 @@ import type { GeneratedFile } from "@hexkit/plugin-api";
 
 export function renderPrincipalFile(): GeneratedFile {
   return {
-    path: "src/core/domain/principal.ts",
+    path: "src/core/domain/auth-principal.ts",
     contents: renderSourceFile({
       statements: [
         [

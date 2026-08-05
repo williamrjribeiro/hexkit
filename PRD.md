@@ -283,7 +283,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, auth, full Petstore surface, 
 ## 11. Follow-ups (explicitly out of PoC)
 
 - SST / AWS Lambda generation and deploy verification.
-- Authentication (post-PoC): see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/plans/2026-08-05-openapi-auth.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`; implemented in generator plugins on this branch, but remains post-PoC for the auth-free `openapi.poc.yaml` dogfood fixture. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
+- Authentication (post-PoC): see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/plans/2026-08-05-openapi-auth.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`; implemented in generator plugins, but remains post-PoC for the auth-free `openapi.poc.yaml` dogfood fixture. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
 - Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.).
 - GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).

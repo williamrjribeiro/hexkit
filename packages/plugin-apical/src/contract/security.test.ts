@@ -138,7 +138,7 @@ describe("OpenAPI security normalization", () => {
     const schemes = normalizeSecuritySchemes(await loadAuthDocument());
 
     expect(schemes).toContainEqual({
-      name: "petstore_auth",
+      name: "implicitOAuth",
       type: "unsupported",
       openApiType: "oauth2",
       reason: expect.any(String),
@@ -163,7 +163,7 @@ describe("ContractArtifact security metadata", () => {
       },
       { name: "apiKey", type: "apiKey", in: "header", headerName: "X-API-Key" },
       {
-        name: "petstore_auth",
+        name: "implicitOAuth",
         type: "unsupported",
         openApiType: "oauth2",
         reason: expect.any(String),

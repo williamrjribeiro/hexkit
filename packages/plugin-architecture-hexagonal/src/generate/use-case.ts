@@ -14,7 +14,7 @@ export function renderUseCaseFile(useCase: UseCaseModel): GeneratedFile {
     ...(useCase.requiresAuth
       ? [
           {
-            from: "../domain/principal.ts",
+            from: "../domain/auth-principal.ts",
             names: ["Principal"],
             typeOnly: true,
           },

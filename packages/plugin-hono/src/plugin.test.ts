@@ -207,7 +207,7 @@ function createAuthContract(): ContractArtifact {
         headerName: "Authorization",
         bearerFormat: "JWT",
       },
-      { name: "internalKey", type: "apiKey", in: "header", headerName: "X-API-Key" },
+      { name: "internalKey", type: "apiKey", in: "header", headerName: "X-Internal-Key" },
     ],
     globalSecurity: [{ schemes: ["adminBearer"], scopes: { adminBearer: [] } }],
     operations: [
@@ -404,7 +404,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
     const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
 
     expect(controllers?.contents).toContain(
-      'import type { Principal } from "../../core/domain/principal.ts";',
+      'import type { Principal } from "../../core/domain/auth-principal.ts";',
     );
     expect(controllers?.contents).toContain(
       'import type { Authenticator } from "../../core/ports/authenticator.ts";',
@@ -435,7 +435,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
       "  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, {",
     );
     expect(routes?.contents).toContain(
-      '{ name: "internalKey", type: "apiKey", headerName: "X-API-Key" }',
+      '{ name: "internalKey", type: "apiKey", headerName: "X-Internal-Key" }',
     );
     expect(routes?.contents).toContain(
       '{ name: "adminBearer", type: "http", scheme: "bearer", headerName: "Authorization" }',
@@ -487,7 +487,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
       'bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
     );
     expect(runtime?.contents).toContain(
-      'apiKeys: new Map([["x-api-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
+      'apiKeys: new Map([["x-internal-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
     );
     expect(runtime?.contents).toContain("}, authenticator);");
     expect(adapter?.contents).toContain("export function createInMemoryAuthenticator(options: {");

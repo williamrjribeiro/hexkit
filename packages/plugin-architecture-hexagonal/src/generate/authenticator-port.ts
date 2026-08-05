@@ -5,7 +5,7 @@ import type { GeneratedFile } from "@hexkit/plugin-api";
 export function renderAuthenticatorPortFile(): GeneratedFile {
   const imports: ImportDeclaration[] = [
     {
-      from: "../domain/principal.ts",
+      from: "../domain/auth-principal.ts",
       names: ["Principal"],
       typeOnly: true,
     },

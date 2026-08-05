@@ -435,6 +435,13 @@ function normalizeOperations(
           : normalizeRequestBody(document, operation.requestBody, `${location}.requestBody`);
       const extension = readOperationExtension(operation, location);
       const summary = optionalString(operation.summary, `${location}.summary`);
+      const security = resolveOperationSecurity(
+        document,
+        operation,
+        securitySchemes,
+        globalSecurity,
+      );
+      validateEnforceableSecurity(operationId, security, securitySchemes);
 
       operations.push({
         operationId,
@@ -443,7 +450,7 @@ function normalizeOperations(
         modulePath,
         parameters: normalizeParameters(document, pathItem, operation, location),
         responses: normalizeResponses(document, operation.responses, `${location}.responses`),
-        security: resolveOperationSecurity(document, operation, securitySchemes, globalSecurity),
+        security,
         ...(requestBody === undefined ? {} : { requestBody }),
         ...(extension === undefined ? {} : { extension }),
         ...optionalDescription(operation, location),
@@ -453,6 +460,37 @@ function normalizeOperations(
   }
 
   return operations;
+}
+
+function validateEnforceableSecurity(
+  operationId: string,
+  security: ContractOperation["security"],
+  securitySchemes: readonly ContractSecurityScheme[],
+): void {
+  const schemesByName = new Map(securitySchemes.map((scheme) => [scheme.name, scheme]));
+
+  for (const requirement of security.requirements) {
+    if (requirement.schemes.length === 0) continue;
+
+    const hasSupportedScheme = requirement.schemes.some((schemeName) => {
+      const scheme = schemesByName.get(schemeName);
+      return scheme?.type === "apiKey" || scheme?.type === "http";
+    });
+
+    if (hasSupportedScheme) continue;
+
+    throw new Error(
+      `Operation "${operationId}" requires OpenAPI security schemes that Hexkit cannot enforce at runtime: ${requirement.schemes
+        .map((schemeName) => describeSecurityScheme(schemeName, schemesByName.get(schemeName)))
+        .join(", ")}.`,
+    );
+  }
+}
+
+function describeSecurityScheme(name: string, scheme: ContractSecurityScheme | undefined): string {
+  if (scheme === undefined) return `${name} (unknown)`;
+  if (scheme.type === "unsupported") return `${name} (${scheme.openApiType})`;
+  return name;
 }
 
 function validateArtifactReferences(artifact: ContractArtifact): void {

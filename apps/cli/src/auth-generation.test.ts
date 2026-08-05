@@ -39,8 +39,8 @@ function listFiles(root: string, directory = root): string[] {
     .sort();
 }
 
-async function generateInto(outputDirectory: string): Promise<void> {
-  await generateApplication(authContractPath, outputDirectory, {
+async function generateInto(outputDirectory: string, inputPath = authContractPath): Promise<void> {
+  await generateApplication(inputPath, outputDirectory, {
     actions: {
       exists: existsSync,
       write(path: string, contents: string) {
@@ -89,8 +89,8 @@ describe("Given the Auth fixture contract", () => {
         "src/core/application/create-item.ts",
         "src/core/application/get-health.ts",
         "src/core/application/list-items.ts",
+        "src/core/domain/auth-principal.ts",
         "src/core/domain/item.ts",
-        "src/core/domain/principal.ts",
         "src/core/ports/authenticator.ts",
         "src/core/ports/item-repository.ts",
         "src/runtime/app.ts",
@@ -127,5 +127,64 @@ describe("Given the Auth fixture contract", () => {
     // GET /items with Authorization: Bearer bad -> 401
     // POST /items with only bearer auth -> 401
     // POST /items with X-API-Key: good -> 201
+  }, 120_000);
+
+  it("when an operation is secured only by oauth2, then generation fails instead of emitting a public route", async () => {
+    const rootDirectory = createOutputDirectory("hexkit-oauth-only-");
+    const inputPath = join(rootDirectory, "openapi.yaml");
+    const outputDirectory = join(rootDirectory, "generated");
+
+    writeFileSync(
+      inputPath,
+      [
+        "openapi: 3.1.0",
+        "info:",
+        "  title: OAuth Only Fixture",
+        "  version: 1.0.0",
+        "paths:",
+        "  /items:",
+        "    get:",
+        "      operationId: listItems",
+        "      x-hexkit:",
+        "        operation:",
+        "          aggregate: Item",
+        "          action: list",
+        "      security:",
+        "        - implicitOAuth: [read]",
+        "      responses:",
+        '        "200":',
+        "          description: ok",
+        "          content:",
+        "            application/json:",
+        "              schema:",
+        "                type: array",
+        "                items:",
+        '                  $ref: "#/components/schemas/Item"',
+        "components:",
+        "  schemas:",
+        "    Item:",
+        "      type: object",
+        "      x-hexkit:",
+        "        persistence:",
+        "          table: items",
+        "          identity: id",
+        "      required: [id]",
+        "      properties:",
+        "        id: { type: string }",
+        "  securitySchemes:",
+        "    implicitOAuth:",
+        "      type: oauth2",
+        "      flows:",
+        "        implicit:",
+        "          authorizationUrl: https://example.com/oauth/authorize",
+        "          scopes:",
+        "            read: read items",
+        "",
+      ].join("\n"),
+    );
+
+    await expect(generateInto(outputDirectory, inputPath)).rejects.toThrow(
+      'Operation "listItems" requires OpenAPI security schemes that Hexkit cannot enforce at runtime: implicitOAuth (oauth2).',
+    );
   }, 120_000);
 });

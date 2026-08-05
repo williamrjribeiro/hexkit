@@ -251,7 +251,7 @@ describe("Given a ContractArtifact with secured and public operations", () => {
       (file) => file.path === "src/core/application/create-item.ts",
     )?.contents;
 
-    expect(source).toContain('import type { Principal } from "../domain/principal.ts";');
+    expect(source).toContain('import type { Principal } from "../domain/auth-principal.ts";');
     expect(source).toContain(
       "export type CreateItem = (principal: Principal, item: Item) => Promise<Item>;",
     );
@@ -278,9 +278,12 @@ describe("Given a ContractArtifact with secured and public operations", () => {
     const { files, artifact } = await collectGeneratedFiles(createAuthContract());
 
     expect(files.map((file) => file.path)).toEqual(
-      expect.arrayContaining(["src/core/domain/principal.ts", "src/core/ports/authenticator.ts"]),
+      expect.arrayContaining([
+        "src/core/domain/auth-principal.ts",
+        "src/core/ports/authenticator.ts",
+      ]),
     );
-    expect(files.find((file) => file.path === "src/core/domain/principal.ts")?.contents)
+    expect(files.find((file) => file.path === "src/core/domain/auth-principal.ts")?.contents)
       .toMatchInlineSnapshot(`
         "export type Principal = {
           id: string;
@@ -291,7 +294,7 @@ describe("Given a ContractArtifact with secured and public operations", () => {
       `);
     expect(files.find((file) => file.path === "src/core/ports/authenticator.ts")?.contents)
       .toMatchInlineSnapshot(`
-        "import type { Principal } from "../domain/principal.ts";
+        "import type { Principal } from "../domain/auth-principal.ts";
 
         export type AuthCredentials =
           | { kind: "bearer"; schemeName: string; token: string }
@@ -306,6 +309,33 @@ describe("Given a ContractArtifact with secured and public operations", () => {
       name: "Authenticator",
       filePath: "src/core/ports/authenticator.ts",
     });
+  });
+
+  it("when a schema is named Principal, then the auth principal uses a dedicated file path", async () => {
+    const { files } = await collectGeneratedFiles(createPrincipalSchemaAuthContract());
+
+    expect(files.map((file) => file.path)).toEqual(
+      expect.arrayContaining(["src/core/domain/principal.ts", "src/core/domain/auth-principal.ts"]),
+    );
+    expect(files.find((file) => file.path === "src/core/domain/principal.ts")?.contents)
+      .toMatchInlineSnapshot(`
+        "export type Principal = {
+          id: string;
+        };
+        "
+      `);
+    expect(files.find((file) => file.path === "src/core/domain/auth-principal.ts")?.contents)
+      .toMatchInlineSnapshot(`
+        "export type Principal = {
+          id: string;
+          scheme: string;
+          scopes: readonly string[];
+        };
+        "
+      `);
+    expect(
+      files.find((file) => file.path === "src/core/application/create-item.ts")?.contents,
+    ).toContain('import type { Principal } from "../domain/auth-principal.ts";');
   });
 });
 
@@ -491,6 +521,23 @@ function createQueryOnlyContract(): ContractArtifact {
           },
         ],
         extension: { aggregate: "Item", action: "search" },
+      },
+    ],
+  };
+}
+
+function createPrincipalSchemaAuthContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const contract = createAuthContract();
+
+  return {
+    ...contract,
+    schemas: [
+      ...contract.schemas,
+      {
+        name: "Principal",
+        modulePath: "schemas/Principal.ts",
+        properties: [{ name: "id", required: true, type: stringType }],
       },
     ],
   };
