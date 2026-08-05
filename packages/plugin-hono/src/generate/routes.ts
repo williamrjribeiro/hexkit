@@ -100,8 +100,8 @@ export function renderRoutesFile(model: HttpModel): GeneratedFile {
       ? [
           [
             "type SecuritySchemeMeta =",
-            '  | { type: "apiKey"; headerName: string }',
-            '  | { type: "http"; scheme: "bearer"; headerName: "Authorization" };',
+            '  | { name: string; type: "apiKey"; headerName: string }',
+            '  | { name: string; type: "http"; scheme: "bearer"; headerName: "Authorization" };',
           ].join("\n"),
           [
             "type OperationSecurityMeta = {",
@@ -120,12 +120,12 @@ export function renderRoutesFile(model: HttpModel): GeneratedFile {
             "      if (!value?.startsWith(prefix)) continue;",
             "      const token = value.slice(prefix.length).trim();",
             "      if (token.length === 0) continue;",
-            '      return { kind: "bearer", token };',
+            '      return { kind: "bearer", schemeName: scheme.name, token };',
             "    }",
             "",
             "    const apiKey = headers.get(scheme.headerName);",
             "    if (apiKey === null || apiKey.trim().length === 0) continue;",
-            '    return { kind: "apiKey", headerName: scheme.headerName.toLowerCase(), apiKey };',
+            '    return { kind: "apiKey", schemeName: scheme.name, headerName: scheme.headerName.toLowerCase(), apiKey };',
             "  }",
             "",
             "  return undefined;",
@@ -235,10 +235,10 @@ function renderRouteRegistration(operation: HttpModel["operations"][number]): st
 function renderSecurityMeta(operation: HttpModel["operations"][number]): string {
   const schemes = operation.authSchemes.map((scheme) => {
     if (scheme.type === "apiKey") {
-      return `{ type: "apiKey", headerName: ${JSON.stringify(scheme.headerName)} }`;
+      return `{ name: ${JSON.stringify(scheme.name)}, type: "apiKey", headerName: ${JSON.stringify(scheme.headerName)} }`;
     }
 
-    return `{ type: "http", scheme: "bearer", headerName: ${JSON.stringify(scheme.headerName)} }`;
+    return `{ name: ${JSON.stringify(scheme.name)}, type: "http", scheme: "bearer", headerName: ${JSON.stringify(scheme.headerName)} }`;
   });
 
   return `{ schemes: [${schemes.join(", ")}] }`;

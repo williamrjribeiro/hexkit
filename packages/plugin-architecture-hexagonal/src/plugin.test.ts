@@ -288,8 +288,8 @@ describe("Given a ContractArtifact with secured and public operations", () => {
         "import type { Principal } from "../domain/principal.ts";
 
         export type AuthCredentials =
-          | { kind: "bearer"; token: string }
-          | { kind: "apiKey"; headerName: string; apiKey: string };
+          | { kind: "bearer"; schemeName: string; token: string }
+          | { kind: "apiKey"; schemeName: string; headerName: string; apiKey: string };
 
         export type Authenticator = {
           authenticate(credentials: AuthCredentials): Promise<Principal | null>;

@@ -18,8 +18,8 @@ export function renderAuthenticatorPortFile(): GeneratedFile {
       statements: [
         [
           "export type AuthCredentials =",
-          '  | { kind: "bearer"; token: string }',
-          '  | { kind: "apiKey"; headerName: string; apiKey: string };',
+          '  | { kind: "bearer"; schemeName: string; token: string }',
+          '  | { kind: "apiKey"; schemeName: string; headerName: string; apiKey: string };',
         ].join("\n"),
         [
           "export type Authenticator = {",
