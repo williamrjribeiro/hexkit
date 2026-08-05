@@ -28,7 +28,7 @@ export function renderAuthAdapterFile(): GeneratedFile {
           "    async authenticate(credentials) {",
           '      if (credentials.kind === "bearer") {',
           "        if (!options.bearerTokens?.has(credentials.token)) return null;",
-          "        return { id: \"bearer-user\", scheme: credentials.schemeName, scopes: [] };",
+          '        return { id: "bearer-user", scheme: credentials.schemeName, scopes: [] };',
           "      }",
           "",
           "      const allowed = options.apiKeys?.get(credentials.headerName.toLowerCase());",
