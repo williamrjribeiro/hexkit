@@ -7,6 +7,7 @@ import { relativeImportPath } from "../model/paths.ts";
 import type { HttpOperationBinding } from "../artifact.ts";
 
 export function renderControllersFile(model: HttpModel): GeneratedFile {
+  const hasAuth = model.authenticator !== undefined;
   const imports: ImportDeclaration[] = [
     ...model.operations.map((operation) => ({
       from: relativeImportPath(CONTROLLERS_FILE_PATH, operation.useCaseFilePath),
@@ -31,6 +32,20 @@ export function renderControllersFile(model: HttpModel): GeneratedFile {
         from: relativeImportPath(CONTROLLERS_FILE_PATH, operation.responseMapImportPath),
         names: [operation.responseMapName],
       })),
+    ...(hasAuth
+      ? [
+          {
+            from: relativeImportPath(CONTROLLERS_FILE_PATH, "src/core/domain/principal.ts"),
+            names: ["Principal"],
+            typeOnly: true,
+          },
+          {
+            from: relativeImportPath(CONTROLLERS_FILE_PATH, "src/core/ports/authenticator.ts"),
+            names: ["Authenticator"],
+            typeOnly: true,
+          },
+        ]
+      : []),
   ];
 
   const useCaseFields = model.operations
@@ -49,8 +64,30 @@ export function renderControllersFile(model: HttpModel): GeneratedFile {
       "  }",
       "}",
     ].join("\n"),
+    ...(hasAuth
+      ? [
+          "type ControllerRequest<TController> = TController extends (request: infer Request) => Promise<unknown> ? Request : never;",
+          [
+            "export class AuthenticationError extends Error {",
+            "  constructor(kind: string) {",
+            "    super(`Authentication failed: ${kind}`);",
+            '    this.name = "AuthenticationError";',
+            "  }",
+            "}",
+          ].join("\n"),
+        ]
+      : []),
     [
-      "export function createHttpControllers(useCases: HttpUseCases) {",
+      hasAuth
+        ? "export function createHttpControllers(useCases: HttpUseCases, authenticator?: Authenticator) {"
+        : "export function createHttpControllers(useCases: HttpUseCases) {",
+      ...(hasAuth
+        ? [
+            "  if (authenticator === undefined) {",
+            '    throw new AuthenticationError("authenticator-missing");',
+            "  }",
+          ]
+        : []),
       "  return {",
       controllerEntries,
       "  };",
@@ -67,6 +104,8 @@ export function renderControllersFile(model: HttpModel): GeneratedFile {
 }
 
 function renderControllerEntry(operation: HttpOperationBinding): string {
+  if (operation.requiresAuth) return renderSecuredControllerEntry(operation);
+
   const lines = [
     `    ${operation.operationId}: ${operation.wrapperName}(async (request) => {`,
     ...renderValidation(operation),
@@ -77,16 +116,51 @@ function renderControllerEntry(operation: HttpOperationBinding): string {
   return lines.join("\n");
 }
 
+function renderSecuredControllerEntry(operation: HttpOperationBinding): string {
+  const lines = [
+    `    ${operation.operationId}: async (`,
+    `      request: ControllerRequest<ReturnType<typeof ${operation.wrapperName}>>,`,
+    "      principal: Principal,",
+    `    ) => ${operation.wrapperName}(async (request) => {`,
+    ...renderValidation(operation),
+    ...renderInvocation(operation),
+    ...renderSuccess(operation),
+    "    })(request)",
+  ];
+  return lines.join("\n");
+}
+
 function renderValidation(operation: HttpOperationBinding): string[] {
   if (operation.hasJsonRequestBody) {
-    return [
+    const lines = [
       "      if (!request.isValid || !request.value.body) {",
+      ...renderAuthenticationValidation(operation),
       '        throw new RequestValidationError(request.isValid ? "body-error" : request.kind);',
       "      }",
     ];
+    return lines;
   }
 
-  return ["      if (!request.isValid) throw new RequestValidationError(request.kind);"];
+  if (!operation.requiresAuth) {
+    return ["      if (!request.isValid) throw new RequestValidationError(request.kind);"];
+  }
+
+  return [
+    "      if (!request.isValid) {",
+    ...renderAuthenticationValidation(operation),
+    "        throw new RequestValidationError(request.kind);",
+    "      }",
+  ];
+}
+
+function renderAuthenticationValidation(operation: HttpOperationBinding): string[] {
+  if (!operation.requiresAuth) return [];
+
+  return [
+    '        if (!request.isValid && request.kind === "headers-error") {',
+    "          throw new AuthenticationError(request.kind);",
+    "        }",
+  ];
 }
 
 function renderInvocation(operation: HttpOperationBinding): string[] {

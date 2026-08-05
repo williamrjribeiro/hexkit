@@ -7,11 +7,25 @@ import { ROUTES_FILE_PATH, RUNTIME_FILE_PATH } from "../model/derive.ts";
 import { relativeImportPath } from "../model/paths.ts";
 
 export function renderRuntimeFile(model: HttpModel): GeneratedFile {
+  const hasAuth = model.authenticator !== undefined;
   const imports: ImportDeclaration[] = [
     ...model.operations.map((operation) => ({
       from: relativeImportPath(RUNTIME_FILE_PATH, operation.useCaseFilePath),
       names: [operation.useCaseFactoryName],
     })),
+    ...(model.authenticator === undefined
+      ? []
+      : [
+          {
+            from: relativeImportPath(RUNTIME_FILE_PATH, model.authenticator.portFilePath),
+            names: [model.authenticator.portName],
+            typeOnly: true,
+          },
+          {
+            from: relativeImportPath(RUNTIME_FILE_PATH, model.authenticator.adapterFilePath),
+            names: [model.authenticator.adapterFactoryName],
+          },
+        ]),
     ...model.repositories.map((repository) => ({
       from: relativeImportPath(RUNTIME_FILE_PATH, repository.repositoryFilePath),
       names: [repository.repositoryName],
@@ -37,10 +51,12 @@ export function renderRuntimeFile(model: HttpModel): GeneratedFile {
   const statements = [
     ["export type RuntimeRepositories = {", repositoryFields, "};"].join("\n"),
     [
-      "export function createApp(repositories: RuntimeRepositories) {",
+      hasAuth
+        ? "export function createApp(repositories: RuntimeRepositories, authenticator: Authenticator = createInMemoryAuthenticator({})) {"
+        : "export function createApp(repositories: RuntimeRepositories) {",
       "  return createHonoApp({",
       bindings,
-      "  });",
+      hasAuth ? "  }, authenticator);" : "  });",
       "}",
     ].join("\n"),
   ];

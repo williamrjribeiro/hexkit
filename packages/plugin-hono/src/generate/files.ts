@@ -4,6 +4,7 @@ import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { HttpArtifact } from "../artifact.ts";
 import { deriveHttpModel, toHttpArtifact } from "../model/derive.ts";
+import { renderAuthAdapterFile } from "./auth-adapter.ts";
 import { renderControllersFile } from "./controllers.ts";
 import { renderRoutesFile } from "./routes.ts";
 import { renderRuntimeFile } from "./runtime.ts";
@@ -18,7 +19,12 @@ export function generateHttpFromArtifacts(
   application: ApplicationArtifact,
 ): GeneratedHttp {
   const model = deriveHttpModel(contract, application);
-  const files = [renderControllersFile(model), renderRoutesFile(model), renderRuntimeFile(model)];
+  const files = [
+    renderControllersFile(model),
+    renderRoutesFile(model),
+    ...(model.authenticator === undefined ? [] : [renderAuthAdapterFile()]),
+    renderRuntimeFile(model),
+  ];
 
   return {
     files,
