@@ -243,6 +243,66 @@ describe("Given a ContractArtifact for Library", () => {
   });
 });
 
+describe("Given a ContractArtifact with secured and public operations", () => {
+  it("when an operation requires security, then the use case type accepts Principal first", async () => {
+    const { files } = await collectGeneratedFiles(createAuthContract());
+
+    const source = files.find(
+      (file) => file.path === "src/core/application/create-item.ts",
+    )?.contents;
+
+    expect(source).toContain('import type { Principal } from "../domain/principal.ts";');
+    expect(source).toContain(
+      "export type CreateItem = (principal: Principal, item: Item) => Promise<Item>;",
+    );
+  });
+
+  it("when an operation is public, then the use case type has no Principal", async () => {
+    const { files } = await collectGeneratedFiles(createAuthContract());
+
+    const source = files.find(
+      (file) => file.path === "src/core/application/get-health.ts",
+    )?.contents;
+
+    expect(source).toContain("export type GetHealth = (itemId: string) => Promise<Item>;");
+    expect(source).not.toContain("Principal");
+  });
+
+  it("when any secured operation exists, then principal and authenticator port files are emitted", async () => {
+    const { files, artifact } = await collectGeneratedFiles(createAuthContract());
+
+    expect(files.map((file) => file.path)).toEqual(
+      expect.arrayContaining(["src/core/domain/principal.ts", "src/core/ports/authenticator.ts"]),
+    );
+    expect(files.find((file) => file.path === "src/core/domain/principal.ts")?.contents)
+      .toMatchInlineSnapshot(`
+        "export type Principal = {
+          id: string;
+          scheme: string;
+          scopes: readonly string[];
+        };
+        "
+      `);
+    expect(files.find((file) => file.path === "src/core/ports/authenticator.ts")?.contents)
+      .toMatchInlineSnapshot(`
+        "import type { Principal } from "../domain/principal.ts";
+
+        export type AuthCredentials =
+          | { kind: "bearer"; token: string }
+          | { kind: "apiKey"; headerName: string; apiKey: string };
+
+        export type Authenticator = {
+          authenticate(credentials: AuthCredentials): Promise<Principal | null>;
+        };
+        "
+      `);
+    expect(artifact.authenticatorPort).toEqual({
+      name: "Authenticator",
+      filePath: "src/core/ports/authenticator.ts",
+    });
+  });
+});
+
 describe("Given a generated core with a customized protected use case", () => {
   it("when generation runs again, then the custom source survives and a missing protected skeleton is restored", async () => {
     const contract = await loadContract(petstoreOpenApi, {
@@ -323,4 +383,86 @@ function listTypeScriptFiles(directory: string): string[] {
     if (entry.isDirectory()) return listTypeScriptFiles(path);
     return entry.isFile() && entry.name.endsWith(".ts") ? [path] : [];
   });
+}
+
+function createAuthContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
+  const publicSecurity = {
+    overridesGlobal: true,
+    requirements: [],
+    apicalServerHeaderNames: [],
+  } as const;
+  const apiKeySecurity = {
+    overridesGlobal: true,
+    requirements: [{ schemes: ["apiKey"], scopes: { apiKey: [] } }],
+    apicalServerHeaderNames: ["x-api-key"],
+  } as const;
+
+  return {
+    artifactVersion: 1,
+    openapiVersion: "3.1.0",
+    application: {
+      title: "Auth API Fixture",
+      version: "1.0.0",
+      slug: "auth-api-fixture",
+    },
+    schemas: [
+      {
+        name: "Item",
+        modulePath: "schemas/Item.ts",
+        properties: [
+          { name: "id", required: true, type: stringType },
+          { name: "name", required: true, type: stringType },
+        ],
+      },
+    ],
+    securitySchemes: [{ name: "apiKey", type: "apiKey", in: "header", headerName: "X-API-Key" }],
+    globalSecurity: [],
+    operations: [
+      {
+        operationId: "createItem",
+        method: "post",
+        path: "/items",
+        modulePath: "routes/createItem.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "201",
+            description: "created",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+        security: apiKeySecurity,
+        requestBody: {
+          required: true,
+          media: [{ mediaType: "application/json", type: itemReference }],
+        },
+        extension: { aggregate: "Item", action: "create" },
+      },
+      {
+        operationId: "getHealth",
+        method: "get",
+        path: "/health/{itemId}",
+        modulePath: "routes/getHealth.ts",
+        parameters: [
+          {
+            name: "itemId",
+            location: "path",
+            required: true,
+            type: stringType,
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+        security: publicSecurity,
+        extension: { aggregate: "Item", action: "getHealth" },
+      },
+    ],
+  };
 }

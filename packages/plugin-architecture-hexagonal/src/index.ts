@@ -1,6 +1,7 @@
 export {
   APPLICATION_ARTIFACT,
   type ApplicationArtifact,
+  type ApplicationAuthenticatorPort,
   type ApplicationEntity,
   type ApplicationParameter,
   type ApplicationRepository,
