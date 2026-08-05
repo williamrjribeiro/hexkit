@@ -80,7 +80,7 @@ components:
       type: apiKey
       name: X-API-Key
       in: header
-    petstore_auth:
+    implicitOAuth:
       type: oauth2
       flows:
         implicit:

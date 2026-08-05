@@ -35,7 +35,7 @@ export function renderControllersFile(model: HttpModel): GeneratedFile {
     ...(hasAuth
       ? [
           {
-            from: relativeImportPath(CONTROLLERS_FILE_PATH, "src/core/domain/principal.ts"),
+            from: relativeImportPath(CONTROLLERS_FILE_PATH, "src/core/domain/auth-principal.ts"),
             names: ["Principal"],
             typeOnly: true,
           },

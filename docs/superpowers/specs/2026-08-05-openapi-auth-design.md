@@ -211,7 +211,7 @@ Unsupported schemes are retained in IR as `type: "unsupported"` so generators ca
 #### Domain
 
 ```ts
-// src/core/domain/principal.ts (generated scaffold)
+// src/core/domain/auth-principal.ts (generated scaffold)
 export type Principal = {
   id: string;
   /** Scheme that authenticated this principal (scheme name from OpenAPI). */

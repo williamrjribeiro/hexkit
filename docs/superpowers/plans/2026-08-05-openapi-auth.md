@@ -166,7 +166,7 @@ components:
       type: apiKey
       name: X-API-Key
       in: header
-    petstore_auth:
+    implicitOAuth:
       type: oauth2
       flows:
         implicit:
@@ -315,7 +315,7 @@ git commit -m "feat(plugin-apical): attach security metadata to contract artifac
 - Produces:
 
 ```ts
-// emitted src/core/domain/principal.ts
+// emitted src/core/domain/auth-principal.ts
 export type Principal = {
   id: string;
   scheme: string;
@@ -548,7 +548,7 @@ Expected request matrix (document for later Compose/Pactum; this task asserts ge
 - [ ] **Step 1: Write failing CLI/auth generation test**
 
 ```ts
-expect(files).toContain("src/core/domain/principal.ts");
+expect(files).toContain("src/core/domain/auth-principal.ts");
 expect(files).toContain("src/core/ports/authenticator.ts");
 expect(files).toContain("src/adapters/auth/in-memory-authenticator.ts");
 expect(controllers).toContain("AuthenticationError");
