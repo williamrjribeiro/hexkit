@@ -8,6 +8,14 @@ KEEP_STACK=${HEXKIT_KEEP_STACK:-0}
 REMOVE_OUTPUT=0
 COMPOSE_STARTED=0
 
+# `vp run` prepends workspace node_modules/.bin, whose local `vp` lacks managed
+# runtime commands like `vp node`. Prefer the global Vite+ CLI when present.
+VP_BIN_DIR=${VP_HOME:-$HOME/.vite-plus}/bin
+if [ -x "$VP_BIN_DIR/vp" ]; then
+  PATH="$VP_BIN_DIR:$PATH"
+  export PATH
+fi
+
 case "${1:-}" in
   --print-config)
     printf 'PETSTORE_API_URL=%s\n' "$API_BASE_URL"
