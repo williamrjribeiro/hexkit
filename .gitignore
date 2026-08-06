@@ -40,3 +40,6 @@ packages/plugin-apical/generated/
 
 # SDD scratch
 .superpowers/sdd/
+
+# Local dogfood output (when HEXKIT_DOGFOOD_OUTPUT points inside the repo)
+.dogfood-out/
