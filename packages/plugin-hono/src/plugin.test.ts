@@ -441,6 +441,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
     expect(routes?.contents).toContain("type AppVariables = { principal: Principal };");
     expect(routes?.contents).toContain("function createAuthenticateMiddleware(");
     expect(routes?.contents).toContain('context.set("principal", principal);');
+    expect(routes?.contents).toContain("/^Bearer\\s+(.+)$/i.exec(value.trim())");
     expect(routes?.contents).toContain(
       "  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, {",
     );

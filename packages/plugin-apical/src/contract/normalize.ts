@@ -21,6 +21,7 @@ import type {
   ContractType,
 } from "./types.ts";
 import {
+  isFullyEnforceableRequirement,
   normalizeGlobalSecurity,
   normalizeSecuritySchemes,
   resolveOperationSecurity,
@@ -440,6 +441,7 @@ function normalizeOperations(
         operation,
         securitySchemes,
         globalSecurity,
+        pathItem,
       );
       validateEnforceableSecurity(operationId, security, securitySchemes);
 
@@ -468,23 +470,33 @@ function validateEnforceableSecurity(
   securitySchemes: readonly ContractSecurityScheme[],
 ): void {
   const schemesByName = new Map(securitySchemes.map((scheme) => [scheme.name, scheme]));
+  const nonEmptyRequirements = security.requirements.filter(
+    (requirement) => requirement.schemes.length > 0,
+  );
+  if (nonEmptyRequirements.length === 0) return;
 
-  for (const requirement of security.requirements) {
-    if (requirement.schemes.length === 0) continue;
-
-    const hasSupportedScheme = requirement.schemes.some((schemeName) => {
-      const scheme = schemesByName.get(schemeName);
-      return scheme?.type === "apiKey" || scheme?.type === "http";
-    });
-
-    if (hasSupportedScheme) continue;
-
-    throw new Error(
-      `Operation "${operationId}" requires OpenAPI security schemes that Hexkit cannot enforce at runtime: ${requirement.schemes
-        .map((schemeName) => describeSecurityScheme(schemeName, schemesByName.get(schemeName)))
-        .join(", ")}.`,
-    );
+  for (const requirement of nonEmptyRequirements) {
+    if (requirement.schemes.length > 1) {
+      throw new Error(
+        `Operation "${operationId}" requires AND of multiple security schemes (${requirement.schemes.join(", ")}); Hexkit v1 supports only one scheme per OpenAPI security requirement object.`,
+      );
+    }
   }
+
+  // OpenAPI security is OR across requirement objects: pass when any branch is enforceable.
+  const hasEnforceableBranch = nonEmptyRequirements.some((requirement) =>
+    isFullyEnforceableRequirement(requirement, schemesByName),
+  );
+  if (hasEnforceableBranch) return;
+
+  const unsupported = [
+    ...new Set(nonEmptyRequirements.flatMap((requirement) => requirement.schemes)),
+  ];
+  throw new Error(
+    `Operation "${operationId}" requires OpenAPI security schemes that Hexkit cannot enforce at runtime: ${unsupported
+      .map((schemeName) => describeSecurityScheme(schemeName, schemesByName.get(schemeName)))
+      .join(", ")}.`,
+  );
 }
 
 function describeSecurityScheme(name: string, scheme: ContractSecurityScheme | undefined): string {

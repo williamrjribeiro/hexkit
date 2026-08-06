@@ -46,6 +46,24 @@ function normalizeSecurityRequirements(
   );
 }
 
+export function isSupportedSecurityScheme(
+  scheme: ContractSecurityScheme | undefined,
+): scheme is Extract<ContractSecurityScheme, { type: "apiKey" | "http" }> {
+  return scheme?.type === "apiKey" || scheme?.type === "http";
+}
+
+export function isFullyEnforceableRequirement(
+  requirement: ContractSecurityRequirement,
+  schemesByName: ReadonlyMap<string, ContractSecurityScheme>,
+): boolean {
+  return (
+    requirement.schemes.length > 0 &&
+    requirement.schemes.every((schemeName) =>
+      isSupportedSecurityScheme(schemesByName.get(schemeName)),
+    )
+  );
+}
+
 export function normalizeSecuritySchemes(
   document: Record<string, unknown>,
 ): readonly ContractSecurityScheme[] {
@@ -110,25 +128,41 @@ export function normalizeGlobalSecurity(
   return normalizeSecurityRequirements(document.security, "OpenAPI security");
 }
 
+/**
+ * Resolves effective security using OpenAPI precedence:
+ * operation.security → path-item.security → document.security.
+ */
 export function resolveOperationSecurity(
   document: Record<string, unknown>,
   operation: Record<string, unknown>,
   schemes: readonly ContractSecurityScheme[],
   globalSecurity: readonly ContractSecurityRequirement[],
+  pathItem: Record<string, unknown> = {},
 ): ContractOperationSecurity {
   void document;
 
-  const overridesGlobal = operation.security !== undefined;
-  const requirements = overridesGlobal
-    ? normalizeSecurityRequirements(operation.security, "OpenAPI operation.security")
-    : globalSecurity;
+  let overridesGlobal = false;
+  let requirements: readonly ContractSecurityRequirement[];
+
+  if (operation.security !== undefined) {
+    overridesGlobal = true;
+    requirements = normalizeSecurityRequirements(operation.security, "OpenAPI operation.security");
+  } else if (pathItem.security !== undefined) {
+    overridesGlobal = true;
+    requirements = normalizeSecurityRequirements(pathItem.security, "OpenAPI pathItem.security");
+  } else {
+    requirements = globalSecurity;
+  }
+
   const schemesByName = new Map(schemes.map((scheme) => [scheme.name, scheme]));
   const headerNames = new Set<string>();
 
   for (const requirement of requirements) {
+    if (!isFullyEnforceableRequirement(requirement, schemesByName)) continue;
+
     for (const schemeName of requirement.schemes) {
       const scheme = schemesByName.get(schemeName);
-      if (scheme?.type === "apiKey" || scheme?.type === "http") {
+      if (isSupportedSecurityScheme(scheme)) {
         headerNames.add(scheme.headerName.toLowerCase());
       }
     }
