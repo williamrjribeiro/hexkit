@@ -19,6 +19,8 @@ export { normalizeContractArtifact, normalizeContractType } from "./normalize.ts
 export { loadValidatedOpenApi } from "./openapi.ts";
 export type { OpenApiLoader } from "./openapi.ts";
 export {
+  isFullyEnforceableRequirement,
+  isSupportedSecurityScheme,
   normalizeGlobalSecurity,
   normalizeSecuritySchemes,
   resolveOperationSecurity,

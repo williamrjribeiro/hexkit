@@ -143,6 +143,164 @@ describe("OpenAPI security normalization", () => {
       reason: expect.any(String),
     });
   });
+
+  it("when path-item security is set and the operation omits security, then the path-item requirement applies", () => {
+    const document: Record<string, unknown> = {
+      openapi: "3.1.0",
+      info: { title: "Path Security", version: "1.0.0" },
+      components: {
+        securitySchemes: {
+          apiKey: { type: "apiKey", in: "header", name: "X-API-Key" },
+        },
+      },
+      paths: {
+        "/items": {
+          security: [{ apiKey: [] }],
+          get: {
+            operationId: "listItems",
+            responses: { "200": { description: "ok" } },
+          },
+        },
+      },
+    };
+    const schemes = normalizeSecuritySchemes(document);
+    const pathItem = (document.paths as Record<string, Record<string, unknown>>)["/items"]!;
+    const operation = pathItem.get as Record<string, unknown>;
+
+    const security = resolveOperationSecurity(document, operation, schemes, [], pathItem);
+
+    expect(security.overridesGlobal).toBe(true);
+    expect(security.apicalServerHeaderNames).toEqual(["x-api-key"]);
+  });
+
+  it("when security ORs bearer with oauth2, then only the enforceable bearer branch contributes headers", () => {
+    const document: Record<string, unknown> = {
+      openapi: "3.1.0",
+      info: { title: "Or Security", version: "1.0.0" },
+      components: {
+        securitySchemes: {
+          bearerAuth: { type: "http", scheme: "bearer" },
+          implicitOAuth: {
+            type: "oauth2",
+            flows: {
+              implicit: {
+                authorizationUrl: "https://example.com/oauth/authorize",
+                scopes: { read: "read" },
+              },
+            },
+          },
+        },
+      },
+      paths: {
+        "/items": {
+          get: {
+            operationId: "listItems",
+            security: [{ bearerAuth: [] }, { implicitOAuth: ["read"] }],
+            responses: { "200": { description: "ok" } },
+          },
+        },
+      },
+    };
+    const schemes = normalizeSecuritySchemes(document);
+    const operation = operationAt(document as never, "/items", "get");
+
+    const security = resolveOperationSecurity(document, operation, schemes, []);
+
+    expect(security.apicalServerHeaderNames).toEqual(["authorization"]);
+    expect(() =>
+      normalizeContractArtifact(
+        {
+          ...document,
+          paths: {
+            "/items": {
+              get: {
+                ...operation,
+                "x-hexkit": { operation: { aggregate: "Item", action: "list" } },
+                responses: {
+                  "200": {
+                    description: "ok",
+                    content: {
+                      "application/json": {
+                        schema: { type: "object", properties: { ok: { type: "boolean" } } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            ...(document.components as object),
+            schemas: {
+              Item: {
+                type: "object",
+                required: ["id"],
+                properties: { id: { type: "string" } },
+                "x-hexkit": { persistence: { table: "items", identity: "id" } },
+              },
+            },
+          },
+        },
+        {
+          schemas: new Map([["Item", "schemas/Item.ts"]]),
+          operations: new Map([["listItems", "routes/listItems.ts"]]),
+        },
+      ),
+    ).not.toThrow();
+  });
+
+  it("when one requirement ANDs a supported scheme with oauth2, then normalization fails", () => {
+    const document = {
+      openapi: "3.1.0",
+      info: { title: "And Mix", version: "1.0.0" },
+      components: {
+        schemas: {
+          Item: {
+            type: "object",
+            required: ["id"],
+            properties: { id: { type: "string" } },
+            "x-hexkit": { persistence: { table: "items", identity: "id" } },
+          },
+        },
+        securitySchemes: {
+          bearerAuth: { type: "http", scheme: "bearer" },
+          implicitOAuth: {
+            type: "oauth2",
+            flows: {
+              implicit: {
+                authorizationUrl: "https://example.com/oauth/authorize",
+                scopes: { read: "read" },
+              },
+            },
+          },
+        },
+      },
+      paths: {
+        "/items": {
+          get: {
+            operationId: "listItems",
+            "x-hexkit": { operation: { aggregate: "Item", action: "list" } },
+            security: [{ bearerAuth: [], implicitOAuth: ["read"] }],
+            responses: {
+              "200": {
+                description: "ok",
+                content: {
+                  "application/json": { schema: { $ref: "#/components/schemas/Item" } },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    expect(() =>
+      normalizeContractArtifact(document, {
+        schemas: new Map([["Item", "schemas/Item.ts"]]),
+        operations: new Map([["listItems", "routes/listItems.ts"]]),
+      }),
+    ).toThrow(/AND of multiple security schemes/);
+  });
 });
 
 describe("ContractArtifact security metadata", () => {
