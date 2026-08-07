@@ -1,0 +1,24 @@
+{
+  "name": "@hexkit/auth-api-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Auth-focused Hexkit dogfood fixture with Pactum acceptance tests.",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test run --passWithNoTests",
+    "check": "vp check"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "pactum": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  }
+}

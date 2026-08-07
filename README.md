@@ -61,3 +61,14 @@ The task passes through `PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and
 `HEXKIT_DOGFOOD_OUTPUT`. Docker is required for the live Compose and API phases.
 `apps/petstore-sample/scripts/prove-api-url.sh` verifies task-level environment
 propagation without starting Compose.
+
+## Auth API dogfood
+
+Run the auth fixture Compose + Pactum acceptance loop (in-memory stub auth):
+
+```bash
+vp run dogfood-auth
+```
+
+Uses `apps/fixtures/auth-api/openapi.yaml`. Passes through `AUTH_API_URL`,
+`HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`.

@@ -22,6 +22,12 @@ export default defineConfig({
         // PETSTORE_API_URL, HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
         cache: false,
       },
+      "dogfood-auth": {
+        command: "apps/fixtures/auth-api/scripts/dogfood.sh",
+        // Same uncached env inheritance as dogfood; covers AUTH_API_URL,
+        // HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
+        cache: false,
+      },
     },
   },
 });
