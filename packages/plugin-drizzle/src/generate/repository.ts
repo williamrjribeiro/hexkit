@@ -119,6 +119,21 @@ function renderMethod(
         "    }",
       ].join("\n");
     }
+    case "list": {
+      return [
+        `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
+        `      const rows = await db.select().from(${table.exportName});`,
+        `      return rows.map(${mapper});`,
+        "    }",
+      ].join("\n");
+    }
+    case "stub": {
+      return [
+        `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
+        "      return { ok: true };",
+        "    }",
+      ].join("\n");
+    }
     case "delete": {
       const idParameter = method.parameters[0]?.name ?? table.identityPropertyName;
       return [
