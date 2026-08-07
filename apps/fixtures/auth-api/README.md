@@ -21,8 +21,8 @@ apps/fixtures/auth-api/scripts/dogfood.sh
 
 Environment:
 
-| Variable               | Default                   | Role                                      |
-| ---------------------- | ------------------------- | ----------------------------------------- |
-| `AUTH_API_URL`         | `http://127.0.0.1:3000`   | Base URL for readiness + Pactum           |
-| `HEXKIT_DOGFOOD_OUTPUT`| temp dir                  | Where generation writes the app           |
-| `HEXKIT_KEEP_STACK`    | `0`                       | Keep Compose + output when set to `1`     |
+| Variable                | Default                 | Role                                  |
+| ----------------------- | ----------------------- | ------------------------------------- |
+| `AUTH_API_URL`          | `http://127.0.0.1:3000` | Base URL for readiness + Pactum       |
+| `HEXKIT_DOGFOOD_OUTPUT` | temp dir                | Where generation writes the app       |
+| `HEXKIT_KEEP_STACK`     | `0`                     | Keep Compose + output when set to `1` |

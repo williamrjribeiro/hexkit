@@ -61,7 +61,7 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
-vp run @hexkit/cli#build
+vp run -r build
 vp node apps/cli/dist/index.mjs generate "$FIXTURE_DIR/openapi.yaml" "$OUTPUT_DIR"
 
 (

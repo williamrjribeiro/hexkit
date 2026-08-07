@@ -27,9 +27,7 @@ async function runAgainstApi(assertion: () => unknown): Promise<void> {
 
 describe.sequential("Given the generated Auth API fixture", () => {
   it("when GET /health has no auth, then it returns 200", async () => {
-    await runAgainstApi(() =>
-      spec().get("/health").expectStatus(200).expectJson({ ok: true }),
-    );
+    await runAgainstApi(() => spec().get("/health").expectStatus(200).expectJson({ ok: true }));
   });
 
   it("when GET /items has no Authorization, then it returns 401", async () => {
