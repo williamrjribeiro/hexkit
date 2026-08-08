@@ -28,6 +28,8 @@ const petstoreOpenApi = new URL("../../../apps/petstore-sample/openapi.poc.yaml"
   .pathname;
 const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
   .pathname;
+const authOpenApi = new URL("../../../apps/fixtures/auth-api/openapi.yaml", import.meta.url)
+  .pathname;
 
 const petstoreModules = {
   schemas: new Map([
@@ -56,14 +58,25 @@ const libraryModules = {
   ]),
 };
 
+const authModules = {
+  schemas: new Map([["Item", "schemas/Item.ts"]]),
+  operations: new Map([
+    ["getHealth", "routes/getHealth.ts"],
+    ["listItems", "routes/listItems.ts"],
+    ["createItem", "routes/createItem.ts"],
+  ]),
+};
+
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
+let authContract: ContractArtifact;
 let petstoreApplication: ApplicationArtifact;
 
 beforeAll(async () => {
-  [petstoreContract, libraryContract] = await Promise.all([
+  [petstoreContract, libraryContract, authContract] = await Promise.all([
     loadContract(petstoreOpenApi, petstoreModules),
     loadContract(libraryOpenApi, libraryModules),
+    loadContract(authOpenApi, authModules),
   ]);
   petstoreApplication = applicationFromContract(petstoreContract);
 });
@@ -255,6 +268,26 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
       }
       "
     `);
+  });
+});
+
+describe("Given ContractArtifact and ApplicationArtifact for Auth API", () => {
+  it("when the Drizzle plugin runs, then list selects all rows and getHealth returns a readiness stub", async () => {
+    const { files } = await collectGeneratedFiles(
+      authContract,
+      applicationFromContract(authContract),
+    );
+    const repository =
+      files.find((file) => file.path === "src/adapters/db/item-repository.ts")?.contents ?? "";
+
+    expect(repository).toContain("async createItem(");
+    expect(repository).toContain("async listItems(): Promise<Array<Item>>");
+    expect(repository).toContain("const rows = await db.select().from(items);");
+    expect(repository).toContain("return rows.map(mapItemRow);");
+    expect(repository).not.toMatch(/listItems[\s\S]*eq\(items\.id/);
+    expect(repository).toContain("async getHealth(): Promise<{");
+    expect(repository).toContain("return { ok: true };");
+    expect(repository).not.toMatch(/getHealth[\s\S]*eq\(items\.id/);
   });
 });
 

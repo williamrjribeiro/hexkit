@@ -56,7 +56,7 @@ export type PersistenceTableModel = {
   apicalModulePath: string;
 };
 
-export type PersistenceMethodKind = "delete" | "insert" | "select" | "update";
+export type PersistenceMethodKind = "delete" | "insert" | "list" | "select" | "stub" | "update";
 
 export type PersistenceRepositoryMethodModel = {
   operationId: string;
@@ -374,14 +374,21 @@ function deriveRepository(
       );
     }
 
+    const parameters = method.parameters.map((parameter) => ({
+      name: parameter.name,
+      typeExpression: parameter.typeExpression,
+    }));
+    const kind = refineMethodKind(
+      resolveMethodKind(operation, method.action),
+      parameters,
+      method.returnTypeExpression,
+    );
+
     return {
       operationId: method.operationId,
       name: method.name,
-      kind: resolveMethodKind(operation, method.action),
-      parameters: method.parameters.map((parameter) => ({
-        name: parameter.name,
-        typeExpression: parameter.typeExpression,
-      })),
+      kind,
+      parameters,
       returnTypeExpression: method.returnTypeExpression,
     };
   });
@@ -413,6 +420,17 @@ function resolveMethodKind(operation: ContractOperation, action: string): Persis
   if (normalized === "delete" || normalized === "remove") {
     return "delete";
   }
+  if (normalized === "list" || normalized === "findall" || normalized === "index") {
+    return "list";
+  }
+  if (
+    normalized === "gethealth" ||
+    normalized === "health" ||
+    normalized === "healthcheck" ||
+    normalized === "readiness"
+  ) {
+    return "stub";
+  }
   if (
     normalized === "get" ||
     normalized === "read" ||
@@ -437,6 +455,23 @@ function resolveMethodKind(operation: ContractOperation, action: string): Persis
         `Cannot infer persistence action for operation "${operation.operationId}" (${operation.method}). Add x-hexkit.operation.action.`,
       );
   }
+}
+
+function refineMethodKind(
+  kind: PersistenceMethodKind,
+  parameters: readonly { name: string; typeExpression: string }[],
+  returnTypeExpression: string,
+): PersistenceMethodKind {
+  if (kind !== "select" || parameters.length > 0) {
+    return kind;
+  }
+
+  if (returnTypeExpression.startsWith("Array<")) {
+    return "list";
+  }
+
+  // Parameterless non-list GETs (e.g. readiness) are not row lookups.
+  return "stub";
 }
 
 function requireStringEnumValue(value: ContractScalarValue, location: string): string {

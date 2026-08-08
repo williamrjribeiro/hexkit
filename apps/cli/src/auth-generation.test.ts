@@ -120,13 +120,8 @@ describe("Given the Auth fixture contract", () => {
     expect(getHealthUseCase).not.toContain("principal: Principal");
     expect(getHealthUseCase).not.toContain("Principal");
 
-    // Future Compose acceptance matrix for this fixture, intentionally not executed here:
-    // GET /health without auth -> 200
-    // GET /items without Authorization -> 401
-    // GET /items with Authorization: Bearer good -> 200
-    // GET /items with Authorization: Bearer bad -> 401
-    // POST /items with only bearer auth -> 401
-    // POST /items with X-API-Key: good -> 201
+    // Live Compose + Pactum matrix lives in apps/fixtures/auth-api/tests/api.test.ts
+    // and is exercised by `vp run dogfood-auth`.
   }, 120_000);
 
   it("when an operation is secured only by oauth2, then generation fails instead of emitting a public route", async () => {
