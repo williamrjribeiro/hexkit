@@ -38,6 +38,8 @@ vp run dogfood-petstore-next
 
 Input contract: `../petstore-sample/openapi.poc.yaml`.
 
+CLI default `--next-surface` is `both`; this fixture dogfood merge uses `--next-surface routes` so Route Handlers merge without overwriting RSC UI pages.
+
 ### Generate-to-TMP merge algorithm
 
 1. Generate into a temporary directory, never directly over this fixture:

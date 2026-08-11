@@ -310,19 +310,19 @@ Delivered as an extension to the Hono-first PoC (see `docs/superpowers/specs/202
 
 ## 12. Decisions log
 
-| Decision               | Choice                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| PoC success bar        | Local generate + validate + Compose + API tests; no live AWS                          |
-| Contract               | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched   |
-| Baseline operations    | add/update/get/delete Pet; place/get/delete Order (**sample fixture**, not plugin IR) |
-| Media types            | JSON only                                                                             |
-| Auth                   | None                                                                                  |
-| Extension model        | Generated skeletons + protected user zones                                            |
-| Generator domain       | Plugins are domain-agnostic; derive all sample domain from OpenAPI/Apical (§5.0)      |
-| PRD shape              | Single master `PRD.md` at repo root                                                   |
-| Infra plugin           | Exclude `plugin-sst` from PoC                                                         |
-| HTTP adapter (default) | Hono via `plugin-hono`                                                                |
-| HTTP adapter (opt-in)  | Next.js App Router via `plugin-next` (`--http next`, `--next-surface both             | routes | rsc`) |
-| Packaging              | Hexkit emits Docker Compose (Hono + Postgres)                                         |
-| API test stack         | Vitest + PactumJS against Docker Compose                                              |
-| CI                     | Local only for PoC                                                                    |
+| Decision               | Choice                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| PoC success bar        | Local generate + validate + Compose + API tests; no live AWS                               |
+| Contract               | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched        |
+| Baseline operations    | add/update/get/delete Pet; place/get/delete Order (**sample fixture**, not plugin IR)      |
+| Media types            | JSON only                                                                                  |
+| Auth                   | None                                                                                       |
+| Extension model        | Generated skeletons + protected user zones                                                 |
+| Generator domain       | Plugins are domain-agnostic; derive all sample domain from OpenAPI/Apical (§5.0)           |
+| PRD shape              | Single master `PRD.md` at repo root                                                        |
+| Infra plugin           | Exclude `plugin-sst` from PoC                                                              |
+| HTTP adapter (default) | Hono via `plugin-hono`                                                                     |
+| HTTP adapter (opt-in)  | Next.js App Router via `plugin-next` (`--http next`, `--next-surface both / routes / rsc`) |
+| Packaging              | Hexkit emits Docker Compose (Hono + Postgres)                                              |
+| API test stack         | Vitest + PactumJS against Docker Compose                                                   |
+| CI                     | Local only for PoC                                                                         |
