@@ -45,8 +45,9 @@ export type NextHttpModel = {
 export type NextHttpArtifact = {
   artifactVersion: 1;
   surface: NextSurface;
-  helpersFilePath: string;
-  controllersFilePath: string;
+  helpersFilePath?: string;
+  controllersFilePath?: string;
+  runtimeFilePath?: string;
   serverAccessFilePath: string;
   routes: readonly NextRouteFile[];
   uiPages: readonly NextUiPage[];

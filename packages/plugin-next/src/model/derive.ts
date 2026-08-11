@@ -20,6 +20,7 @@ import { openApiPathToAppRouteFile, openApiPathToUiPageFile } from "./paths.ts";
 
 export const HELPERS_FILE_PATH = "src/adapters/http-next/helpers.ts";
 export const CONTROLLERS_FILE_PATH = "src/adapters/http-next/controllers.ts";
+export const RUNTIME_FILE_PATH = "src/adapters/http-next/runtime.ts";
 export const SERVER_ACCESS_FILE_PATH = "src/adapters/http-next/server-access.ts";
 export const AUTH_ADAPTER_FILE_PATH = "src/adapters/auth/in-memory-authenticator.ts";
 

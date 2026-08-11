@@ -4,12 +4,21 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { generateApplicationFromContract } from "@hexkit/plugin-architecture-hexagonal";
+import { APPLICATION_ARTIFACT } from "@hexkit/plugin-architecture-hexagonal";
 import {
+  APICAL_CONTRACT_ARTIFACT,
   loadValidatedOpenApi,
   normalizeContractArtifact,
   type ContractArtifact,
 } from "@hexkit/plugin-apical";
+import {
+  createArtifactRegistry,
+  type GeneratedFile,
+  type GenerationContext,
+  type HexkitPlugin,
+} from "@hexkit/plugin-api";
 
+import { NEXT_HTTP_ARTIFACT, type NextHttpArtifact, type NextSurface } from "./artifact.ts";
 import { generateNextDalFromArtifacts } from "./generate/files.ts";
 import { deriveNextHttpModel } from "./model/derive.ts";
 
@@ -45,7 +54,7 @@ const libraryModules = {
   ]),
 };
 
-const productionSourceRoots = ["artifact.ts", "generate", "model", "index.ts"];
+const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
@@ -93,6 +102,48 @@ function readProductionSources(): string {
   }
 
   return chunks.join("\n");
+}
+
+async function collectGeneratedFiles(
+  contract: ContractArtifact,
+  surface: NextSurface,
+): Promise<{ files: GeneratedFile[]; artifact: NextHttpArtifact }> {
+  const application = generateApplicationFromContract(contract).artifact;
+  const files: GeneratedFile[] = [];
+  const context: GenerationContext = {
+    inputPath: "openapi.yaml",
+    outputDirectory: "/tmp/generated-next-app",
+    artifacts: createArtifactRegistry(),
+    writeFile(file: GeneratedFile) {
+      files.push(file);
+    },
+    log() {},
+  };
+  const pluginModule = (await import("./plugin.ts")) as {
+    createNextPlugin: (options?: { surface?: NextSurface }) => HexkitPlugin;
+  };
+  const createNextPlugin = pluginModule.createNextPlugin;
+
+  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+  context.artifacts.publish(APPLICATION_ARTIFACT, application);
+  await createNextPlugin({ surface }).generate(context);
+
+  return {
+    files,
+    artifact: context.artifacts.require(NEXT_HTTP_ARTIFACT),
+  };
+}
+
+function fileMap(files: readonly GeneratedFile[]): Map<string, GeneratedFile> {
+  return new Map(files.map((file) => [file.path, file] as const));
+}
+
+function expectNoPageRouteCollisions(paths: readonly string[]): void {
+  const pathSet = new Set(paths);
+  for (const path of paths) {
+    if (!path.endsWith("/route.ts")) continue;
+    expect(pathSet.has(path.replace(/route\.ts$/, "page.tsx"))).toBe(false);
+  }
 }
 
 describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
@@ -146,6 +197,70 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     );
   });
 
+  it("when surface is both, then generation emits contract routes, ui pages, layout, index, and runtime", async () => {
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract, "both");
+    const filesByPath = fileMap(files);
+    const paths = files.map((file) => file.path);
+    const route = filesByPath.get("app/pet/[petId]/route.ts");
+    const page = filesByPath.get("app/ui/pet/[petId]/page.tsx");
+    const serverAccess = filesByPath.get("src/adapters/http-next/server-access.ts");
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "app/layout.tsx",
+        "app/page.tsx",
+        "app/ui/page.tsx",
+        "app/pet/route.ts",
+        "app/pet/[petId]/route.ts",
+        "app/store/order/[orderId]/route.ts",
+        "app/ui/pet/[petId]/page.tsx",
+        "app/ui/store/order/[orderId]/page.tsx",
+        "src/adapters/http-next/helpers.ts",
+        "src/adapters/http-next/controllers.ts",
+        "src/adapters/http-next/runtime.ts",
+        "src/adapters/http-next/server-access.ts",
+      ]),
+    );
+    expect(files.every((file) => file.ownership === "generated")).toBe(true);
+    expectNoPageRouteCollisions(paths);
+
+    expect(route?.contents).toContain('import type { NextRequest } from "next/server";');
+    expect(route?.contents).toContain('import { getRuntime } from "@/adapters/http-next/runtime";');
+    expect(route?.contents).toContain("export async function GET(");
+    expect(route?.contents).toContain("ctx: { params: Promise<Record<string, string>> },");
+    expect(route?.contents).toContain("const params = await ctx.params;");
+    expect(route?.contents).toContain(
+      "const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });",
+    );
+    expect(route?.contents).toContain("const result = await runtime.controllers.getPetById(");
+    expect(route?.contents).toContain("export async function DELETE(");
+    expect(route?.contents).not.toContain("force-static");
+
+    expect(page?.contents).toContain(
+      'import { getServerAccess } from "@/adapters/http-next/server-access";',
+    );
+    expect(page?.contents).toContain("const params = await props.params;");
+    expect(page?.contents).toContain("const searchParams = await props.searchParams;");
+    expect(page?.contents).toContain("const access = getServerAccess();");
+    expect(page?.contents).toContain("const result = await access.getPetById(");
+    expect(page?.contents).toContain('<h1>{"getPetById"}</h1>');
+    expect(page?.contents).not.toContain("fetch(");
+    expect(page?.contents).not.toContain("force-static");
+
+    expect(filesByPath.get("app/page.tsx")?.contents).toContain('href="/ui/pet/[petId]"');
+    expect(filesByPath.get("app/ui/page.tsx")?.contents).toContain(
+      'href="/ui/store/order/[orderId]"',
+    );
+    for (const uiPage of artifact.uiPages) {
+      const generatedPage = filesByPath.get(uiPage.filePath);
+      expect(serverAccess?.contents).toContain(`  ${uiPage.useCaseAccessorName}:`);
+      expect(generatedPage?.contents).toContain(`access.${uiPage.useCaseAccessorName}(`);
+    }
+
+    const generatedSource = files.map((file) => file.contents).join("\n");
+    expect(generatedSource).not.toMatch(/\bBook\b|createBook|getBook|\/books/);
+  });
+
   it("when surface is routes, then routes and server-access are derived with empty uiPages", () => {
     const application = generateApplicationFromContract(petstoreContract).artifact;
     const model = deriveNextHttpModel(petstoreContract, application, { surface: "routes" });
@@ -161,6 +276,30 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(files.some((file) => file.path === "src/adapters/http-next/helpers.ts")).toBe(true);
     expect(files.some((file) => file.path === "src/adapters/http-next/controllers.ts")).toBe(true);
     expect(files.every((file) => !file.path.startsWith("app/ui/"))).toBe(true);
+  });
+
+  it("when surface is routes, then generation emits handlers and server-access without resource pages", async () => {
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract, "routes");
+    const filesByPath = fileMap(files);
+    const paths = files.map((file) => file.path);
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "app/layout.tsx",
+        "app/page.tsx",
+        "app/pet/[petId]/route.ts",
+        "src/adapters/http-next/server-access.ts",
+        "src/adapters/http-next/helpers.ts",
+        "src/adapters/http-next/controllers.ts",
+        "src/adapters/http-next/runtime.ts",
+      ]),
+    );
+    expect(paths.some((path) => path.startsWith("app/ui/"))).toBe(false);
+    expect(paths.some((path) => path.endsWith("/page.tsx") && path !== "app/page.tsx")).toBe(false);
+    expect(filesByPath.get("app/page.tsx")?.contents).toContain("API only");
+    expect(artifact.uiPages).toEqual([]);
+    expect(artifact.routes.length).toBeGreaterThan(0);
+    expectNoPageRouteCollisions(paths);
   });
 
   it("when surface is rsc, then pages use contract paths, routes are empty, and server-access is present", () => {
@@ -180,16 +319,38 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(files.some((file) => file.path === "src/adapters/http-next/helpers.ts")).toBe(false);
     expect(files.some((file) => file.path === "src/adapters/http-next/controllers.ts")).toBe(false);
   });
+
+  it("when surface is rsc, then generation emits contract-path pages without route handlers", async () => {
+    const { files, artifact } = await collectGeneratedFiles(petstoreContract, "rsc");
+    const paths = files.map((file) => file.path);
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "app/layout.tsx",
+        "app/page.tsx",
+        "app/pet/[petId]/page.tsx",
+        "app/store/order/[orderId]/page.tsx",
+        "src/adapters/http-next/server-access.ts",
+      ]),
+    );
+    expect(paths.some((path) => path.endsWith("/route.ts"))).toBe(false);
+    expect(paths).not.toContain("src/adapters/http-next/helpers.ts");
+    expect(paths).not.toContain("src/adapters/http-next/controllers.ts");
+    expect(paths).not.toContain("src/adapters/http-next/runtime.ts");
+    expect(artifact.routes).toEqual([]);
+    expect(artifact.uiPages.map((page) => page.filePath)).toEqual(
+      expect.arrayContaining(["app/pet/[petId]/page.tsx", "app/store/order/[orderId]/page.tsx"]),
+    );
+  });
 });
 
 describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
-  it("when generation runs, then it emits book paths without Petstore output in plugin source", () => {
+  it("when generation runs, then it emits book paths without Petstore output in generated output or plugin source", async () => {
     const application = generateApplicationFromContract(libraryContract).artifact;
     const model = deriveNextHttpModel(libraryContract, application, { surface: "both" });
-    const { files } = generateNextDalFromArtifacts(libraryContract, application, {
-      surface: "both",
-    });
+    const { files } = await collectGeneratedFiles(libraryContract, "both");
     const generatedSource = files.map((file) => file.contents).join("\n");
+    const paths = files.map((file) => file.path);
 
     expect(model.routes.map((route) => route.openApiPath)).toEqual(
       expect.arrayContaining(["/books", "/books/{bookId}"]),
@@ -207,6 +368,19 @@ describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
     expect(generatedSource).toContain("createBook:");
     expect(readProductionSources()).not.toMatch(
       /\bPet\b|\bOrder\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|\/pet|\/store\/order/,
+    );
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        "app/books/route.ts",
+        "app/books/[bookId]/route.ts",
+        "app/ui/books/[bookId]/page.tsx",
+      ]),
+    );
+    expect(fileMap(files).get("app/books/[bookId]/route.ts")?.contents).toContain(
+      "runtime.controllers.getBook",
+    );
+    expect(fileMap(files).get("app/ui/books/[bookId]/page.tsx")?.contents).toContain(
+      "access.getBook(",
     );
   });
 });

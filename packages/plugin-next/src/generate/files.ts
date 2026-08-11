@@ -7,11 +7,15 @@ import {
   CONTROLLERS_FILE_PATH,
   deriveNextHttpModel,
   HELPERS_FILE_PATH,
+  RUNTIME_FILE_PATH,
   SERVER_ACCESS_FILE_PATH,
 } from "../model/derive.ts";
 import { renderAuthAdapterFile } from "./auth-adapter.ts";
 import { renderControllersFile } from "./controllers.ts";
 import { renderHelpersFile } from "./helpers.ts";
+import { renderPageFiles } from "./pages.ts";
+import { renderRouteFiles } from "./routes.ts";
+import { renderRuntimeFile } from "./runtime.ts";
 import { renderServerAccessFile } from "./server-access.ts";
 
 export type GeneratedNextDal = {
@@ -33,6 +37,10 @@ export function generateNextDalFromArtifacts(
       ? [renderHelpersFile(), renderControllersFile(model, contract, application)]
       : []),
     ...(includesRoutes && model.authenticator !== undefined ? [renderAuthAdapterFile()] : []),
+    ...(includesRoutes
+      ? [renderRuntimeFile(model, application), ...renderRouteFiles(model.routes)]
+      : []),
+    ...renderPageFiles(model, application),
   ];
 
   return {
@@ -40,8 +48,13 @@ export function generateNextDalFromArtifacts(
     artifact: {
       artifactVersion: 1,
       surface: model.surface,
-      helpersFilePath: HELPERS_FILE_PATH,
-      controllersFilePath: CONTROLLERS_FILE_PATH,
+      ...(includesRoutes
+        ? {
+            helpersFilePath: HELPERS_FILE_PATH,
+            controllersFilePath: CONTROLLERS_FILE_PATH,
+            runtimeFilePath: RUNTIME_FILE_PATH,
+          }
+        : {}),
       serverAccessFilePath: SERVER_ACCESS_FILE_PATH,
       routes: model.routes,
       uiPages: model.uiPages,
