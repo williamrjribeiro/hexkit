@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers, basic RSC pages, or **both** (selectable surface) from OpenAPI/Apical contracts, plus a **functional PetShop Next.js dogfood app** (PostCSS + Tailwind + CSS Modules; RSC reads; form posts; no client-side fetching), while keeping Hono as the default HTTP adapter.
+**Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers, basic RSC pages, or **both** (selectable surface), plus a **vanilla PetShop Next.js dogfood app** (create-next-app-shaped; Tailwind; optional CSS Modules; RSC reads; form posts; **no app tests**; installs via **`vp` / pnpm**), while keeping Hono as the default HTTP adapter.
 
-**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next` with `surface: "routes" | "rsc" | "both"` (default `both`). Routes emit `app/**/route.ts` at literal OpenAPI paths; RSC emits server-access + generic pages (`app/ui/...` when `both`, contract paths when `rsc`-only). **PetShop UX** lives only in `apps/petstore-next` (fixture), overlaid on generated output. Auth/Zod for HTTP match Hono. Packaging emits a Next + Postgres Compose stack for dogfood.
+**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next` with `surface: "routes" | "rsc" | "both"` (default `both`). Routes emit `app/**/route.ts` at literal OpenAPI paths; RSC emits server-access + generic pages (`app/ui/...` when `both`, contract paths when `rsc`-only). **PetShop UX** lives only in `apps/petstore-next` (fixture), merged onto generated output. Auth/Zod for HTTP match Hono. Packaging uses Next + Postgres; PetShop dogfood does not require a test suite.
 
-**Tech Stack:** TypeScript, Vite+, Vitest, Next.js 16 App Router (`route.ts`, `page.tsx` RSC, `NextRequest`/`Response.json`), Apical Zod wrappers, existing Hexkit plugins.
+**Tech Stack:** TypeScript, Vite+ (`vp`), pnpm, Next.js 16 App Router (`route.ts`, `page.tsx` RSC, create-next-app defaults), Tailwind CSS, optional CSS Modules, Apical Zod wrappers, existing Hexkit plugins.
 
 **Design spec:** [`docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`](../specs/2026-08-11-nextjs-route-handlers-design.md)
 
