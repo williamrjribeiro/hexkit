@@ -153,21 +153,26 @@ function deriveUiPages(
   return operations
     .filter((operation) => operation.method === "get")
     .toSorted((left, right) => compareText(left.operationId, right.operationId))
-    .map((operation) => {
+    .flatMap((operation) => {
       const binding = bindingsByOperationId.get(operation.operationId);
       if (binding === undefined) {
         throw new Error(
           `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
         );
       }
+      if (binding.requiresPrincipal) {
+        return [];
+      }
 
-      return {
-        filePath: openApiPathToUiPageFile(operation.path, { surface }),
-        openApiPath: operation.path,
-        operationId: operation.operationId,
-        useCaseAccessorName: operation.operationId,
-        paramNames: extractPathParamNames(operation.path),
-      };
+      return [
+        {
+          filePath: openApiPathToUiPageFile(operation.path, { surface }),
+          openApiPath: operation.path,
+          operationId: operation.operationId,
+          useCaseAccessorName: operation.operationId,
+          paramNames: extractPathParamNames(operation.path),
+        },
+      ];
     });
 }
 

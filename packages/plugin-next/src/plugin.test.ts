@@ -255,6 +255,31 @@ function createSecuredContract(): ContractArtifact {
         extension: { aggregate: "Item", action: "create" },
       },
       {
+        operationId: "getPublicCatalog",
+        method: "get",
+        path: "/catalog",
+        modulePath: "routes/getPublicCatalog.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "array", nullable: false, items: itemReference },
+              },
+            ],
+          },
+        ],
+        security: {
+          overridesGlobal: true,
+          requirements: [],
+          apicalServerHeaderNames: [],
+        },
+        extension: { aggregate: "Item", action: "getPublic" },
+      },
+      {
         operationId: "listItems",
         method: "get",
         path: "/items/{itemId}",
@@ -526,6 +551,35 @@ describe("Given a root OpenAPI path", () => {
 });
 
 describe("Given ContractArtifact + ApplicationArtifact with secured operations", () => {
+  it("when surface is both, then secured GET ops omit resource pages while routes and unsecured GET pages remain", async () => {
+    const application = generateApplicationFromContract(createSecuredContract()).artifact;
+    const model = deriveNextHttpModel(createSecuredContract(), application, { surface: "both" });
+    const { files } = await collectGeneratedFiles(createSecuredContract(), "both");
+    const paths = files.map((file) => file.path);
+    const filesByPath = fileMap(files);
+
+    expect(model.uiPages.map((page) => page.operationId)).toEqual(["getPublicCatalog"]);
+    expect(paths).not.toContain("app/ui/items/[itemId]/page.tsx");
+    expect(paths).toContain("app/ui/catalog/page.tsx");
+    expect(paths).toContain("app/items/[itemId]/route.ts");
+    expect(filesByPath.get("app/ui/catalog/page.tsx")?.contents).toContain(
+      "access.getPublicCatalog(",
+    );
+    expectNoPageRouteCollisions(paths);
+  });
+
+  it("when surface is rsc, then secured GET ops omit resource pages while unsecured GET pages remain", async () => {
+    const application = generateApplicationFromContract(createSecuredContract()).artifact;
+    const model = deriveNextHttpModel(createSecuredContract(), application, { surface: "rsc" });
+    const { files } = await collectGeneratedFiles(createSecuredContract(), "rsc");
+    const paths = files.map((file) => file.path);
+
+    expect(model.uiPages.map((page) => page.operationId)).toEqual(["getPublicCatalog"]);
+    expect(paths).not.toContain("app/items/[itemId]/page.tsx");
+    expect(paths).toContain("app/catalog/page.tsx");
+    expect(paths).not.toContain("app/items/[itemId]/route.ts");
+  });
+
   it("when Next route handlers are generated, then secured methods authenticate and pass Principal", async () => {
     const { files } = await collectGeneratedFiles(createSecuredContract(), "routes");
     const createRoute = fileMap(files).get("app/items/route.ts");
