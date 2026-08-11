@@ -1,4 +1,4 @@
-# Design: Next.js App Router Route Handlers in Hexkit
+# Design: Next.js App Router Route Handlers + RSC in Hexkit
 
 **Status:** Draft  
 **Date:** 2026-08-11  
@@ -8,14 +8,16 @@
 
 ## 1. Problem
 
-Hexkit currently generates a **Hono** HTTP adapter as the only driving adapter. Next.js is the dominant React full-stack framework; teams often want OpenAPI-backed APIs colocated with an App Router UI.
+Hexkit currently generates a **Hono** HTTP adapter as the only driving adapter. Next.js is the dominant React full-stack framework; teams often want OpenAPI-backed APIs colocated with an App Router UI that uses **React Server Components (RSC)**.
 
 RFC/PRD today treat **multiple web frameworks as a non-goal** for the initial release and fix the stack on Hono + (deferred) SST/Lambda. Adding Next.js is therefore an **explicit product amendment**, not a silent PoC stretch.
 
 We need a contract-first path that:
 
 - Maps OpenAPI operations to idiomatic Next.js **Route Handlers**.
+- Generates **basic RSC pages** that call hexagonal use cases **in-process** (DAL pattern).
 - Keeps Hexagonal Architecture (domain/use cases/ports free of Next.js).
+- Keeps `@hexkit/plugin-next` **domain-agnostic** (PRD §5.0) — same invariant as other plugins.
 - Reuses Apical Zod validation and existing auth IR (`Principal` / `Authenticator`).
 - Does **not** break the Hono Petstore / auth-api dogfood defaults.
 
@@ -28,7 +30,7 @@ From [Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers
 - Defined as `app/**/route.ts` exporting `GET` | `POST` | `PUT` | `PATCH` | `DELETE` | `HEAD` | `OPTIONS`.
 - Use Web `Request` / `Response`, optionally `NextRequest` / `NextResponse`.
 - Dynamic path params arrive as **`await ctx.params`** (Promise).
-- Cannot coexist with `page.js` on the **same** segment.
+- **Cannot coexist with `page.js` on the same route segment.**
 - App Router Route Handlers replace Pages Router “API Routes”; Hexkit must **not** generate `pages/api`.
 
 ### 2.2 Backend-for-Frontend guidance
@@ -45,59 +47,90 @@ From [Fetching Data](https://nextjs.org/docs/app/getting-started/fetching-data) 
 
 | Concern | Next.js recommendation | Hexkit implication |
 | -------- | ---------------------- | ------------------ |
-| Server Component reads | Prefer **DAL / ORM / in-process** calls; avoid self-HTTP where possible | RSC should import **use cases / ports**, not `fetch` the generated Route Handlers |
+| Server Component reads | Prefer **DAL / ORM / in-process** calls; avoid self-HTTP where possible | Generated RSC pages import **use cases** via a server-access composition module — **not** `fetch` to Route Handlers |
 | Public / external clients | HTTP APIs (REST) | Generate Route Handlers that honor the OpenAPI contract |
-| Mutations from React UI | Server Actions (`"use server"`, POST-oriented, FormData-friendly) | **Out of v1** for OpenAPI fidelity |
+| Mutations from React UI | Server Actions (`"use server"`, POST-oriented, FormData-friendly) | **Out of v1** for OpenAPI fidelity (pages are read-oriented scaffolds) |
 | Authz | Check auth inside every public entry (Route Handler / Server Function) | Reuse hexagonal `Authenticator` + Apical header presence |
 
-**Conclusion:** Hexkit’s OpenAPI → HTTP mapping belongs on **Route Handlers**. Server Actions are a parallel React mutation API and must not be treated as the OpenAPI surface.
+**Conclusion:** Hexkit’s OpenAPI → HTTP mapping belongs on **Route Handlers**. RSC support belongs on **in-process use-case calls**. Server Actions are a parallel React mutation API and must not be treated as the OpenAPI surface.
 
 ### 2.4 Caching
 
-Route Handlers are **dynamic by default**. Caching `GET` (`force-static` / `use cache` helpers) is opt-in and unsafe as a default for DB-backed authenticated APIs. Hexkit v1 emits **request-time** handlers (no static cache export).
+Route Handlers are **dynamic by default**. Caching `GET` (`force-static` / `use cache` helpers) is opt-in and unsafe as a default for DB-backed authenticated APIs. Hexkit v1 emits **request-time** handlers and pages (no static cache export).
 
-## 3. Goals / non-goals
+### 2.5 `page` vs `route` conflict
+
+Because `page` and `route` cannot share a segment, Hexkit **must** place RSC UI under a dedicated URL prefix (see §5.1). Public OpenAPI paths keep Route Handlers; sample UI lives under `/ui/...`.
+
+## 3. Plugin domain-agnostic invariant (normative)
+
+**`@hexkit/plugin-next` must obey PRD §5.0 exactly like `@hexkit/plugin-hono` / drizzle / hexagonal.**
+
+Sample domains (Petstore, library, auth-api) are **fixtures only**. They must not be hardcoded into plugin production source.
+
+| Layer | May know Petstore / sample domain? | How domain knowledge enters |
+| ----- | ---------------------------------- | --------------------------- |
+| `apps/petstore-sample`, `apps/fixtures/**` | **Yes** | Authored OpenAPI + dogfood tests |
+| `@hexkit/plugin-next` | **No** | Derives Route Handlers, RSC pages, DAL wiring from Apical contracts + hexagonal artifacts |
+| CLI packaging for Next | **No** | Generic Next + Postgres packaging from generation context |
+
+**Rules:**
+
+1. Generators consume OpenAPI/Apical/application artifacts in context; they do not embed sample schemas, operationIds, paths, or entity names in plugin source.
+2. Plugin tests **may** use Petstore/library OpenAPI as **input fixtures** and snapshot outputs. Tests must not pass only because the plugin embeds those fixtures.
+3. Changing a fixture OpenAPI (add/rename path or operation) must change generated `route.ts` / `page.tsx` **without** editing `plugin-next` for that domain.
+4. `apps/cli` domain-agnostic scanner must include `packages/plugin-next/src` production sources.
+5. A Next dogfood that greens only via hardcoded Pet/Order (or any sample) generators is **incomplete**.
+
+## 4. Goals / non-goals
 
 ### Goals (v1)
 
-1. Add `@hexkit/plugin-next` that emits App Router Route Handlers from Apical + hexagonal artifacts.
+1. Add `@hexkit/plugin-next` that emits App Router **Route Handlers** and **basic RSC pages** from Apical + hexagonal artifacts.
 2. Keep Hono as the **default** HTTP adapter; Next.js is **opt-in** via CLI / plugin set.
-3. Preserve domain-agnostic plugins (PRD §5.0).
-4. Map auth the same way as Hono: Apical wire validation → 401 on auth header failures → `Authenticator` → `Principal` into secured use cases.
-5. Dogfood with a Next-targeted fixture (reuse library or auth-api shape) that generates, typechecks, and serves Route Handlers.
-6. Document how Server Components should call the hexagonal DAL **in-process**.
+3. Keep `plugin-next` **domain-agnostic** (§3 / PRD §5.0).
+4. Map auth the same way as Hono for Route Handlers: Apical wire validation → 401 → `Authenticator` → `Principal`.
+5. RSC pages call a generated **server-access / DAL** module (composed use cases) in-process — never self-HTTP.
+6. Dogfood with a Next-targeted fixture that generates, typechecks, serves Route Handlers, and renders basic UI pages.
+7. Document Route Handlers (public REST) vs RSC DAL (same-app UI).
 
 ### Non-goals (v1)
 
 - Replacing Hono as the default / PoC dogfood target.
 - Pages Router `pages/api/*`.
-- Generating React UI pages, layouts, or Server Actions from OpenAPI.
+- Polished design systems, Client Components, or rich forms.
+- Generating Server Actions from OpenAPI (mutations stay API/Route Handler oriented in v1).
 - Generating Cache Components / ISR / `use cache` policies for API routes.
-- Mounting the Hono app inside a Next catch-all as the primary design (allowed later as an escape hatch, not v1).
+- Mounting the Hono app inside a Next catch-all as the primary design.
 - Vercel-specific adapters, Edge runtime, or SST/Next dual deploy.
 - XML / non-JSON media types (same as PoC).
 
-## 4. Approaches considered
+## 5. Approaches considered
 
-### Approach A — Native Route Handlers plugin (recommended)
+### Approach A — Native Route Handlers + RSC pages (recommended)
 
-New `plugin-next` emits one `route.ts` per OpenAPI path (coalescing methods), plus shared request/response helpers and a runtime composition module. Controllers call the same protected use cases as Hono.
+`plugin-next` emits:
+
+1. One `route.ts` per OpenAPI path (method-coalesced) at **literal contract URLs**.
+2. Shared HTTP helpers + runtime under `src/adapters/http-next/`.
+3. A **server-access** composition module for RSC.
+4. Basic `page.tsx` Server Components under `/ui/...` derived from readable (GET) operations.
+5. Minimal `app/layout.tsx` + `app/page.tsx` index linking to generated UI pages.
 
 | Pros | Cons |
 | ---- | ---- |
-| Matches Next.js docs and file conventions | Duplicates some HTTP adapter logic vs Hono |
-| Clear OpenAPI path → filesystem mapping | Need CLI target selection / packaging fork |
-| Easy to type with `NextRequest` + awaited `params` | |
+| Matches Next.js Route Handler + DAL guidance | Duplicates some HTTP adapter logic vs Hono |
+| RSC supported from day one | Need `/ui` prefix to avoid `page`/`route` conflicts |
+| Domain-agnostic derivation from contracts | CLI target selection / packaging fork |
 
 ### Approach B — Catch-all Hono inside Next
 
-Emit `app/api/[[...route]]/route.ts` that delegates to the existing Hono app via a Next/Hono bridge.
+Emit `app/api/[[...route]]/route.ts` that delegates to Hono.
 
 | Pros | Cons |
 | ---- | ---- |
-| Minimal new generator surface | Not idiomatic “Route Handlers” |
-| Reuses Hono validation/auth wiring | Harder to teach; couples Next to Hono forever |
-| | Path prefix / basePath friction |
+| Minimal new HTTP generator | Not idiomatic Route Handlers; still need separate RSC story |
+| | Couples Next to Hono |
 
 ### Approach C — Server Actions as the API
 
@@ -105,13 +138,12 @@ Emit `"use server"` functions per operation.
 
 | Pros | Cons |
 | ---- | ---- |
-| Popular for React forms | POST-only; poor OpenAPI method/path fidelity |
-| | Not a public REST contract; wrong dogfood for Petstore |
-| | Conflicts with Hexkit’s contract-first HTTP story |
+| Popular for React forms | POST-only; poor OpenAPI fidelity |
+| | Wrong public REST surface |
 
-**Decision:** **Approach A** for v1. Approach B may be documented later as an advanced compose option. Approach C is rejected for OpenAPI REST.
+**Decision:** **Approach A** for v1.
 
-## 5. Architecture
+## 6. Architecture
 
 ```
 OpenAPI
@@ -123,7 +155,7 @@ OpenAPI
 
 Business logic remains independent of Next.js, Hono, Drizzle, and deploy tooling.
 
-### 5.1 Generated layout (Next target)
+### 6.1 Generated layout (Next target)
 
 ```
 src/
@@ -132,89 +164,110 @@ src/
 ├── adapters/
 │   ├── db/                  # Drizzle (unchanged)
 │   ├── auth/                # authenticator stub when security present
-│   └── http-next/           # Next-specific helpers (controllers / request map)
-app/                         # App Router (Next convention at project root)
-└── …/{segment}/route.ts     # one file per OpenAPI path
+│   └── http-next/           # helpers, controllers, runtime, server-access
+app/
+├── layout.tsx               # minimal root layout (generated)
+├── page.tsx                 # index linking to /ui/... pages (generated)
+├── pet/route.ts             # OpenAPI path Route Handlers (example)
+├── pet/[petId]/route.ts
+└── ui/                      # RSC sample UI (no collision with route.ts)
+    ├── page.tsx             # UI hub
+    ├── pet/page.tsx         # list/read scaffold when GET /pet exists
+    └── pet/[petId]/page.tsx # detail scaffold when GET /pet/{petId} exists
 ```
 
-OpenAPI paths map **literally** into `app/` (no forced `/api` prefix) so the public URL matches the contract:
+**URL mapping:**
 
-| OpenAPI path | File |
-| ------------ | ---- |
-| `/pet` | `app/pet/route.ts` |
-| `/pet/{petId}` | `app/pet/[petId]/route.ts` |
-| `/store/order/{orderId}` | `app/store/order/[orderId]/route.ts` |
+| Kind | OpenAPI / source | Generated URL / file |
+| ---- | ---------------- | -------------------- |
+| Route Handler | `/pet/{petId}` | `/pet/{petId}` → `app/pet/[petId]/route.ts` |
+| RSC page (GET) | same operation | `/ui/pet/[petId]` → `app/ui/pet/[petId]/page.tsx` |
+| UI index | all GET ops | `/` and `/ui` list links derived from operations |
 
-Multiple methods on the same path share one `route.ts` exporting the corresponding HTTP functions.
+Multiple HTTP methods on one OpenAPI path share one `route.ts`.  
+`page.tsx` is emitted only under `app/ui/...` (and root index/layout), never beside a `route.ts` on the same segment.
 
-### 5.2 Handler shape
+### 6.2 Handler shape (Route Handlers)
 
 Each method:
 
-1. Builds an Apical request object from `NextRequest` + `await params` + optional JSON body.
-2. Runs the existing Apical operation wrapper (same as Hono).
+1. Builds an Apical request from `NextRequest` + `await params` + optional JSON body.
+2. Runs the Apical operation wrapper.
 3. On secured ops: authenticate via `Authenticator`; map auth failures to **401**.
 4. Invokes the protected use case (with `Principal` when secured).
 5. Validates response with Apical response map; returns `Response.json(...)`.
-6. Maps request validation failures to **400**; unexpected errors to **500** without leaking stacks.
+6. Maps validation → **400**; unexpected → **500** without leaking stacks.
 
-Shared logic lives under `src/adapters/http-next/` so `route.ts` files stay thin (Next file-convention entrypoints only).
+### 6.3 RSC + server-access (required in v1)
 
-### 5.3 Auth
+Generate `src/adapters/http-next/server-access.ts` that:
 
-Reuse contract security IR already on `ContractArtifact`. Next handlers read headers from `request.headers` (Web Headers). Do not invent cookie-session auth in v1 unless the OpenAPI scheme is header `apiKey` / HTTP bearer (same as Hono v1).
+- Lazily composes DB repos → use-case factories → (optional) authenticator the same way runtime does for HTTP.
+- Exports a stable `getServerAccess()` returning named use-case functions keyed by `operationId` (or derived safe names from the contract).
 
-### 5.4 Server Components (documentation + optional helper)
+Generated pages:
 
-Hexkit does **not** generate pages in v1. Docs must state:
+- Are **async Server Components**.
+- Call `getServerAccess()` and invoke the matching use case with path/search params from `await props.params` / `searchParams`.
+- Render a minimal, domain-agnostic presentation (e.g. title = `operationId` or path; body = pretty-printed JSON or simple key/value list). **No sample-domain copy in the generator.**
+- For secured GET ops in v1: pages may call use cases **without** browser credential UI (document limitation) **or** read a documented stub header/env only in dogfood — prefer documenting that authenticated RSC demos use Route Handlers / follow-up cookie session work; unsecured GET pages are the normative v1 UI slice.
 
-- For UI in the same Next app, import use-case factories / ports from `src/core/**` (Data Access Layer pattern).
-- Do **not** `fetch('http://localhost/.../pet')` from Server Components to hit own Route Handlers.
+Ownership:
 
-Optional later: a tiny `src/adapters/http-next/server-access.ts` re-exporting composed use cases for RSC — not required for green bar.
+- `app/ui/**/page.tsx`, `app/page.tsx`, `app/layout.tsx`: ownership **`generated`** (overwrite) for v1 scaffolds.
+- Protected use cases under `src/core/application/**` remain protected (unchanged hexagonal policy).
 
-### 5.5 Packaging & CLI
+### 6.4 Auth
+
+Reuse contract security IR on `ContractArtifact`. Route Handlers read headers from `request.headers`. Do not invent cookie-session auth in v1 beyond existing header `apiKey` / HTTP bearer schemes.
+
+### 6.5 Packaging & CLI
 
 - Default pipeline stays Hono + current Compose packaging.
-- CLI gains an HTTP adapter selector, e.g. `hexkit generate <openapi> <out> --http next` (exact flag in plan), which swaps `plugin-hono` for `plugin-next` and emits Next packaging (`package.json` scripts `dev`/`build`/`start`, Dockerfile running `next start`, Compose with Postgres).
+- CLI: `hexkit generate <openapi> <out> --http next` swaps `plugin-hono` for `plugin-next` and emits Next packaging.
 - Petstore PoC dogfood remains Hono unless explicitly extended.
 
-### 5.6 Runtime
+### 6.6 Runtime
 
-v1 targets the **Node.js** Next runtime (`export const runtime = 'nodejs'` only if needed for Drizzle). Edge runtime is out of scope.
+v1 targets the **Node.js** Next runtime (needed for Drizzle). Edge runtime is out of scope.
 
-## 6. Testing strategy
+## 7. Testing strategy
 
-1. **Unit:** path mapping (`/a/{id}` → `app/a/[id]/route.ts`), method coalescing, auth status mapping.
-2. **Generation integration:** generate library-api / auth-api with `--http next`; assert files + banned Petstore literals; typecheck generated app.
-3. **Acceptance:** Next server + Postgres (Compose) + Pactum against OpenAPI paths (mirror existing dogfood, Next packaging).
-4. **Regression:** Hono default dogfood stays green.
+1. **Unit:** path mapping for handlers and UI pages; method coalescing; auth status mapping.
+2. **Domain-agnostic:** plugin production sources contain no Petstore/sample literals; Library vs Petstore fixtures both generate coherent `route.ts` + `app/ui/**/page.tsx` without plugin edits.
+3. **Generation integration:** `--http next` emits handlers + pages + server-access; typecheck generated app.
+4. **Acceptance:** Next + Postgres Compose; Pactum against OpenAPI Route Handler URLs; smoke check that `/ui/...` pages return 200 HTML for unsecured GET ops.
+5. **Regression:** Hono default dogfood stays green.
 
-## 7. Docs / product amendments
+## 8. Docs / product amendments
 
-- RFC: add Next.js as an **optional** HTTP adapter; keep Hono default; note Route Handlers (not Server Actions) as the OpenAPI mapping.
-- PRD follow-ups: add Next.js Route Handlers plan pointer; clarify non-goal was “multiple frameworks in initial PoC,” amended post-PoC.
-- `docs/README.md`: link this design + plan.
+- RFC: optional Next.js HTTP + RSC adapter; Hono default; Route Handlers for OpenAPI; RSC via DAL; domain-agnostic plugin rule.
+- PRD §11: pointer to this design/plan; multi-framework was PoC non-goal, amended post-PoC as opt-in.
+- `docs/README.md`: link design + plan.
 
-## 8. Success criteria
+## 9. Success criteria
 
 Hexkit Next.js v1 is done when:
 
-1. `plugin-next` generates Route Handlers for every JSON operation in a fixture contract without domain hardcoding.
-2. Generated app typechecks and serves those routes under Next.js 16 App Router.
-3. Auth fixture returns 401/200 correctly via Route Handlers.
-4. Default Hono Petstore dogfood is unchanged.
-5. Docs explain RSC → DAL (use cases) vs public Route Handlers.
+1. `plugin-next` generates Route Handlers **and** basic RSC pages from any in-scope JSON contract **without** domain hardcoding.
+2. RSC pages call `getServerAccess()` / use cases in-process (no self-`fetch` to Route Handlers).
+3. No `page.tsx` collides with `route.ts` on the same segment (`/ui` prefix strategy).
+4. Generated app typechecks and serves handlers + pages under Next.js 16 App Router.
+5. Auth fixture returns 401/200 correctly via Route Handlers.
+6. Domain-agnostic scanner covers `packages/plugin-next/src`.
+7. Default Hono Petstore dogfood is unchanged.
 
-## 9. Decisions log
+## 10. Decisions log
 
 | Decision | Choice |
 | -------- | ------ |
-| Next surface for OpenAPI | App Router Route Handlers |
-| Server Actions | Out of v1 |
+| Next surface for OpenAPI | App Router Route Handlers at literal contract paths |
+| RSC support | **v1 required** — basic generated Server Component pages + server-access DAL |
+| UI vs API paths | UI under `/ui/...` to avoid `page`/`route` segment conflict |
+| Server Actions | Out of v1 for OpenAPI mapping |
 | Pages Router API routes | Out of scope |
 | Default HTTP adapter | Hono (unchanged) |
-| Path prefix | Literal OpenAPI paths under `app/` |
+| Domain agnosticism | Normative for `plugin-next` (PRD §5.0) |
 | Caching | Dynamic / request-time default |
-| Primary architecture | Native `plugin-next` (Approach A) |
-| Next.js version floor | 16.x (aligned with reviewed docs) |
+| Primary architecture | Approach A |
+| Next.js version floor | 16.x |
