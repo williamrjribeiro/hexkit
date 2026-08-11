@@ -201,7 +201,7 @@ export function deriveNextHttpModel(
 ): NextHttpModel;
 ```
 
-`server-access.ts` generated API (only when surface includes RSC):
+`server-access.ts` generated API (**always** emitted for every `NextSurface`, including `routes`):
 
 ```ts
 export function getServerAccess(): {
@@ -214,7 +214,7 @@ export function getServerAccess(): {
 Assert:
 
 - Same OpenAPI path coalesces methods into one `NextRouteFile` when routes enabled.
-- `surface: "both"` → routes + `app/ui/...` pages.
+- `surface: "both"` → routes + `app/ui/...` pages + `server-access`.
 - `surface: "routes"` → routes + `server-access`; `uiPages` empty.
 - `surface: "rsc"` → pages at contract paths; `routes` empty; `server-access` present.
 - Library fixture produces book paths **without** Petstore strings in plugin source.
@@ -261,15 +261,21 @@ Plugin `generate` must:
 
 - Derive model with `options.surface ?? "both"`.
 - Emit route/runtime/controller/helper files only if surface includes routes.
-- Emit server-access + resource pages only if surface includes rsc.
-- Always emit minimal `app/layout.tsx`; emit stub or index `app/page.tsx` appropriate to surface (`routes` → stub “API only”; `rsc`/`both` → links to pages).
+- **Always** emit `server-access.ts` for every surface.
+- Emit resource pages (`app/ui/**` or contract-path pages) only if surface includes rsc.
+- For standalone generated trees: always emit minimal `app/layout.tsx`; emit stub or index `app/page.tsx` appropriate to surface (`routes` → stub “API only”; `rsc`/`both` → links to pages).
+- For PetShop overlay generation (CLI/packaging flag or dogfood script post-process): omit copying root `layout`/`page` into the fixture (see Task 6).
 
 **Route Handler pattern** (operation names from contract at generation time — never hardcoded in plugin source):
 
 ```ts
 import type { NextRequest } from "next/server";
-import { getRuntime } from "../path/to/http-next/runtime";
-import { toApicalRequest, handleControllerResult, handleControllerError } from "../path/to/http-next/helpers";
+import { getRuntime } from "@/adapters/http-next/runtime";
+import {
+  toApicalRequest,
+  handleControllerResult,
+  handleControllerError,
+} from "@/adapters/http-next/helpers";
 
 export async function GET(
   request: NextRequest,
@@ -287,17 +293,19 @@ export async function GET(
 }
 ```
 
-**RSC page pattern** (domain-agnostic scaffold):
+**RSC page pattern** (domain-agnostic scaffold; use `@/` → `./src/*`):
 
 ```tsx
-import { getServerAccess } from "../../../src/adapters/http-next/server-access";
+import { getServerAccess } from "@/adapters/http-next/server-access";
 
 export default async function Page(props: {
   params: Promise<Record<string, string>>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await props.params;
+  const searchParams = await props.searchParams;
   const access = getServerAccess();
-  const result = await access[/* operationId accessor */](/* map params */);
+  const result = await access[/* operationId accessor */](/* map params + searchParams */);
 
   return (
     <main>
@@ -383,9 +391,9 @@ Next packaging emits: `package.json` (`next`, `react`, `react-dom`, drizzle, scr
 ```ts
 it("when --http next is passed, then parse selects next adapter with surface both by default", () => {});
 
-it("when --next-surface routes is passed with --http next, then only route handlers are emitted", async () => {});
+it("when --next-surface routes is passed with --http next, then route handlers and server-access are emitted without app/ui scaffolds", async () => {});
 
-it("when --next-surface rsc is passed with --http next, then only RSC pages at contract paths are emitted", async () => {});
+it("when --next-surface rsc is passed with --http next, then only RSC pages at contract paths are emitted (plus server-access)", async () => {});
 
 it("when --next-surface is passed without --http next, then CLI errors", () => {});
 ```
@@ -411,12 +419,19 @@ git commit -m "feat(cli): add --http next and --next-surface options"
 
 **Files:**
 
-- Create: `apps/petstore-next/` via `pnpm create next-app@latest` recommended defaults (TypeScript, ESLint, Tailwind, App Router, `@/*`), then wire into the workspace
+- Create: `apps/petstore-next/` via create-next-app with **explicit** flags (not ambient `--yes` prefs):
+
+```bash
+pnpm create next-app@latest petstore-next \
+  --ts --tailwind --eslint --app --no-src-dir --use-pnpm --import-alias "@/*"
+```
+
+Then set `tsconfig` paths so `@/*` → `./src/*` (Hexkit generated tree), keeping `app/` at package root.
 - Keep/adjust: `package.json` scripts `dev` / `build` / `start` / `lint` as in [Next.js installation](https://nextjs.org/docs/app/getting-started/installation)
 - Create: PetShop pages under `app/pets/**`, `app/orders/**`, root `app/page.tsx` / `app/layout.tsx`
 - Create: optional `*.module.css` beside pages for light scoped styles
 - Create: `app/**/actions.ts` — `"use server"` form actions calling `getServerAccess()` use cases
-- Create: `apps/petstore-next/README.md` — how to generate + `vp install` / `pnpm` + `next dev`
+- Create: `apps/petstore-next/README.md` — generate-to-TMP merge algorithm + `vp install` + `next dev`
 - Reuse: `apps/petstore-sample/openapi.poc.yaml` as generate input
 - **Do not create:** `tests/`, Vitest config, Pactum, Playwright, or any PetShop acceptance suite
 
@@ -430,6 +445,7 @@ git commit -m "feat(cli): add --http next and --next-surface options"
 - Writes: `<form action={serverAction}>` only.
 - Human UI paths must **not** collide with OpenAPI Route Handlers (`/pets`, `/orders` vs `/pet`, `/store/order`).
 - PetShop domain copy is fixture-only; **`plugin-next` stays clean**.
+- Import generated DAL as `@/adapters/http-next/server-access` with `@/*` → `./src/*`.
 
 **Illustrative page:**
 
@@ -437,7 +453,6 @@ git commit -m "feat(cli): add --http next and --next-surface options"
 // app/pets/[petId]/page.tsx
 import styles from "./page.module.css";
 import { getServerAccess } from "@/adapters/http-next/server-access";
-// alias/@ path must match merged generated output — wire in Task 6
 
 export default async function PetDetailPage(props: {
   params: Promise<{ petId: string }>;
@@ -455,21 +470,13 @@ export default async function PetDetailPage(props: {
 }
 ```
 
-- [ ] **Step 1: Scaffold with create-next-app + workspace membership**
-
-Run (from repo-appropriate location; move/rename into `apps/petstore-next`):
-
-```bash
-pnpm create next-app@latest petstore-next --yes
-```
-
-Prefer defaults (TypeScript, Tailwind, ESLint, App Router). Ensure package is visible to `vp install` / pnpm workspace.
+- [ ] **Step 1: Scaffold with create-next-app + workspace membership + `@/*` → `./src/*`**
 
 - [ ] **Step 2: Add Pet + Order RSC pages and form Server Actions**
 
 Minimum: home/pet list, pet detail, add/update/delete pet forms, place/get/delete order forms.
 
-- [ ] **Step 3: Confirm `vp install` (or pnpm) and `pnpm dev` / `vp run` script starts Next**
+- [ ] **Step 3: Confirm `vp install` (or pnpm) and `next dev` starts**
 
 No test files. Manual smoke only.
 
@@ -490,23 +497,26 @@ git commit -m "feat(petstore-next): add vanilla Next.js PetShop dogfood app"
 - Modify: root `vite.config.ts` / `package.json` — add `dogfood-petstore-next` task that runs the script
 - **Do not create** PetShop API/UI test files
 
-**Dogfood algorithm:**
+**Dogfood algorithm (normative):**
 
 ```bash
-# 1) generate into OUTPUT (or into apps/petstore-next) with:
-#    hexkit generate <openapi.poc.yaml> <out> --http next --next-surface routes
-# 2) ensure PetShop app/ pages + Tailwind/PostCSS configs sit beside generated adapters
-# 3) vp install   # or pnpm install — document one path; prefer vp in this repo
-# 4) apply DB schema if needed; start Postgres (Compose optional)
-# 5) next dev  OR  next build && next start
+# 1) TMP=$(mktemp -d)
+# 2) hexkit generate apps/petstore-sample/openapi.poc.yaml "$TMP" \
+#       --http next --next-surface routes
+# 3) copy "$TMP/src" → apps/petstore-next/src
+# 4) copy only "$TMP/app/**/route.ts" (mkdir -p parents) into apps/petstore-next/app
+# 5) do NOT copy TMP app/layout.tsx or app/page.tsx
+# 6) vp install  # in apps/petstore-next (or workspace root per README)
+# 7) apply DB schema if needed; start Postgres (Compose optional)
+# 8) next dev  OR  next build && next start
 # No Pactum / Vitest / Playwright step
 ```
 
-- [ ] **Step 1: Write `dogfood.sh` that exits non-zero if generate or install fails**
+- [ ] **Step 1: Write `dogfood.sh` implementing the copy rules above; exit non-zero if generate or install fails**
 
 - [ ] **Step 2: Wire `vp run dogfood-petstore-next`**
 
-- [ ] **Step 3: Run the script once manually; confirm the shop loads and forms work without browser data-fetch**
+- [ ] **Step 3: Run the script once manually; confirm shop UI at `/` and `/pets` and handlers at `/pet` coexist**
 
 - [ ] **Step 4: Confirm Hono `vp run dogfood` still green**
 
@@ -566,10 +576,11 @@ git commit -m "docs: record vanilla PetShop Next.js dogfood and plugin-next surf
 ## Self-review checklist (plan author)
 
 1. **Spec coverage:** Domain-agnostic §3 → Tasks 1/3/4; surfaces §6.0 → Tasks 1–4; vanilla PetShop §6.7 → Tasks 5–6; CLI → Task 4; docs → Task 7.
-2. **Placeholders:** None intentional; create-next-app + `vp`/`pnpm` + no-tests rule are concrete.
+2. **Placeholders:** None intentional; create-next-app flags, TMP merge copy rules, and `@/*` → `./src/*` are concrete.
 3. **Type consistency:** `NextSurface`, `createNextPlugin({ surface })`, `--next-surface`, `getServerAccess` stable across tasks.
 4. **PoC safety:** Default Hono pipeline preserved.
 5. **Next.js fidelity:** Vanilla App Router; no `page`/`route` collisions; RSC DAL; forms not client fetch.
 6. **Domain agnosticism:** PetShop UI only under `apps/petstore-next`; plugin scanner coverage required.
-7. **server-access:** Emitted for `routes`, `rsc`, and `both`.
+7. **server-access:** Emitted for `routes`, `rsc`, and `both` (pages gated separately).
 8. **No PetShop tests:** Tasks 5–6 explicitly omit app test suites.
+9. **PetShop merge:** Generate to TMP; copy `src/**` + `app/**/route.ts` only; preserve fixture root UI.
