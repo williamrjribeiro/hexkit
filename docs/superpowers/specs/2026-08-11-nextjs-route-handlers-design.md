@@ -98,7 +98,7 @@ Sample domains (Petstore, library, auth-api) are **fixtures only**. They must no
 4. Map auth the same way as Hono for Route Handlers: Apical wire validation → 401 → `Authenticator` → `Principal`.
 5. RSC pages call a generated **server-access / DAL** module (composed use cases) in-process — never self-HTTP.
 6. Ship a **vanilla PetShop Next.js dogfood app** under `apps/` (fixture-owned), bootstrapped like [create-next-app](https://nextjs.org/docs/app/getting-started/installation) (TypeScript, App Router, Tailwind), using **Vite+ (`vp`) / pnpm** for installs — **no client-side data fetching**, **no PetShop app test suite**.
-7. Dogfood default `both` / PetShop flows (generate + run); unit/integration tests cover `plugin-next` surfaces only (not the PetShop UI app).
+7. Dogfood **PetShop** with `--next-surface routes` + fixture overlay (see §6.7); use `both` in plugin/CLI tests for generic `/ui` scaffolds. Unit/integration tests cover `plugin-next` surfaces only (not the PetShop UI app).
 8. Document Route Handlers (public REST) vs RSC DAL (same-app UI), surface switch, and PetShop dogfood rules.
 
 ### Non-goals (v1)
@@ -243,17 +243,19 @@ Each method:
 5. Validates response with Apical response map; returns `Response.json(...)`.
 6. Maps validation → **400**; unexpected → **500** without leaking stacks.
 
-### 6.3 RSC + server-access (when surface includes `rsc`)
+### 6.3 RSC pages + server-access (DAL)
 
-When `surface` is `rsc` or `both`, generate `src/adapters/http-next/server-access.ts` that:
+**Always** generate `src/adapters/http-next/server-access.ts` for every Next surface (`routes`, `rsc`, and `both`). PetShop and other fixture UIs need the DAL even when generic `/ui` scaffolds are omitted.
+
+`server-access.ts`:
 
 - Lazily composes DB repos → use-case factories → (optional) authenticator the same way runtime does for HTTP.
 - Exports a stable `getServerAccess()` returning named use-case functions keyed by `operationId` (or derived safe names from the contract).
 
-Generated pages:
+**Resource RSC pages** (under `app/ui/...` for `both`, or literal OpenAPI paths for `rsc`) are emitted only when `surface` is `rsc` or `both`. Those pages:
 
 - Are **async Server Components**.
-- Call `getServerAccess()` and invoke the matching use case with path/search params from `await props.params` / `searchParams`.
+- Call `getServerAccess()` and invoke the matching use case with path params from `await props.params` and query inputs from `await props.searchParams` when the operation declares them.
 - Render a minimal, domain-agnostic presentation (e.g. title = `operationId` or path; body = pretty-printed JSON or simple key/value list). **No sample-domain copy in the generator.**
 - For secured GET ops in v1: pages may call use cases **without** browser credential UI (document limitation); unsecured GET pages are the normative v1 UI slice. Authenticated demos prefer Route Handlers (`routes` / `both`).
 
@@ -262,7 +264,7 @@ Ownership:
 - Generated pages / layout / index: ownership **`generated`** (overwrite) for v1 scaffolds.
 - Protected use cases under `src/core/application/**` remain protected (unchanged hexagonal policy).
 
-When `surface` is `routes`, **omit** resource UI scaffolds under `app/ui/**`, but **still emit** `server-access.ts` so fixture apps (e.g. PetShop) can build RSC/forms on the DAL without enabling generic `/ui` pages. Still emit a minimal root `app/layout.tsx` + stub `app/page.tsx` so `next build` has an App Router entry.
+When `surface` is `routes`, **omit** resource UI scaffolds under `app/ui/**`, but **still emit** `server-access.ts`. Still emit a minimal root `app/layout.tsx` + stub `app/page.tsx` so a routes-only generated tree can `next build` — **except** when generating into a PetShop (or other fixture) overlay mode, where root `layout`/`page` emission is skipped so fixture UI is preserved (see §6.7).
 
 ### 6.4 Auth
 
@@ -274,8 +276,8 @@ Reuse contract security IR on `ContractArtifact`. Route Handlers read headers fr
 - CLI: `hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]` swaps `plugin-hono` for `plugin-next` (with surface) and emits Next packaging.
 - `--next-surface` is valid **only** with `--http next`; otherwise CLI errors.
 - Petstore Hono PoC dogfood remains unchanged.
-- Next PetShop dogfood (`apps/petstore-next`) generates with `--http next` (default surface `both` or `routes` + overlay UI — see §6.7) and exercises API + UI.
-- Generic fixture dogfood may still cover library-shaped contracts without PetShop UI.
+- **PetShop dogfood always uses `--next-surface routes`** plus the fixture overlay algorithm in §6.7 (not `both`).
+- Generic fixture / plugin tests may use `both` or `rsc` without PetShop UI.
 
 ### 6.6 Runtime
 
@@ -287,9 +289,11 @@ Canonical Next dogfood lives in **`apps/petstore-next/`**. It is a **fixture app
 
 **Vanilla Next.js first** — follow [Installation](https://nextjs.org/docs/app/getting-started/installation):
 
-- Prefer scaffolding with `pnpm create next-app@latest` (recommended defaults: TypeScript, ESLint, Tailwind CSS, App Router, Turbopack, `@/*` alias), then adapt into the monorepo workspace.
+- Prefer scaffolding with explicit create-next-app flags (do not rely on machine-local `--yes` prefs), e.g.  
+  `pnpm create next-app@latest petstore-next --ts --tailwind --eslint --app --no-src-dir --use-pnpm --import-alias "@/*"`, then adapt into the monorepo workspace.
 - Package installs in this repo use **Vite+** (`vp install`) / **pnpm** — not a parallel npm/yarn toolchain.
-- Keep the app structure close to create-next-app: `app/`, `public/`, `next.config.ts`, `package.json` scripts `dev` / `build` / `start` / `lint`.
+- Keep the app structure close to create-next-app: `app/` at package root (**not** `src/app`), `public/`, `next.config.ts`, `package.json` scripts `dev` / `build` / `start` / `lint`.
+- **Import alias:** Hexkit generated code lives under `src/`. Configure `tsconfig` so `@/*` maps to `./src/*` (adapters import as `@/adapters/http-next/server-access`). App Router files stay under top-level `app/` and use relative imports or a second alias if needed — do **not** assume create-next-app’s default `@/* → ./*` after merge.
 - Avoid custom frameworks, UI kits, or test runners in this package.
 
 **Ownership split (PRD §5.0):**
@@ -327,12 +331,25 @@ Canonical Next dogfood lives in **`apps/petstore-next/`**. It is a **fixture app
 
 Human UI paths (`/pets`, `/orders`) stay distinct from OpenAPI handlers.
 
-**Dogfood loop (no test gate):**
+**Dogfood merge algorithm (normative — no hand-waving):**
+
+1. Generate **into a temporary output directory** (not directly over `apps/petstore-next`):  
+   `hexkit generate <openapi.poc.yaml> <TMP> --http next --next-surface routes`.
+2. From `<TMP>`, copy into `apps/petstore-next/`:
+   - `src/**` (contracts, core, adapters including `http-next` + `server-access`, drizzle, auth)
+   - OpenAPI Route Handler files only: `app/**/route.ts` (and their parent dirs)
+   - Generated Next packaging pieces that do not own UI: e.g. drizzle/env snippets as documented by packaging
+3. **Do not copy** from `<TMP>`: `app/layout.tsx`, `app/page.tsx`, or any non-`route.ts` under `app/` (fixture owns shop UI).
+4. Ensure `apps/petstore-next` keeps its fixture `app/layout.tsx`, `app/page.tsx`, `app/pets/**`, `app/orders/**`, Tailwind/PostCSS configs, and `tsconfig` `@/*` → `./src/*`.
+5. `vp install` (or pnpm) in `apps/petstore-next`.
+6. Apply DB schema if needed; start Postgres (Compose optional).
+7. `next dev` or `next build && next start`.
 
 ```text
 openapi.poc.yaml
-  → hexkit generate --http next --next-surface routes
-  → merge PetShop app pages/styles into output (or generate into the app tree)
+  → hexkit generate --http next --next-surface routes → TMP
+  → copy src/** + app/**/route.ts into apps/petstore-next
+  → preserve fixture app UI (layout/page/pets/orders)
   → vp install / pnpm install
   → next dev  (or Compose: Next + Postgres)
 ```
@@ -371,9 +388,9 @@ Hexkit Next.js v1 is done when:
 | Next surface for OpenAPI | App Router Route Handlers at literal contract paths |
 | RSC support | **v1 required** as selectable surface — basic pages + server-access DAL |
 | Generation modes | `NextSurface = "routes" \| "rsc" \| "both"` (default `both`) |
-| UI vs API paths | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers only |
-| PetShop dogfood | `apps/petstore-next` fixture UI; not inside `plugin-next` |
-| PetShop bootstrap | Vanilla create-next-app defaults; installs via **Vite+ (`vp`) / pnpm** |
+| UI vs API paths | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers + **server-access DAL** + stub root entry (no `/ui` scaffolds) |
+| PetShop dogfood | `apps/petstore-next` fixture UI; generate to TMP with `routes`; copy `src/**` + `app/**/route.ts` only |
+| PetShop bootstrap | Vanilla create-next-app defaults; installs via **Vite+ (`vp`) / pnpm**; `@/*` → `./src/*` |
 | PetShop styling | Tailwind (create-next-app default) + optional CSS Modules |
 | PetShop data loading | RSC DAL reads; form posts (Server Actions → use cases); **no client-side fetching** |
 | PetShop tests | **None** |
