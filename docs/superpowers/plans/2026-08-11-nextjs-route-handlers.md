@@ -1,22 +1,26 @@
-# Next.js App Router Route Handlers Implementation Plan
+# Next.js App Router Route Handlers + RSC Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an opt-in `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers from OpenAPI/Apical contracts while keeping Hono as the default HTTP adapter.
+**Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers **and** basic RSC pages (in-process DAL) from OpenAPI/Apical contracts, while keeping Hono as the default HTTP adapter.
 
-**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next`, which emits thin `app/**/route.ts` entrypoints plus shared helpers under `src/adapters/http-next/`. Auth and Zod boundaries stay identical to Hono. Packaging emits a Next + Postgres Compose stack for dogfood.
+**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next`, which emits (1) thin `app/**/route.ts` at literal OpenAPI paths, (2) `src/adapters/http-next/server-access.ts` for RSC, and (3) basic `app/ui/**/page.tsx` Server Components that call use cases in-process. Auth and Zod boundaries for HTTP match Hono. Packaging emits a Next + Postgres Compose stack for dogfood.
 
-**Tech Stack:** TypeScript, Vite+, Vitest, Next.js 16 App Router Route Handlers (`route.ts`, `NextRequest`/`Response.json`), Apical Zod wrappers, existing Hexkit plugins.
+**Tech Stack:** TypeScript, Vite+, Vitest, Next.js 16 App Router (`route.ts`, `page.tsx` RSC, `NextRequest`/`Response.json`), Apical Zod wrappers, existing Hexkit plugins.
 
 **Design spec:** [`docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`](../specs/2026-08-11-nextjs-route-handlers-design.md)
 
 ## Global Constraints
 
 - Hono remains the **default** pipeline; Petstore `vp run dogfood` must stay green without Next.
-- Plugins stay domain-agnostic (PRD §5.0); fixtures live under `apps/`.
+- **`@hexkit/plugin-next` is domain-agnostic (PRD §5.0 / design §3):** no Petstore, library, auth-api, or other sample-domain literals in plugin **production** source. Fixtures live under `apps/`. Plugin tests may feed sample OpenAPI as inputs and snapshot outputs only.
+- Changing fixture OpenAPI must change generated `route.ts` / `page.tsx` **without** editing `plugin-next` for that domain.
+- `apps/cli` domain-agnostic scanner **must** include `packages/plugin-next/src`.
 - OpenAPI → public HTTP mapping uses **Route Handlers only** (no Server Actions, no `pages/api`).
-- No forced `/api` prefix — map OpenAPI paths literally under `app/`.
-- Dynamic/request-time handlers by default (do not emit `force-static` / `use cache` for API routes).
+- RSC pages call **server-access / use cases in-process** — never `fetch` own Route Handlers.
+- Never emit `page.tsx` beside `route.ts` on the same segment; UI lives under `app/ui/...`.
+- No forced `/api` prefix on Route Handlers — map OpenAPI paths literally under `app/`.
+- Dynamic/request-time handlers and pages by default (do not emit `force-static` / `use cache` for these scaffolds).
 - Reuse Apical wrappers + hexagonal `Authenticator`/`Principal`; no parallel auth schemas.
 - Calculation/action separation; TDD with Vitest BDD style; Conventional Commits per task.
 - Invoke tooling via `vp` (`vp check`, `vp test`, `vp run -r build`).
@@ -25,95 +29,100 @@
 
 | Path | Responsibility |
 | ---- | -------------- |
-| `packages/plugin-next/package.json` | Package metadata + Next peer/dev deps for tests |
-| `packages/plugin-next/src/model/paths.ts` | OpenAPI path → App Router file path |
-| `packages/plugin-next/src/model/derive.ts` | Derive Next HTTP model from contract + application |
-| `packages/plugin-next/src/artifact.ts` | `NextHttpArtifact` types |
+| `packages/plugin-next/package.json` | Package metadata |
+| `packages/plugin-next/README.md` | Package overview; domain-agnostic note |
+| `packages/plugin-next/src/model/paths.ts` | OpenAPI path → `route.ts` and `app/ui/.../page.tsx` paths |
+| `packages/plugin-next/src/model/derive.ts` | Derive Next HTTP + RSC model from contract + application |
+| `packages/plugin-next/src/artifact.ts` | `NextHttpArtifact` / page binding types |
 | `packages/plugin-next/src/generate/helpers.ts` | Shared request/auth/response helper source |
 | `packages/plugin-next/src/generate/controllers.ts` | Controller wiring to use cases |
-| `packages/plugin-next/src/generate/routes.ts` | Emit `app/**/route.ts` files |
+| `packages/plugin-next/src/generate/routes.ts` | Emit `app/**/route.ts` |
+| `packages/plugin-next/src/generate/server-access.ts` | Emit DAL composition for RSC |
+| `packages/plugin-next/src/generate/pages.ts` | Emit `app/layout.tsx`, `app/page.tsx`, `app/ui/**/page.tsx` |
 | `packages/plugin-next/src/generate/runtime.ts` | Compose use cases + authenticator for handlers |
-| `packages/plugin-next/src/generate/auth-adapter.ts` | Reuse/copy Hono stub pattern when security present |
+| `packages/plugin-next/src/generate/auth-adapter.ts` | In-memory authenticator stub when security present |
 | `packages/plugin-next/src/plugin.ts` | `createNextPlugin()` |
-| `packages/plugin-next/src/plugin.test.ts` | Path mapping, generation snapshots, auth status |
+| `packages/plugin-next/src/plugin.test.ts` | Fixtures (Petstore + Library), snapshots, domain-agnostic assertions |
+| `packages/plugin-next/src/domain-agnostic.test.ts` | Banned sample-domain literals in plugin production sources |
 | `apps/cli/src/command.ts` | Parse `--http hono\|next` |
 | `apps/cli/src/main.ts` | Select plugin set + packaging variant |
-| `apps/cli/src/packaging-plugin.ts` | Next packaging branch (or split packaging module) |
-| `apps/cli/src/next-generation.test.ts` | Integration: generate fixture with `--http next` |
-| `apps/fixtures/next-api/` | Optional dedicated dogfood fixture + Pactum suite |
+| `apps/cli/src/packaging-plugin.ts` | Next packaging branch |
+| `apps/cli/src/next-generation.test.ts` | Integration: handlers + RSC pages |
+| `apps/cli/src/domain-agnostic.test.ts` | Add `packages/plugin-next/src` to scan roots |
+| `apps/fixtures/next-api/` | Dogfood fixture + Pactum + UI smoke |
 | `RFC.md` / `PRD.md` / `docs/README.md` | Product amendment + links |
 
 ---
 
-### Task 1: Scaffold `@hexkit/plugin-next` and OpenAPI→App Router path mapping
+### Task 1: Scaffold `@hexkit/plugin-next` and domain-agnostic path mapping
 
 **Files:**
 
 - Create: `packages/plugin-next/package.json`
 - Create: `packages/plugin-next/tsconfig.json`
 - Create: `packages/plugin-next/vite.config.ts`
+- Create: `packages/plugin-next/README.md`
 - Create: `packages/plugin-next/src/index.ts`
 - Create: `packages/plugin-next/src/model/paths.ts`
 - Create: `packages/plugin-next/src/model/paths.test.ts`
-- Modify: root workspace/`pnpm-workspace` membership if packages are auto-included; otherwise ensure package is visible to `vp install`
+- Create: `packages/plugin-next/src/domain-agnostic.test.ts`
 
 **Interfaces:**
-
-- Consumes: OpenAPI path string (e.g. `/pet/{petId}`)
-- Produces:
 
 ```ts
 export function openApiPathToAppRouteFile(openApiPath: string): string;
 // "/pet/{petId}" → "app/pet/[petId]/route.ts"
-// "/store/order" → "app/store/order/route.ts"
-// "/" → "app/route.ts"
+
+export function openApiPathToUiPageFile(openApiPath: string): string;
+// "/pet/{petId}" → "app/ui/pet/[petId]/page.tsx"
+// "/pet" → "app/ui/pet/page.tsx"
 
 export function openApiPathToAppRouteSegments(openApiPath: string): string[];
-// "/pet/{petId}" → ["pet", "[petId]"]
 ```
 
-- [ ] **Step 1: Write the failing path-mapping tests**
+- [ ] **Step 1: Write failing path-mapping + domain-agnostic tests**
 
 ```ts
 import { describe, expect, it } from "vite-plus/test";
-import { openApiPathToAppRouteFile } from "./paths.ts";
+import { openApiPathToAppRouteFile, openApiPathToUiPageFile } from "./paths.ts";
 
 describe("Given OpenAPI paths", () => {
-  it("when mapped, then static and dynamic segments become App Router files", () => {
+  it("when mapped, then handlers use contract paths and UI pages use /ui prefix", () => {
     expect(openApiPathToAppRouteFile("/pet")).toBe("app/pet/route.ts");
     expect(openApiPathToAppRouteFile("/pet/{petId}")).toBe("app/pet/[petId]/route.ts");
-    expect(openApiPathToAppRouteFile("/store/order/{orderId}")).toBe(
-      "app/store/order/[orderId]/route.ts",
+    expect(openApiPathToUiPageFile("/pet/{petId}")).toBe("app/ui/pet/[petId]/page.tsx");
+    expect(openApiPathToUiPageFile("/store/order/{orderId}")).toBe(
+      "app/ui/store/order/[orderId]/page.tsx",
     );
-    expect(openApiPathToAppRouteFile("/")).toBe("app/route.ts");
   });
 });
 ```
 
-- [ ] **Step 2: Run the focused test and confirm it fails**
+```ts
+// domain-agnostic.test.ts — same banned-literal idea as apps/cli/src/domain-agnostic.test.ts
+// Scan packages/plugin-next/src/**/*.ts excluding *.test.ts
+```
 
-Run: `vp test packages/plugin-next/src/model/paths.test.ts`  
-Expected: FAIL (module/package missing)
+- [ ] **Step 2: Run focused tests — expect FAIL**
 
-- [ ] **Step 3: Scaffold the package and implement path mapping**
+Run: `vp test packages/plugin-next/src/model/paths.test.ts`
 
-Mirror `packages/plugin-hono` package shape (`name: "@hexkit/plugin-next"`, workspace deps on `@hexkit/plugin-api`, `@hexkit/codegen`, `@hexkit/plugin-apical`, `@hexkit/plugin-architecture-hexagonal`). Implement `{param}` → `[param]`; reject empty segments; do not add an `/api` prefix.
+- [ ] **Step 3: Scaffold package and implement path helpers**
+
+Mirror `packages/plugin-hono` package shape. `{param}` → `[param]`; no `/api` prefix on handlers; UI always under `app/ui/`. README must state the domain-agnostic invariant.
 
 - [ ] **Step 4: Re-run tests and `vp check`**
-
-Run: `vp test packages/plugin-next/src/model/paths.test.ts && vp check`  
-Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add packages/plugin-next
-git commit -m "feat(plugin-next): scaffold package and map OpenAPI paths to App Router"
+git commit -m "feat(plugin-next): scaffold domain-agnostic path mapping for routes and UI"
 ```
 
 ---
 
-### Task 2: Derive Next HTTP model and emit shared helpers + controllers
+### Task 2: Derive Next HTTP + RSC model; emit helpers, controllers, server-access
 
 **Files:**
 
@@ -121,19 +130,25 @@ git commit -m "feat(plugin-next): scaffold package and map OpenAPI paths to App 
 - Create: `packages/plugin-next/src/model/derive.ts`
 - Create: `packages/plugin-next/src/generate/helpers.ts`
 - Create: `packages/plugin-next/src/generate/controllers.ts`
+- Create: `packages/plugin-next/src/generate/server-access.ts`
 - Create: `packages/plugin-next/src/generate/auth-adapter.ts`
-- Modify: `packages/plugin-next/src/plugin.test.ts` (start suite)
+- Create: `packages/plugin-next/src/plugin.test.ts`
 
 **Interfaces:**
 
-- Consumes: `ContractArtifact`, `ApplicationArtifact`
-- Produces:
-
 ```ts
 export type NextRouteFile = {
-  filePath: string; // app/.../route.ts
+  filePath: string;
   openApiPath: string;
   methods: readonly NextMethodBinding[];
+};
+
+export type NextUiPage = {
+  filePath: string; // app/ui/.../page.tsx
+  openApiPath: string;
+  operationId: string;
+  useCaseAccessorName: string; // key on getServerAccess()
+  paramNames: readonly string[]; // from {param} segments
 };
 
 export type NextMethodBinding = {
@@ -147,11 +162,11 @@ export type NextMethodBinding = {
   responseMapImportPath?: string;
   hasJsonBody: boolean;
   requiresPrincipal: boolean;
-  security?: /* same shape as Hono operation security meta */;
 };
 
 export type NextHttpModel = {
   routes: readonly NextRouteFile[];
+  uiPages: readonly NextUiPage[]; // derived from GET operations only in v1
   repositories: ApplicationArtifact["repositories"];
   authenticator?: {
     portFilePath: string;
@@ -166,27 +181,28 @@ export function deriveNextHttpModel(
 ): NextHttpModel;
 ```
 
-Shared generated helpers (`src/adapters/http-next/helpers.ts`) must include:
+`server-access.ts` generated API:
 
-- `toApicalHeaders(headers: Headers): Record<string, string>`
-- `buildApicalRequest(request: Request, pathParams: Record<string, string>, body?: unknown)`
-- status mapping: validation → 400, auth → 401, else 500 (no stack leak)
+```ts
+export function getServerAccess(): {
+  // one property per operationId, typed to the use-case function
+};
+```
 
-Controllers mirror Hono’s `createHttpControllers(useCases, authenticator?)` but accept plain Apical request objects (framework-free), so `route.ts` only adapts Next → Apical request.
-
-- [ ] **Step 1: Write failing derive/controller tests**
+- [ ] **Step 1: Write failing derive tests**
 
 Assert:
 
-- Operations with the same OpenAPI path coalesce into one `NextRouteFile`.
-- Library fixture produces `app/books/[bookId]/route.ts` (or whatever the library paths are) **without** Pet/Order literals in plugin source.
-- Auth operations mark `requiresPrincipal: true`.
+- Same OpenAPI path coalesces methods into one `NextRouteFile`.
+- Each GET operation yields a `NextUiPage` under `app/ui/...`.
+- Library fixture produces book paths **without** requiring Petstore strings in plugin source.
+- Auth GET ops still appear in `uiPages` but document unsecured UI slice for dogfood (handlers remain authoritative for 401).
 
-- [ ] **Step 2: Run focused tests — expect FAIL**
+- [ ] **Step 2: Run tests — expect FAIL**
 
-- [ ] **Step 3: Implement derive + generators**
+- [ ] **Step 3: Implement derive + helpers + controllers + server-access + auth stub**
 
-Use `@hexkit/codegen` `renderSourceFile` (no Handlebars). For auth adapter, follow `plugin-hono`’s in-memory stub (`test-token` / `test-key` defaults) so existing auth dogfood matrix stays reusable.
+Use `@hexkit/codegen` only (no templates). Auth stub mirrors Hono defaults (`test-token` / `test-key`) as **generic** env-driven defaults — not sample-domain names.
 
 - [ ] **Step 4: Run tests + `vp check`**
 
@@ -194,16 +210,17 @@ Use `@hexkit/codegen` `renderSourceFile` (no Handlebars). For auth adapter, foll
 
 ```bash
 git add packages/plugin-next
-git commit -m "feat(plugin-next): derive model and emit http-next helpers"
+git commit -m "feat(plugin-next): derive model and emit DAL server-access helpers"
 ```
 
 ---
 
-### Task 3: Emit `app/**/route.ts` files and runtime composition
+### Task 3: Emit `route.ts`, RSC pages, layout/index, and runtime
 
 **Files:**
 
 - Create: `packages/plugin-next/src/generate/routes.ts`
+- Create: `packages/plugin-next/src/generate/pages.ts`
 - Create: `packages/plugin-next/src/generate/runtime.ts`
 - Create: `packages/plugin-next/src/plugin.ts`
 - Modify: `packages/plugin-next/src/index.ts`
@@ -215,22 +232,22 @@ git commit -m "feat(plugin-next): derive model and emit http-next helpers"
 export function createNextPlugin(): HexkitPlugin;
 ```
 
-Generated `route.ts` pattern (illustrative for `GET /pet/{petId}`):
+**Route Handler pattern** (names come from the contract fixture at generation time — do not hardcode in plugin source):
 
 ```ts
 import type { NextRequest } from "next/server";
-import { getRuntime } from "@/src/adapters/http-next/runtime";
-import { toApicalRequest, handleControllerResult } from "@/src/adapters/http-next/helpers";
+import { getRuntime } from "../path/to/http-next/runtime";
+import { toApicalRequest, handleControllerResult, handleControllerError } from "../path/to/http-next/helpers";
 
 export async function GET(
   request: NextRequest,
-  ctx: { params: Promise<{ petId: string }> },
+  ctx: { params: Promise<Record<string, string>> },
 ) {
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
     const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
-    const result = await runtime.controllers.getPetById(apicalRequest);
+    const result = await runtime.controllers[/* operationId */](apicalRequest);
     return handleControllerResult(result);
   } catch (error) {
     return handleControllerError(error);
@@ -238,22 +255,53 @@ export async function GET(
 }
 ```
 
-Notes for implementers:
+**RSC page pattern** (domain-agnostic scaffold):
 
-- Prefer relative imports consistent with other Hexkit packages if `@/` aliases are not emitted yet; if packaging adds `tsconfig` paths, keep them in sync.
-- Coalesce methods into the same file.
-- `getRuntime()` must lazily compose Drizzle repos + use cases + authenticator (same responsibilities as Hono `createHonoApp` wiring).
-- Do **not** export `dynamic = 'force-static'`.
+```tsx
+import { getServerAccess } from "../../../src/adapters/http-next/server-access";
 
-- [ ] **Step 1: Write failing plugin generation test**
+export default async function Page(props: {
+  params: Promise<Record<string, string>>;
+}) {
+  const params = await props.params;
+  const access = getServerAccess();
+  const result = await access[/* operationId accessor */](/* map params */);
 
-Feed Petstore + Library contract fixtures as inputs; assert emitted `app/**/route.ts` contents contain correct method exports and import controllers/runtime; assert Library generation has no Petstore identifiers in output.
+  return (
+    <main>
+      <h1>{/* operationId or openApiPath from model */}</h1>
+      <pre>{JSON.stringify(result, null, 2)}</pre>
+    </main>
+  );
+}
+```
 
-- [ ] **Step 2: Run test — expect FAIL**
+Also emit:
 
-- [ ] **Step 3: Implement route + runtime generators and `createNextPlugin`**
+- `app/layout.tsx` — minimal `<html><body>{children}</body></html>`
+- `app/page.tsx` — links to each `uiPages` path (labels = `operationId` / path from model)
+- `app/ui/page.tsx` — same hub optional
 
-Plugin must read prior artifacts from generation context the same way `plugin-hono` does (contract + application artifacts). Write files with ownership `"generated"`.
+Rules:
+
+- No `page.tsx` next to any `route.ts` segment.
+- Do not export `dynamic = 'force-static'`.
+- Ownership `"generated"` for routes, pages, layout, helpers, runtime.
+
+- [ ] **Step 1: Write failing generation tests**
+
+Use **two** OpenAPI fixtures (Petstore PoC + Library). Assert:
+
+- Handlers exist at contract paths.
+- UI pages exist only under `app/ui/...`.
+- Library output contains no Petstore identifiers.
+- Petstore output contains no Library identifiers.
+- `server-access` exports accessors for operations used by pages.
+- Plugin production source still passes domain-agnostic scan.
+
+- [ ] **Step 2: Run tests — expect FAIL**
+
+- [ ] **Step 3: Implement generators + `createNextPlugin`**
 
 - [ ] **Step 4: Run plugin tests + `vp check`**
 
@@ -261,7 +309,7 @@ Plugin must read prior artifacts from generation context the same way `plugin-ho
 
 ```bash
 git add packages/plugin-next
-git commit -m "feat(plugin-next): generate App Router route handlers and runtime"
+git commit -m "feat(plugin-next): generate Route Handlers and basic RSC pages"
 ```
 
 ---
@@ -273,14 +321,14 @@ git commit -m "feat(plugin-next): generate App Router route handlers and runtime
 - Modify: `apps/cli/src/command.ts`
 - Modify: `apps/cli/src/command.test.ts`
 - Modify: `apps/cli/src/main.ts`
-- Modify: `apps/cli/src/packaging-plugin.ts` (or split `packaging-hono.ts` / `packaging-next.ts`)
+- Modify: `apps/cli/src/packaging-plugin.ts`
 - Create: `apps/cli/src/next-generation.test.ts`
-- Modify: `apps/cli/package.json` / workspace deps to depend on `@hexkit/plugin-next`
+- Modify: `apps/cli/src/domain-agnostic.test.ts` — add `packages/plugin-next/src`
+- Modify: `apps/cli/package.json` — depend on `@hexkit/plugin-next`
 
 **Interfaces:**
 
 ```ts
-// command parsing
 // hexkit generate <openapi> <output> [--http hono|next]
 // default: hono
 
@@ -290,32 +338,24 @@ export function createDefaultPlugins(options?: {
 }): readonly HexkitPlugin[];
 ```
 
-Next packaging must emit at least:
+Next packaging emits: `package.json` (`next`, `react`, `react-dom`, drizzle, scripts `dev`/`build`/`start`), `next.config.ts`, App Router `tsconfig`, Dockerfile + Compose (Next + Postgres). No Hono server entry when `--http next`.
 
-- `package.json` with `next`, `react`, `react-dom`, drizzle deps, scripts: `dev` → `next dev`, `build` → `next build`, `start` → `next start`, plus Hexkit `check` alignment where practical
-- `next.config.ts` (minimal)
-- `tsconfig.json` with Next App Router options
-- `Dockerfile` + `docker-compose.yml` (Next server + Postgres), schema apply on startup like Hono packaging
-- Do **not** emit Hono server entry when `--http next`
-
-- [ ] **Step 1: Write failing CLI tests**
+- [ ] **Step 1: Write failing CLI / integration tests**
 
 ```ts
-it("when --http next is passed, then help/parse selects next adapter", () => {
-  // assert parsed options.http === "next"
-});
+it("when --http next is passed, then parse selects next adapter", () => {});
 
-it("when generating with http next, then app/**/route.ts exists and src/adapters/http/routes.ts does not", async () => {
-  // generate library fixture into temp dir
+it("when generating with http next, then route handlers and ui pages are emitted", async () => {
+  // assert app/**/route.ts and app/ui/**/page.tsx exist
+  // assert src/adapters/http/routes.ts (Hono) does not
 });
 ```
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-- [ ] **Step 3: Implement flag + packaging branch**
+- [ ] **Step 3: Implement flag + packaging + domain-agnostic root scan update**
 
-Keep default plugins = apical → hexagonal → **hono** → drizzle → packaging(hono).  
-For next: apical → hexagonal → **next** → drizzle → packaging(next).
+Pipeline for next: apical → hexagonal → **next** → drizzle → packaging(next).
 
 - [ ] **Step 4: Run CLI tests + `vp check`**
 
@@ -323,46 +363,42 @@ For next: apical → hexagonal → **next** → drizzle → packaging(next).
 
 ```bash
 git add apps/cli packages/plugin-next
-git commit -m "feat(cli): add --http next and Next.js packaging"
+git commit -m "feat(cli): add --http next packaging for handlers and RSC pages"
 ```
 
 ---
 
-### Task 5: Next dogfood fixture + Pactum acceptance
+### Task 5: Next dogfood + Pactum + UI smoke
 
 **Files:**
 
-- Create or extend: `apps/fixtures/next-api/` (may reuse `library-api` / `auth-api` OpenAPI by reference)
+- Create: `apps/fixtures/next-api/` (OpenAPI may be a thin copy/symlink of library-api; fixture-owned domain only)
 - Create: `apps/fixtures/next-api/tests/api.test.ts`
+- Create: `apps/fixtures/next-api/tests/ui.smoke.test.ts`
 - Create: `apps/fixtures/next-api/scripts/dogfood.sh`
-- Modify: root `vite.config.ts` / `package.json` to add `dogfood-next` task
-- Modify: `apps/cli/src/domain-agnostic.test.ts` only if new production roots need scanning (`packages/plugin-next/src`)
+- Modify: root `vite.config.ts` / `package.json` for `dogfood-next`
 
-**Acceptance matrix (minimum):**
+**Acceptance matrix:**
 
-- Unsecured happy path for each fixture operation (or a trimmed slice).
-- If using auth-api OpenAPI with `--http next`: missing/invalid credentials → **401**; valid stub token/key → success.
-- Server Components guidance verified only in docs (no UI generation required).
+- Pactum: OpenAPI Route Handler happy paths (and auth 401 matrix if auth OpenAPI used).
+- UI smoke: `GET /ui/...` for each generated unsecured GET page returns HTTP 200 and HTML containing the operation heading or JSON body marker.
+- Confirm generated pages do not `fetch` local Route Handler URLs (static assert on page source: no `fetch(` to self, imports `getServerAccess`).
 
-- [ ] **Step 1: Write failing Pactum tests expecting a running Next base URL**
+- [ ] **Step 1: Write failing Pactum + UI smoke tests**
 
-Env: `NEXT_API_URL` (default `http://127.0.0.1:3000`).
+Env: `NEXT_API_URL` default `http://127.0.0.1:3000`.
 
-- [ ] **Step 2: Implement dogfood script**
+- [ ] **Step 2: Implement dogfood script** (`generate --http next` → install → compose up → tests)
 
-```bash
-# generate with --http next → install → compose up → wait ready → vp test api suite
-```
+- [ ] **Step 3: Run `vp run dogfood-next` until green**
 
-- [ ] **Step 3: Run `vp run dogfood-next` and fix generator/packaging gaps until green**
-
-- [ ] **Step 4: Confirm `vp run dogfood` (Hono Petstore) still passes (or generation+unit path if Docker-constrained; prefer full)**
+- [ ] **Step 4: Confirm Hono `vp run dogfood` still green (prefer full)**
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add apps/fixtures apps/cli vite.config.ts package.json packages/plugin-next
-git commit -m "test: dogfood Next.js Route Handlers with Pactum"
+git commit -m "test: dogfood Next Route Handlers and RSC pages"
 ```
 
 ---
@@ -371,28 +407,30 @@ git commit -m "test: dogfood Next.js Route Handlers with Pactum"
 
 **Files:**
 
-- Modify: `RFC.md` — optional HTTP adapter note under Technology Stack / Non-Goals amendment
-- Modify: `PRD.md` §11 follow-ups — add Next.js Route Handlers pointer; clarify multi-framework PoC non-goal vs post-PoC opt-in
-- Modify: `docs/README.md` — link design + plan
-- Modify: root `README.md` — short `--http next` / `dogfood-next` mention
-- Modify: `packages/plugin-next/README.md` — package overview
+- Modify: `RFC.md`
+- Modify: `PRD.md` §11
+- Modify: `docs/README.md` (already linked; refresh blurb if needed)
+- Modify: root `README.md`
+- Modify: `packages/plugin-next/README.md`
 
-- [ ] **Step 1: Apply doc edits matching design §7**
+- [ ] **Step 1: Doc edits**
 
-Must state explicitly:
+Must state:
 
-- Hono remains default.
-- OpenAPI maps to App Router Route Handlers.
+- Hono remains default; Next is opt-in (`--http next`).
+- `plugin-next` is **domain-agnostic** (PRD §5.0).
+- OpenAPI → Route Handlers at contract paths.
+- RSC pages under `/ui/...` call use cases via `getServerAccess()` (DAL).
 - Server Actions are not the OpenAPI surface.
-- RSC should call hexagonal use cases in-process (DAL), not self-fetch Route Handlers.
+- `page`/`route` collision avoided via `/ui` prefix.
 
-- [ ] **Step 2: Run `vp check`**
+- [ ] **Step 2: `vp check`**
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add RFC.md PRD.md README.md docs packages/plugin-next/README.md
-git commit -m "docs: record opt-in Next.js Route Handlers adapter"
+git commit -m "docs: record Next.js Route Handlers and RSC page generation"
 ```
 
 ---
@@ -400,17 +438,18 @@ git commit -m "docs: record opt-in Next.js Route Handlers adapter"
 ### Task 7: Verification gate
 
 - [ ] **Step 1: `vp check`**
-- [ ] **Step 2: `vp run -r test`**
+- [ ] **Step 2: `vp run -r test`** (includes plugin-next domain-agnostic + cli domain-agnostic)
 - [ ] **Step 3: `vp run -r build`**
 - [ ] **Step 4: `vp run dogfood-next`**
-- [ ] **Step 5: `vp run dogfood` (Hono regression)**
+- [ ] **Step 5: `vp run dogfood`** (Hono regression)
 
 ---
 
 ## Self-review checklist (plan author)
 
-1. **Spec coverage:** Approach A → Tasks 1–3; CLI/packaging → Task 4; dogfood → Task 5; RFC/PRD → Task 6; success criteria → Task 7.
-2. **Placeholders:** None intentional; path helpers and CLI flag are concrete.
-3. **Type consistency:** `NextHttpModel` / `createNextPlugin` / `--http next` naming stable across tasks.
-4. **PoC safety:** Default Hono pipeline and Petstore dogfood explicitly preserved.
-5. **Next.js fidelity:** Route Handlers + awaited `params` + dynamic default + DAL guidance for RSC; Server Actions excluded.
+1. **Spec coverage:** Domain-agnostic §3 → Global Constraints + Tasks 1/3/4; Route Handlers → Tasks 2–3; RSC pages + server-access → Tasks 2–3/5; CLI → Task 4; dogfood → Task 5; docs → Task 6.
+2. **Placeholders:** None intentional; `/ui` mapping and `getServerAccess()` are concrete.
+3. **Type consistency:** `NextHttpModel.uiPages`, `openApiPathToUiPageFile`, `--http next` stable across tasks.
+4. **PoC safety:** Default Hono pipeline preserved.
+5. **Next.js fidelity:** No `page`/`route` same-segment conflict; RSC uses DAL not self-fetch; Server Actions excluded from OpenAPI mapping.
+6. **Domain agnosticism:** Explicit tests and scanner coverage for `plugin-next`.
