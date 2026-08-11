@@ -213,8 +213,8 @@ Assert:
 
 - Same OpenAPI path coalesces methods into one `NextRouteFile` when routes enabled.
 - `surface: "both"` → routes + `app/ui/...` pages.
-- `surface: "routes"` → routes only; `uiPages` empty; no server-access file planned.
-- `surface: "rsc"` → pages at contract paths; `routes` empty.
+- `surface: "routes"` → routes + `server-access`; `uiPages` empty.
+- `surface: "rsc"` → pages at contract paths; `routes` empty; `server-access` present.
 - Library fixture produces book paths **without** Petstore strings in plugin source.
 
 - [ ] **Step 2: Run tests — expect FAIL**
@@ -328,7 +328,7 @@ Use **two** OpenAPI fixtures (Petstore PoC + Library). Assert for `surface: "bot
 
 Additionally assert:
 
-- `surface: "routes"` → `route.ts` present; no `app/ui/**`; no `server-access.ts`.
+- `surface: "routes"` → `route.ts` + `server-access.ts` present; no `app/ui/**`.
 - `surface: "rsc"` → pages at contract paths (not under `/ui`); no `route.ts`.
 - Plugin production source still passes domain-agnostic scan.
 
@@ -505,10 +505,7 @@ git commit -m "feat(petstore-next): add PetShop RSC UI with Tailwind and CSS Mod
 
 ```bash
 # 1) generate into OUTPUT with --http next --next-surface routes
-#    (routes + server-access: ensure server-access is emitted when UI needs DAL —
-#     if routes-only omits server-access, use --next-surface both and ignore /ui
-#     scaffolds, OR extend plugin so routes+DAL can be requested — prefer
-#     --next-surface both for PetShop dogfood and treat /ui as non-acceptance)
+#    (handlers at OpenAPI paths + server-access DAL; no generic /ui scaffolds)
 # 2) copy/merge apps/petstore-next/ui + PostCSS/Tailwind configs into OUTPUT
 # 3) vp install && check in OUTPUT
 # 4) docker compose up (Next + Postgres)
@@ -530,7 +527,7 @@ Env: `PETSTORE_NEXT_URL` default `http://127.0.0.1:3000`.
 
 - [ ] **Step 3: Run `vp run dogfood-petstore-next` until green**
 
-If `surface: routes` omits `server-access`, either dogfood with `both` or add a follow-up plugin option `routes`+DAL; **do not** call Route Handlers from RSC to load page data.
+PetShop dogfood uses `--next-surface routes` so OpenAPI handlers stay free of `/ui` scaffolds while `server-access` remains available for RSC/forms.
 
 - [ ] **Step 4: Confirm Hono `vp run dogfood` still green**
 
@@ -594,4 +591,4 @@ git commit -m "docs: record PetShop Next.js dogfood and plugin-next surfaces"
 4. **PoC safety:** Default Hono pipeline preserved.
 5. **Next.js fidelity:** No `page`/`route` collisions; RSC DAL; forms not client fetch; OpenAPI on Route Handlers.
 6. **Domain agnosticism:** PetShop UI only under `apps/petstore-next`; plugin scanner coverage required.
-7. **server-access for PetShop:** Dogfood uses a surface that emits DAL (`both`, or documented exception) so RSC/forms never need browser HTTP.
+7. **server-access:** Emitted for `routes`, `rsc`, and `both` so PetShop (and other fixture UIs) can use the DAL without generic `/ui` scaffolds.

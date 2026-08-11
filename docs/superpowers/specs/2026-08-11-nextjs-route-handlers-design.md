@@ -97,17 +97,18 @@ Sample domains (Petstore, library, auth-api) are **fixtures only**. They must no
 3. Keep `plugin-next` **domain-agnostic** (§3 / PRD §5.0).
 4. Map auth the same way as Hono for Route Handlers: Apical wire validation → 401 → `Authenticator` → `Principal`.
 5. RSC pages call a generated **server-access / DAL** module (composed use cases) in-process — never self-HTTP.
-6. Ship a **functional PetShop Next.js dogfood app** under `apps/` (fixture-owned UI) that uses Hexkit generation for contracts/core/routes and a real UI with PostCSS, Tailwind CSS, and CSS Modules — **no client-side data fetching**.
-7. Dogfood default `both` / PetShop flows; unit/integration tests cover `routes` and `rsc` only.
+6. Ship a **vanilla PetShop Next.js dogfood app** under `apps/` (fixture-owned), bootstrapped like [create-next-app](https://nextjs.org/docs/app/getting-started/installation) (TypeScript, App Router, Tailwind), using **Vite+ (`vp`) / pnpm** for installs — **no client-side data fetching**, **no PetShop app test suite**.
+7. Dogfood default `both` / PetShop flows (generate + run); unit/integration tests cover `plugin-next` surfaces only (not the PetShop UI app).
 8. Document Route Handlers (public REST) vs RSC DAL (same-app UI), surface switch, and PetShop dogfood rules.
 
 ### Non-goals (v1)
 
 - Replacing Hono as the default / PoC dogfood target.
 - Pages Router `pages/api/*`.
-- Polished design systems beyond the PetShop dogfood UI stack (PostCSS + Tailwind + CSS Modules).
+- Polished design systems beyond vanilla create-next-app + light CSS Modules.
 - Client-side data fetching (SWR, TanStack Query, `useEffect`+`fetch`, etc.) in generated or PetShop UI.
 - Baking PetShop/Tailwind/CSS Module UI into `@hexkit/plugin-next` (plugin stays domain-agnostic and UI-minimal).
+- **Automated tests for `apps/petstore-next`** (no Vitest/Pactum/UI suite for the shop app).
 - Generating Server Actions **as the OpenAPI surface** (OpenAPI remains Route Handlers; PetShop forms may use Server Actions only as a UI→use-case bridge).
 - Generating Cache Components / ISR / `use cache` policies for API routes.
 - Mounting the Hono app inside a Next catch-all as the primary design.
@@ -186,7 +187,7 @@ Default: `--next-surface both`.
 | `surface` | Emits | Does not emit |
 | --------- | ----- | ------------- |
 | `both` | `route.ts` at OpenAPI paths; RSC under `app/ui/...`; server-access; HTTP helpers/runtime; layout/index | — |
-| `routes` | `route.ts`; HTTP helpers/controllers/runtime; auth stub if needed; minimal `app/layout.tsx` + stub `app/page.tsx` (Next needs a root page) | `app/ui/**`, GET UI scaffolds, server-access (unless shared later — **v1: omit server-access**) |
+| `routes` | `route.ts`; HTTP helpers/controllers/runtime; **server-access (DAL)**; auth stub if needed; minimal `app/layout.tsx` + stub `app/page.tsx` | `app/ui/**` GET UI scaffolds |
 | `rsc` | server-access; RSC `page.tsx` at **literal OpenAPI paths**; layout/index | `route.ts`, HTTP controller/route helpers used only by handlers |
 
 **Path rules by surface:**
@@ -261,7 +262,7 @@ Ownership:
 - Generated pages / layout / index: ownership **`generated`** (overwrite) for v1 scaffolds.
 - Protected use cases under `src/core/application/**` remain protected (unchanged hexagonal policy).
 
-When `surface` is `routes`, **omit** server-access and UI page scaffolds; still emit a minimal root `app/layout.tsx` + stub `app/page.tsx` so `next build` has an App Router entry.
+When `surface` is `routes`, **omit** resource UI scaffolds under `app/ui/**`, but **still emit** `server-access.ts` so fixture apps (e.g. PetShop) can build RSC/forms on the DAL without enabling generic `/ui` pages. Still emit a minimal root `app/layout.tsx` + stub `app/page.tsx` so `next build` has an App Router entry.
 
 ### 6.4 Auth
 
@@ -282,28 +283,37 @@ v1 targets the **Node.js** Next runtime (needed for Drizzle). Edge runtime is ou
 
 ### 6.7 PetShop Next.js dogfood app (normative)
 
-Canonical Next dogfood lives in **`apps/petstore-next/`** (name may match plan file map). It is a **fixture app**, not plugin source.
+Canonical Next dogfood lives in **`apps/petstore-next/`**. It is a **fixture app**, not plugin source.
+
+**Vanilla Next.js first** — follow [Installation](https://nextjs.org/docs/app/getting-started/installation):
+
+- Prefer scaffolding with `pnpm create next-app@latest` (recommended defaults: TypeScript, ESLint, Tailwind CSS, App Router, Turbopack, `@/*` alias), then adapt into the monorepo workspace.
+- Package installs in this repo use **Vite+** (`vp install`) / **pnpm** — not a parallel npm/yarn toolchain.
+- Keep the app structure close to create-next-app: `app/`, `public/`, `next.config.ts`, `package.json` scripts `dev` / `build` / `start` / `lint`.
+- Avoid custom frameworks, UI kits, or test runners in this package.
 
 **Ownership split (PRD §5.0):**
 
 | Concern | Owner |
 | ------- | ----- |
-| OpenAPI (`openapi.poc.yaml` reuse or local copy), dogfood scripts, Pactum, UI tests | `apps/petstore-next` |
-| Generated contracts, hexagonal core, Drizzle, Route Handlers, optional generic `/ui` scaffolds | Hexkit CLI + `plugin-next` |
-| Functional PetShop pages, forms, visual styling | `apps/petstore-next` only |
+| OpenAPI (`openapi.poc.yaml` reuse), dogfood script, vanilla Next app shell | `apps/petstore-next` |
+| Generated contracts, hexagonal core, Drizzle, Route Handlers, `server-access` | Hexkit CLI + `plugin-next` |
+| PetShop pages, forms, styling | `apps/petstore-next` only |
 
-**UI stack (PetShop fixture only):**
+**UI stack (keep boring):**
 
-- **PostCSS**
-- **Tailwind CSS** utility classes
-- **CSS Modules** for component-scoped styles (compose with Tailwind where useful)
+- Tailwind CSS as set up by create-next-app (PostCSS included by that default).
+- Optional **CSS Modules** (`*.module.css`) for a few scoped layout tweaks — still stock Next.
+- No component libraries, no client data libraries.
 
 **Data rules (hard):**
 
 1. **No client-side data fetching** — no SWR/React Query, no `useEffect`/`onClick` `fetch`/`axios` for reads or writes from Client Components.
-2. **Reads:** React Server Components call `getServerAccess()` / use cases **in-process** (DAL). Do not `fetch` own Route Handlers from RSC for PetShop pages.
-3. **Writes:** HTML `<form>` submissions only. Prefer Server Actions (or form `action` functions) that run on the server and call hexagonal use cases in-process. Optionally, server-only code may call Route Handlers for HTTP-path dogfood, but the browser must not perform XHR/fetch for app data.
-4. Client Components, if any, are limited to presentational concerns (e.g. pending button state via `useFormStatus`) — **not** data loading.
+2. **Reads:** React Server Components call `getServerAccess()` / use cases **in-process** (DAL).
+3. **Writes:** HTML `<form>` + Server Actions calling use cases in-process; browser must not XHR/fetch app data.
+4. Client Components, if any, are presentational only (e.g. `useFormStatus`).
+
+**No tests for the PetShop app:** do **not** add Vitest, Pactum, Playwright, or UI acceptance suites under `apps/petstore-next`. Prove the loop by generating, installing with `vp`/`pnpm`, and running `next dev` / Compose. (`plugin-next` package tests remain separate.)
 
 **Suggested information architecture:**
 
@@ -313,30 +323,27 @@ Canonical Next dogfood lives in **`apps/petstore-next/`** (name may match plan f
 | `/pets/[petId]` | Pet detail via RSC |
 | `/pets/new`, edit forms | Create/update pet via form → Server Action → use case |
 | `/orders/...` | Place/get/delete order via RSC + forms |
-| OpenAPI paths (`/pet`, `/store/order/...`) | Generated Route Handlers for Pactum / external HTTP |
+| OpenAPI paths (`/pet`, `/store/order/...`) | Generated Route Handlers for external HTTP |
 
-Because OpenAPI handlers occupy `/pet/...`, PetShop **human UI** uses distinct paths (e.g. `/pets`, `/orders`) under the fixture — same collision rule as `/ui` for generated scaffolds.
+Human UI paths (`/pets`, `/orders`) stay distinct from OpenAPI handlers.
 
-**Dogfood loop:**
+**Dogfood loop (no test gate):**
 
 ```text
 openapi.poc.yaml
-  → hexkit generate --http next [--next-surface routes|both]
-  → merge/overlay PetShop UI (PostCSS/Tailwind/CSS Modules) from apps/petstore-next
-  → Compose: Next + Postgres
-  → Pactum (Route Handlers) + UI acceptance (forms + RSC HTML)
+  → hexkit generate --http next --next-surface routes
+  → merge PetShop app pages/styles into output (or generate into the app tree)
+  → vp install / pnpm install
+  → next dev  (or Compose: Next + Postgres)
 ```
-
-If `--next-surface both`, generic `/ui` scaffolds may coexist but are **not** the PetShop UX bar; the functional shop UI is the acceptance target.
 
 ## 7. Testing strategy
 
-1. **Unit:** path mapping for handlers and UI pages (including `rsc` vs `both` path differences); method coalescing; auth status mapping; surface filtering.
-2. **Domain-agnostic:** plugin production sources contain no Petstore/sample literals; Library vs Petstore fixtures generate coherent outputs without plugin edits; PetShop Tailwind/CSS Module sources live only under `apps/petstore-next`.
-3. **Generation integration:** `--http next` with each surface; assert emitted/omitted files; typecheck generated app for `both`.
-4. **Acceptance — API:** Next + Postgres Compose; Pactum against OpenAPI Route Handler URLs (Pet + Order slice).
-5. **Acceptance — PetShop UI:** RSC pages render pet/order data without client fetch; forms create/update/delete via server form posts; assert no browser data-fetch network pattern in UI tests where practical.
-6. **Regression:** Hono default dogfood stays green.
+1. **Unit (plugin-next only):** path mapping; method coalescing; auth status mapping; surface filtering.
+2. **Domain-agnostic:** plugin production sources contain no Petstore/sample literals; dual fixtures without plugin edits; PetShop UI sources only under `apps/petstore-next`.
+3. **Generation integration (CLI/plugin):** `--http next` with each surface; assert emitted/omitted files; typecheck generated tree when practical.
+4. **PetShop app:** **no automated tests** — manual/scripted generate + `vp install` + `next dev` (or Compose) only.
+5. **Regression:** Hono default dogfood stays green.
 
 ## 8. Docs / product amendments
 
@@ -349,12 +356,12 @@ If `--next-surface both`, generic `/ui` scaffolds may coexist but are **not** th
 Hexkit Next.js v1 is done when:
 
 1. `plugin-next` supports `surface: "routes" | "rsc" | "both"` and generates the correct subset from any in-scope JSON contract **without** domain hardcoding.
-2. When RSC is enabled, pages call `getServerAccess()` / use cases in-process (no self-`fetch` to Route Handlers).
+2. When RSC/DAL is enabled, PetShop pages call `getServerAccess()` / use cases in-process (no self-`fetch` to Route Handlers).
 3. No `page.tsx` collides with `route.ts` on the same segment (`both` uses `/ui`; `rsc` uses contract paths with no handlers; PetShop UI uses distinct human paths).
-4. Default `both` / PetShop generated app typechecks under Next.js 16 App Router.
-5. Auth fixture returns 401/200 correctly via Route Handlers when routes are enabled (separate from PetShop UI if needed).
+4. Vanilla PetShop Next app (create-next-app-shaped, `vp`/`pnpm`) typechecks / `next build`s against generated Hexkit output.
+5. Auth fixture returns 401/200 correctly via Route Handlers when routes are enabled (plugin/CLI coverage — not PetShop UI tests).
 6. Domain-agnostic scanner covers `packages/plugin-next/src`.
-7. **PetShop dogfood:** functional shop UI (PostCSS + Tailwind + CSS Modules) runs against generated Hexkit output with **zero client-side data fetching**; forms + RSC cover Pet + Order flows; Pactum covers OpenAPI handlers.
+7. **PetShop dogfood:** generate → `vp`/`pnpm` install → run Next (+ Postgres as needed) with RSC + forms and **zero client-side data fetching**; **no PetShop test suite required**.
 8. Default Hono Petstore dogfood is unchanged.
 
 ## 10. Decisions log
@@ -366,8 +373,10 @@ Hexkit Next.js v1 is done when:
 | Generation modes | `NextSurface = "routes" \| "rsc" \| "both"` (default `both`) |
 | UI vs API paths | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers only |
 | PetShop dogfood | `apps/petstore-next` fixture UI; not inside `plugin-next` |
-| PetShop styling | PostCSS + Tailwind CSS + CSS Modules |
+| PetShop bootstrap | Vanilla create-next-app defaults; installs via **Vite+ (`vp`) / pnpm** |
+| PetShop styling | Tailwind (create-next-app default) + optional CSS Modules |
 | PetShop data loading | RSC DAL reads; form posts (Server Actions → use cases); **no client-side fetching** |
+| PetShop tests | **None** |
 | Server Actions as OpenAPI surface | Out of scope — OpenAPI stays on Route Handlers |
 | Pages Router API routes | Out of scope |
 | Default HTTP adapter | Hono (unchanged) |
