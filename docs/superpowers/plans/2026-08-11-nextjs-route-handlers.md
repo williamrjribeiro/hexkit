@@ -23,12 +23,14 @@
 - Never emit `page.tsx` beside `route.ts` on the same segment.
 - No forced `/api` prefix on Route Handlers — map OpenAPI paths literally under `app/`.
 - `--next-surface` only valid with `--http next`.
-- **PetShop dogfood UI** (Tailwind / CSS Modules / PostCSS, shop pages, forms) lives only under `apps/petstore-next` — never in `plugin-next` production source.
+- **PetShop dogfood UI** lives only under `apps/petstore-next` — never in `plugin-next` production source.
+- PetShop app is **vanilla create-next-app-shaped**; installs with **`vp install` / pnpm** only.
 - PetShop UI: **no client-side data fetching**; reads via RSC + DAL; writes via HTML forms → Server Actions → use cases.
+- **No automated tests under `apps/petstore-next`** (no Vitest/Pactum/Playwright for the shop app).
 - Dynamic/request-time handlers and pages by default (do not emit `force-static` / `use cache` for these scaffolds).
 - Reuse Apical wrappers + hexagonal `Authenticator`/`Principal`; no parallel auth schemas.
-- Calculation/action separation; TDD with Vitest BDD style; Conventional Commits per task.
-- Invoke tooling via `vp` (`vp check`, `vp test`, `vp run -r build`).
+- Calculation/action separation; TDD with Vitest BDD style for **plugin/CLI packages only**; Conventional Commits per task.
+- Invoke tooling via `vp` (`vp check`, `vp test`, `vp run -r build`) for Hexkit packages; PetShop uses `vp`/`pnpm` + `next`.
 
 ## File map (what each new/changed unit owns)
 
@@ -54,8 +56,8 @@
 | `apps/cli/src/packaging-plugin.ts` | Next packaging branch |
 | `apps/cli/src/next-generation.test.ts` | Integration: each surface |
 | `apps/cli/src/domain-agnostic.test.ts` | Add `packages/plugin-next/src` to scan roots |
-| `apps/petstore-next/` | Functional PetShop Next dogfood (UI + scripts + tests) |
-| `apps/petstore-next/src/ui/**` or `ui/**` | PostCSS, Tailwind, CSS Modules, RSC pages, forms |
+| `apps/petstore-next/` | Vanilla PetShop Next dogfood app (no tests) |
+| `apps/petstore-next/app/**` | RSC pages + forms (create-next-app layout) |
 | `apps/fixtures/next-api/` | Optional generic (non-PetShop) surface fixture |
 | `RFC.md` / `PRD.md` / `docs/README.md` | Product amendment + links |
 
@@ -405,36 +407,37 @@ git commit -m "feat(cli): add --http next and --next-surface options"
 
 ---
 
-### Task 5: Functional PetShop Next.js UI (fixture-owned)
+### Task 5: Vanilla PetShop Next.js app (fixture-owned, no tests)
 
 **Files:**
 
-- Create: `apps/petstore-next/package.json`
-- Create: `apps/petstore-next/README.md`
-- Create: `apps/petstore-next/postcss.config.mjs`
-- Create: `apps/petstore-next/tailwind.config.ts` (or Tailwind v4 CSS-first config per Next 16 norms)
-- Create: `apps/petstore-next/ui/` (or `src/ui/`) — layout chrome, pet list/detail, order flows
-- Create: `apps/petstore-next/ui/**/*.module.css` — CSS Modules
-- Create: `apps/petstore-next/ui/**/*.tsx` — RSC pages + form components
-- Create: `apps/petstore-next/ui/**/actions.ts` — `"use server"` form actions calling use cases
-- Reuse: `apps/petstore-sample/openapi.poc.yaml` as generate input (do not edit for this task unless necessary)
+- Create: `apps/petstore-next/` via `pnpm create next-app@latest` recommended defaults (TypeScript, ESLint, Tailwind, App Router, `@/*`), then wire into the workspace
+- Keep/adjust: `package.json` scripts `dev` / `build` / `start` / `lint` as in [Next.js installation](https://nextjs.org/docs/app/getting-started/installation)
+- Create: PetShop pages under `app/pets/**`, `app/orders/**`, root `app/page.tsx` / `app/layout.tsx`
+- Create: optional `*.module.css` beside pages for light scoped styles
+- Create: `app/**/actions.ts` — `"use server"` form actions calling `getServerAccess()` use cases
+- Create: `apps/petstore-next/README.md` — how to generate + `vp install` / `pnpm` + `next dev`
+- Reuse: `apps/petstore-sample/openapi.poc.yaml` as generate input
+- **Do not create:** `tests/`, Vitest config, Pactum, Playwright, or any PetShop acceptance suite
 
 **UI requirements (normative):**
 
-- PostCSS + Tailwind utility classes + CSS Modules.
-- **No client-side data fetching** (ban SWR/React Query/`useEffect`+`fetch` for data).
-- Reads: async Server Components → `getServerAccess()` / generated use cases.
-- Writes: `<form action={serverAction}>` only; Server Actions call use cases in-process then `redirect` / `revalidatePath` as needed.
-- Human UI paths must **not** collide with OpenAPI Route Handlers (`/pets`, `/orders`, … vs `/pet`, `/store/order`, …).
-- PetShop copy/structure may be Pet+Order specific — this package is a fixture; **`plugin-next` must stay clean**.
+- Stay as close as possible to create-next-app (vanilla).
+- Tailwind from create-next-app; optional CSS Modules only where helpful.
+- Installs: **`vp install`** (preferred in this monorepo) or **pnpm** — no npm/yarn as the documented path.
+- **No client-side data fetching.**
+- Reads: async Server Components → `getServerAccess()` / use cases.
+- Writes: `<form action={serverAction}>` only.
+- Human UI paths must **not** collide with OpenAPI Route Handlers (`/pets`, `/orders` vs `/pet`, `/store/order`).
+- PetShop domain copy is fixture-only; **`plugin-next` stays clean**.
 
-**Illustrative page (implementer derives real imports from generated output layout):**
+**Illustrative page:**
 
 ```tsx
-// apps/petstore-next/ui/pets/[petId]/page.tsx
+// app/pets/[petId]/page.tsx
 import styles from "./page.module.css";
-import { getServerAccess } from "../../../.generated/src/adapters/http-next/server-access";
-// exact import path depends on dogfood merge layout — fix in Task 6
+import { getServerAccess } from "@/adapters/http-next/server-access";
+// alias/@ path must match merged generated output — wire in Task 6
 
 export default async function PetDetailPage(props: {
   params: Promise<{ petId: string }>;
@@ -445,89 +448,65 @@ export default async function PetDetailPage(props: {
 
   return (
     <main className={`mx-auto max-w-3xl p-6 ${styles.main}`}>
-      <h1 className="text-2xl font-semibold">{/* pet name from result */}</h1>
+      <h1 className="text-2xl font-semibold">{/* name from pet */}</h1>
       <pre className={styles.payload}>{JSON.stringify(pet, null, 2)}</pre>
     </main>
   );
 }
 ```
 
-```ts
-// apps/petstore-next/ui/pets/actions.ts
-"use server";
+- [ ] **Step 1: Scaffold with create-next-app + workspace membership**
 
-import { redirect } from "next/navigation";
-import { getServerAccess } from "../../../.generated/src/adapters/http-next/server-access";
+Run (from repo-appropriate location; move/rename into `apps/petstore-next`):
 
-export async function addPetAction(formData: FormData) {
-  const access = getServerAccess();
-  const pet = await access.addPet({
-    name: String(formData.get("name") ?? ""),
-    // map other fields from formData → use-case input
-  });
-  redirect(`/pets/${pet.id}`);
-}
+```bash
+pnpm create next-app@latest petstore-next --yes
 ```
 
-- [ ] **Step 1: Write failing UI structure tests**
+Prefer defaults (TypeScript, Tailwind, ESLint, App Router). Ensure package is visible to `vp install` / pnpm workspace.
 
-Assert package has PostCSS/Tailwind config; sample pages import CSS Modules; a lint/test scans `apps/petstore-next/ui` for forbidden client fetch patterns (`fetch(`, `axios`, `useSWR`, `@tanstack/react-query`).
+- [ ] **Step 2: Add Pet + Order RSC pages and form Server Actions**
 
-- [ ] **Step 2: Run tests — expect FAIL**
+Minimum: home/pet list, pet detail, add/update/delete pet forms, place/get/delete order forms.
 
-- [ ] **Step 3: Scaffold PetShop UI covering Pet + Order flows from `openapi.poc.yaml`**
+- [ ] **Step 3: Confirm `vp install` (or pnpm) and `pnpm dev` / `vp run` script starts Next**
 
-Minimum screens: home/pet list, pet detail, add/update/delete pet forms, place/get/delete order forms.
+No test files. Manual smoke only.
 
-- [ ] **Step 4: `vp check` / package tests**
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add apps/petstore-next
-git commit -m "feat(petstore-next): add PetShop RSC UI with Tailwind and CSS Modules"
+git commit -m "feat(petstore-next): add vanilla Next.js PetShop dogfood app"
 ```
 
 ---
 
-### Task 6: PetShop dogfood loop (generate → Compose → API + UI accept)
+### Task 6: PetShop dogfood script (generate → install → run, no tests)
 
 **Files:**
 
 - Create: `apps/petstore-next/scripts/dogfood.sh`
-- Create: `apps/petstore-next/tests/api.test.ts` (Pactum vs OpenAPI paths)
-- Create: `apps/petstore-next/tests/ui.test.ts` (HTTP GET HTML for RSC pages; form POST flows)
-- Create: `apps/petstore-next/tests/no-client-fetch.test.ts` (static scan)
-- Modify: root `vite.config.ts` / `package.json` — add `dogfood-petstore-next` (and/or `dogfood-next`)
-- Optional: keep `apps/fixtures/next-api/` only if still useful for non-PetShop surface checks
+- Modify: root `vite.config.ts` / `package.json` — add `dogfood-petstore-next` task that runs the script
+- **Do not create** PetShop API/UI test files
 
 **Dogfood algorithm:**
 
 ```bash
-# 1) generate into OUTPUT with --http next --next-surface routes
-#    (handlers at OpenAPI paths + server-access DAL; no generic /ui scaffolds)
-# 2) copy/merge apps/petstore-next/ui + PostCSS/Tailwind configs into OUTPUT
-# 3) vp install && check in OUTPUT
-# 4) docker compose up (Next + Postgres)
-# 5) Pactum API tests + UI form/RSC tests
+# 1) generate into OUTPUT (or into apps/petstore-next) with:
+#    hexkit generate <openapi.poc.yaml> <out> --http next --next-surface routes
+# 2) ensure PetShop app/ pages + Tailwind/PostCSS configs sit beside generated adapters
+# 3) vp install   # or pnpm install — document one path; prefer vp in this repo
+# 4) apply DB schema if needed; start Postgres (Compose optional)
+# 5) next dev  OR  next build && next start
+# No Pactum / Vitest / Playwright step
 ```
 
-**Acceptance matrix:**
+- [ ] **Step 1: Write `dogfood.sh` that exits non-zero if generate or install fails**
 
-- Pactum: all PoC Pet + Order operations on OpenAPI paths.
-- UI: list/detail RSC render real DB data; addPet/placeOrder/delete flows via form POST (no browser `fetch`).
-- Static: no client data-fetch imports under PetShop UI.
-- Hono `vp run dogfood` still green.
+- [ ] **Step 2: Wire `vp run dogfood-petstore-next`**
 
-- [ ] **Step 1: Write failing Pactum + UI tests**
-
-Env: `PETSTORE_NEXT_URL` default `http://127.0.0.1:3000`.
-
-- [ ] **Step 2: Implement `dogfood.sh` + root task**
-
-- [ ] **Step 3: Run `vp run dogfood-petstore-next` until green**
-
-PetShop dogfood uses `--next-surface routes` so OpenAPI handlers stay free of `/ui` scaffolds while `server-access` remains available for RSC/forms.
+- [ ] **Step 3: Run the script once manually; confirm the shop loads and forms work without browser data-fetch**
 
 - [ ] **Step 4: Confirm Hono `vp run dogfood` still green**
 
@@ -535,7 +514,7 @@ PetShop dogfood uses `--next-surface routes` so OpenAPI handlers stay free of `/
 
 ```bash
 git add apps/petstore-next vite.config.ts package.json
-git commit -m "test: dogfood PetShop Next.js app with Pactum and form UI"
+git commit -m "chore(petstore-next): add generate-and-run dogfood script"
 ```
 
 ---
@@ -558,17 +537,18 @@ Must state:
 - Hono remains default; Next is opt-in (`--http next`).
 - `--next-surface both|routes|rsc` (default `both`) selects generators.
 - `plugin-next` is **domain-agnostic** (PRD §5.0).
-- PetShop functional UI is fixture-owned (`apps/petstore-next`): PostCSS + Tailwind + CSS Modules.
+- PetShop app is vanilla create-next-app-shaped; **`vp` / pnpm** for installs; Tailwind + optional CSS Modules.
 - No client-side data fetching; RSC DAL reads; form Server Actions for writes.
+- **No PetShop test suite.**
 - OpenAPI → Route Handlers; Server Actions are not the OpenAPI surface.
 
-- [ ] **Step 2: `vp check`**
+- [ ] **Step 2: `vp check`** (Hexkit packages)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add RFC.md PRD.md README.md docs packages/plugin-next/README.md apps/petstore-next/README.md
-git commit -m "docs: record PetShop Next.js dogfood and plugin-next surfaces"
+git commit -m "docs: record vanilla PetShop Next.js dogfood and plugin-next surfaces"
 ```
 
 ---
@@ -576,19 +556,20 @@ git commit -m "docs: record PetShop Next.js dogfood and plugin-next surfaces"
 ### Task 8: Verification gate
 
 - [ ] **Step 1: `vp check`**
-- [ ] **Step 2: `vp run -r test`**
+- [ ] **Step 2: `vp run -r test`** (plugin/CLI only — PetShop has no tests)
 - [ ] **Step 3: `vp run -r build`**
-- [ ] **Step 4: `vp run dogfood-petstore-next`**
+- [ ] **Step 4: Run `vp run dogfood-petstore-next` (generate + install + start; no test assertion)**
 - [ ] **Step 5: `vp run dogfood`** (Hono regression)
 
 ---
 
 ## Self-review checklist (plan author)
 
-1. **Spec coverage:** Domain-agnostic §3 → Tasks 1/3/4; surfaces §6.0 → Tasks 1–4; PetShop §6.7 → Tasks 5–6; CLI → Task 4; docs → Task 7.
-2. **Placeholders:** None intentional; PetShop paths, styling stack, and no-client-fetch rule are concrete.
+1. **Spec coverage:** Domain-agnostic §3 → Tasks 1/3/4; surfaces §6.0 → Tasks 1–4; vanilla PetShop §6.7 → Tasks 5–6; CLI → Task 4; docs → Task 7.
+2. **Placeholders:** None intentional; create-next-app + `vp`/`pnpm` + no-tests rule are concrete.
 3. **Type consistency:** `NextSurface`, `createNextPlugin({ surface })`, `--next-surface`, `getServerAccess` stable across tasks.
 4. **PoC safety:** Default Hono pipeline preserved.
-5. **Next.js fidelity:** No `page`/`route` collisions; RSC DAL; forms not client fetch; OpenAPI on Route Handlers.
+5. **Next.js fidelity:** Vanilla App Router; no `page`/`route` collisions; RSC DAL; forms not client fetch.
 6. **Domain agnosticism:** PetShop UI only under `apps/petstore-next`; plugin scanner coverage required.
-7. **server-access:** Emitted for `routes`, `rsc`, and `both` so PetShop (and other fixture UIs) can use the DAL without generic `/ui` scaffolds.
+7. **server-access:** Emitted for `routes`, `rsc`, and `both`.
+8. **No PetShop tests:** Tasks 5–6 explicitly omit app test suites.
