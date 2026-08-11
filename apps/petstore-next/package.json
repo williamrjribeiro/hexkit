@@ -9,13 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@standard-schema/spec": "catalog:",
+    "drizzle-orm": "catalog:",
     "next": "16.3.0",
+    "pg": "catalog:",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "catalog:",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

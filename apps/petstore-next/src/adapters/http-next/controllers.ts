@@ -1,0 +1,106 @@
+import type { AddPet } from "../../core/application/add-pet.ts";
+import type { DeleteOrder } from "../../core/application/delete-order.ts";
+import type { DeletePet } from "../../core/application/delete-pet.ts";
+import type { GetOrderById } from "../../core/application/get-order-by-id.ts";
+import type { GetPetById } from "../../core/application/get-pet-by-id.ts";
+import type { PlaceOrder } from "../../core/application/place-order.ts";
+import type { UpdatePet } from "../../core/application/update-pet.ts";
+import { addPetResponseMap } from "../../generated/contracts/routes/addPet.ts";
+import { getOrderByIdResponseMap } from "../../generated/contracts/routes/getOrderById.ts";
+import { getPetByIdResponseMap } from "../../generated/contracts/routes/getPetById.ts";
+import { placeOrderResponseMap } from "../../generated/contracts/routes/placeOrder.ts";
+import { updatePetResponseMap } from "../../generated/contracts/routes/updatePet.ts";
+import { addPetWrapper } from "../../generated/contracts/server/addPet.ts";
+import { deleteOrderWrapper } from "../../generated/contracts/server/deleteOrder.ts";
+import { deletePetWrapper } from "../../generated/contracts/server/deletePet.ts";
+import { getOrderByIdWrapper } from "../../generated/contracts/server/getOrderById.ts";
+import { getPetByIdWrapper } from "../../generated/contracts/server/getPetById.ts";
+import { placeOrderWrapper } from "../../generated/contracts/server/placeOrder.ts";
+import { updatePetWrapper } from "../../generated/contracts/server/updatePet.ts";
+
+export type HttpUseCases = {
+  addPet: AddPet;
+  deleteOrder: DeleteOrder;
+  deletePet: DeletePet;
+  getOrderById: GetOrderById;
+  getPetById: GetPetById;
+  placeOrder: PlaceOrder;
+  updatePet: UpdatePet;
+};
+
+export class RequestValidationError extends Error {
+  constructor(kind: string) {
+    super(`Invalid HTTP request: ${kind}`);
+    this.name = "RequestValidationError";
+  }
+}
+
+export function createHttpControllers(useCases: HttpUseCases) {
+  return {
+    addPet: addPetWrapper(async (request) => {
+      if (!request.isValid || !request.value.body) {
+        throw new RequestValidationError(request.isValid ? "body-error" : request.kind);
+      }
+      const result = await useCases.addPet(request.value.body);
+      return {
+        status: "201",
+        contentType: "application/json",
+        data: addPetResponseMap["201"]["application/json"].parse(result),
+      };
+    }),
+    deleteOrder: deleteOrderWrapper(async (request) => {
+      if (!request.isValid) throw new RequestValidationError(request.kind);
+      await useCases.deleteOrder(request.value.path.orderId);
+      return { status: "204" };
+    }),
+    deletePet: deletePetWrapper(async (request) => {
+      if (!request.isValid) throw new RequestValidationError(request.kind);
+      await useCases.deletePet(request.value.path.petId);
+      return { status: "204" };
+    }),
+    getOrderById: getOrderByIdWrapper(async (request) => {
+      if (!request.isValid) throw new RequestValidationError(request.kind);
+      const result = await useCases.getOrderById(request.value.path.orderId);
+      if (!result) return { status: "404" };
+      return {
+        status: "200",
+        contentType: "application/json",
+        data: getOrderByIdResponseMap["200"]["application/json"].parse(result),
+      };
+    }),
+    getPetById: getPetByIdWrapper(async (request) => {
+      if (!request.isValid) throw new RequestValidationError(request.kind);
+      const result = await useCases.getPetById(request.value.path.petId);
+      if (!result) return { status: "404" };
+      return {
+        status: "200",
+        contentType: "application/json",
+        data: getPetByIdResponseMap["200"]["application/json"].parse(result),
+      };
+    }),
+    placeOrder: placeOrderWrapper(async (request) => {
+      if (!request.isValid || !request.value.body) {
+        throw new RequestValidationError(request.isValid ? "body-error" : request.kind);
+      }
+      const result = await useCases.placeOrder(request.value.body);
+      return {
+        status: "201",
+        contentType: "application/json",
+        data: placeOrderResponseMap["201"]["application/json"].parse(result),
+      };
+    }),
+    updatePet: updatePetWrapper(async (request) => {
+      if (!request.isValid || !request.value.body) {
+        throw new RequestValidationError(request.isValid ? "body-error" : request.kind);
+      }
+      const result = await useCases.updatePet(request.value.body);
+      return {
+        status: "200",
+        contentType: "application/json",
+        data: updatePetResponseMap["200"]["application/json"].parse(result),
+      };
+    }),
+  };
+}
+
+export type HttpControllers = ReturnType<typeof createHttpControllers>;

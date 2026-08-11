@@ -1,0 +1,380 @@
+{
+  "artifactVersion": 1,
+  "openapiVersion": "3.1.0",
+  "application": {
+    "title": "Hexkit Petstore PoC",
+    "version": "1.0.0",
+    "slug": "hexkit-petstore-poc"
+  },
+  "schemas": [
+    {
+      "name": "Pet",
+      "modulePath": "schemas/Pet.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "name",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "status",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false,
+            "enum": ["available", "pending", "sold"]
+          }
+        }
+      ],
+      "persistence": {
+        "table": "pets",
+        "identity": "id"
+      }
+    },
+    {
+      "name": "Order",
+      "modulePath": "schemas/Order.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "petId",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          },
+          "reference": {
+            "schema": "Pet",
+            "property": "id"
+          }
+        },
+        {
+          "name": "quantity",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "status",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false,
+            "enum": ["placed", "approved", "delivered"]
+          }
+        },
+        {
+          "name": "complete",
+          "required": true,
+          "type": {
+            "kind": "boolean",
+            "nullable": false
+          }
+        }
+      ],
+      "persistence": {
+        "table": "orders",
+        "identity": "id"
+      }
+    }
+  ],
+  "securitySchemes": [],
+  "globalSecurity": [],
+  "operations": [
+    {
+      "operationId": "addPet",
+      "method": "post",
+      "path": "/pet",
+      "modulePath": "routes/addPet.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "201",
+          "description": "Pet created",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Pet"
+              }
+            }
+          ]
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "Pet"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "updatePet",
+      "method": "put",
+      "path": "/pet",
+      "modulePath": "routes/updatePet.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Pet updated",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Pet"
+              }
+            }
+          ]
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "Pet"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "getPetById",
+      "method": "get",
+      "path": "/pet/{petId}",
+      "modulePath": "routes/getPetById.ts",
+      "parameters": [
+        {
+          "name": "petId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Pet found",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Pet"
+              }
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "description": "Pet not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "deletePet",
+      "method": "delete",
+      "path": "/pet/{petId}",
+      "modulePath": "routes/deletePet.ts",
+      "parameters": [
+        {
+          "name": "petId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "204",
+          "description": "Pet deleted",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "placeOrder",
+      "method": "post",
+      "path": "/store/order",
+      "modulePath": "routes/placeOrder.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "201",
+          "description": "Order placed",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Order"
+              }
+            }
+          ]
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "Order"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "getOrderById",
+      "method": "get",
+      "path": "/store/order/{orderId}",
+      "modulePath": "routes/getOrderById.ts",
+      "parameters": [
+        {
+          "name": "orderId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Order found",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Order"
+              }
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "description": "Order not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "deleteOrder",
+      "method": "delete",
+      "path": "/store/order/{orderId}",
+      "modulePath": "routes/deleteOrder.ts",
+      "parameters": [
+        {
+          "name": "orderId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "204",
+          "description": "Order deleted",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    }
+  ]
+}

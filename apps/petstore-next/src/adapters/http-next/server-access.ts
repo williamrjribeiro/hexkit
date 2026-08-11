@@ -1,64 +1,61 @@
-// Placeholder DAL for Task 5 only. Task 6 dogfood generation overwrites src/** with the
-// generated Hexkit contracts, use cases, adapters, and real http-next/server-access module.
-export type Pet = {
-  id: number;
-  name: string;
-  status?: "available" | "pending" | "sold";
-};
+import { AddPet, createAddPet } from "../../core/application/add-pet.ts";
+import { DeleteOrder, createDeleteOrder } from "../../core/application/delete-order.ts";
+import { DeletePet, createDeletePet } from "../../core/application/delete-pet.ts";
+import { GetOrderById, createGetOrderById } from "../../core/application/get-order-by-id.ts";
+import { GetPetById, createGetPetById } from "../../core/application/get-pet-by-id.ts";
+import { PlaceOrder, createPlaceOrder } from "../../core/application/place-order.ts";
+import { UpdatePet, createUpdatePet } from "../../core/application/update-pet.ts";
+import type { OrderRepository } from "../../core/ports/order-repository.ts";
+import type { PetRepository } from "../../core/ports/pet-repository.ts";
+import { getDatabase } from "../db/database.ts";
+import { createDrizzleOrderRepository } from "../db/order-repository.ts";
+import { createDrizzlePetRepository } from "../db/pet-repository.ts";
 
-export type Order = {
-  id: number;
-  petId: number;
-  quantity: number;
-  status: "placed" | "approved" | "delivered";
-  complete: boolean;
+export type RuntimeRepositories = {
+  orders: OrderRepository;
+  pets: PetRepository;
 };
 
 export type ServerAccess = {
-  addPet(pet: Pet): Promise<Pet>;
-  updatePet(pet: Pet): Promise<Pet>;
-  getPetById(petId: number): Promise<Pet | undefined>;
-  deletePet(petId: number): Promise<void>;
-  placeOrder(order: Order): Promise<Order>;
-  getOrderById(orderId: number): Promise<Order | undefined>;
-  deleteOrder(orderId: number): Promise<void>;
+  addPet: AddPet;
+  deleteOrder: DeleteOrder;
+  deletePet: DeletePet;
+  getOrderById: GetOrderById;
+  getPetById: GetPetById;
+  placeOrder: PlaceOrder;
+  updatePet: UpdatePet;
 };
 
-const pets = new Map<number, Pet>([
-  [1, { id: 1, name: "Ada", status: "available" }],
-  [2, { id: 2, name: "Linus", status: "pending" }],
-  [3, { id: 3, name: "Grace", status: "sold" }],
-]);
+let cachedRepositories: RuntimeRepositories | undefined;
 
-const orders = new Map<number, Order>([
-  [1, { id: 1, petId: 1, quantity: 1, status: "placed", complete: false }],
-]);
+let cachedAccess: ServerAccess | undefined;
+
+function getRepositories(): RuntimeRepositories {
+  if (cachedRepositories === undefined) {
+    const db = getDatabase();
+    cachedRepositories = {
+      orders: createDrizzleOrderRepository(db),
+      pets: createDrizzlePetRepository(db),
+    };
+  }
+  return cachedRepositories;
+}
+
+function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
+  return {
+    addPet: createAddPet(repositories.pets),
+    deleteOrder: createDeleteOrder(repositories.orders),
+    deletePet: createDeletePet(repositories.pets),
+    getOrderById: createGetOrderById(repositories.orders),
+    getPetById: createGetPetById(repositories.pets),
+    placeOrder: createPlaceOrder(repositories.orders),
+    updatePet: createUpdatePet(repositories.pets),
+  };
+}
 
 export function getServerAccess(): ServerAccess {
-  return {
-    async addPet(pet) {
-      pets.set(pet.id, pet);
-      return pet;
-    },
-    async updatePet(pet) {
-      pets.set(pet.id, pet);
-      return pet;
-    },
-    async getPetById(petId) {
-      return pets.get(petId);
-    },
-    async deletePet(petId) {
-      pets.delete(petId);
-    },
-    async placeOrder(order) {
-      orders.set(order.id, order);
-      return order;
-    },
-    async getOrderById(orderId) {
-      return orders.get(orderId);
-    },
-    async deleteOrder(orderId) {
-      orders.delete(orderId);
-    },
-  };
+  if (cachedAccess === undefined) {
+    cachedAccess = composeServerAccess(getRepositories());
+  }
+  return cachedAccess;
 }

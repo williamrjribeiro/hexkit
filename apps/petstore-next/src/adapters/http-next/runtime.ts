@@ -1,0 +1,61 @@
+import { createAddPet } from "../../core/application/add-pet.ts";
+import { createDeleteOrder } from "../../core/application/delete-order.ts";
+import { createDeletePet } from "../../core/application/delete-pet.ts";
+import { createGetOrderById } from "../../core/application/get-order-by-id.ts";
+import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
+import { createPlaceOrder } from "../../core/application/place-order.ts";
+import { createUpdatePet } from "../../core/application/update-pet.ts";
+import type { OrderRepository } from "../../core/ports/order-repository.ts";
+import type { PetRepository } from "../../core/ports/pet-repository.ts";
+import { getDatabase } from "../db/database.ts";
+import { createDrizzleOrderRepository } from "../db/order-repository.ts";
+import { createDrizzlePetRepository } from "../db/pet-repository.ts";
+import { createHttpControllers } from "./controllers.ts";
+import type { HttpControllers } from "./controllers.ts";
+
+export type RuntimeRepositories = {
+  orders: OrderRepository;
+  pets: PetRepository;
+};
+
+export type NextRuntime = {
+  controllers: HttpControllers;
+  repositories: RuntimeRepositories;
+};
+
+let cachedRepositories: RuntimeRepositories | undefined;
+
+let cachedRuntime: NextRuntime | undefined;
+
+function getRepositories(): RuntimeRepositories {
+  if (cachedRepositories === undefined) {
+    const db = getDatabase();
+    cachedRepositories = {
+      orders: createDrizzleOrderRepository(db),
+      pets: createDrizzlePetRepository(db),
+    };
+  }
+  return cachedRepositories;
+}
+
+function composeRuntime(repositories: RuntimeRepositories): NextRuntime {
+  return {
+    controllers: createHttpControllers({
+      addPet: createAddPet(repositories.pets),
+      deleteOrder: createDeleteOrder(repositories.orders),
+      deletePet: createDeletePet(repositories.pets),
+      getOrderById: createGetOrderById(repositories.orders),
+      getPetById: createGetPetById(repositories.pets),
+      placeOrder: createPlaceOrder(repositories.orders),
+      updatePet: createUpdatePet(repositories.pets),
+    }),
+    repositories,
+  };
+}
+
+export function getRuntime(): NextRuntime {
+  if (cachedRuntime === undefined) {
+    cachedRuntime = composeRuntime(getRepositories());
+  }
+  return cachedRuntime;
+}

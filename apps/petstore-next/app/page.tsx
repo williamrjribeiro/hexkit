@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { loadFeaturedPets } from "./pets/featured";
 
+export const dynamic = "force-dynamic";
+
 function statusBadge(status: string | undefined) {
   return status ?? "unknown";
 }

@@ -54,7 +54,7 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
   const statements = [
     [
       `export function ${repository.factoryName}(`,
-      "  db: NodePgDatabase,",
+      "  db: NodePgDatabase<Record<string, unknown>>,",
       `): ${repository.portName} {`,
       "  return {",
       `${methods.join(",\n")},`,

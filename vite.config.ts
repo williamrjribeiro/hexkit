@@ -28,6 +28,12 @@ export default defineConfig({
         // HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
         cache: false,
       },
+      "dogfood-petstore-next": {
+        command: "apps/petstore-next/scripts/dogfood.sh",
+        // Same uncached env inheritance as dogfood; covers PETSTORE_NEXT_URL,
+        // HEXKIT_SKIP_COMPOSE, HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
+        cache: false,
+      },
     },
   },
 });

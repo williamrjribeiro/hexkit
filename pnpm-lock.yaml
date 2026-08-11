@@ -319,15 +319,27 @@ importers:
 
   apps/petstore-next:
     dependencies:
+      '@standard-schema/spec':
+        specifier: 'catalog:'
+        version: 1.1.0
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.2(@types/pg@8.20.3)(pg@8.22.0)
       next:
         specifier: 16.3.0
         version: 16.3.0(@babel/core@7.29.7(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      pg:
+        specifier: 'catalog:'
+        version: 8.22.0
       react:
         specifier: 19.2.8
         version: 19.2.8
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
     devDependencies:
       '@tailwindcss/postcss':
         specifier: ^4
@@ -335,6 +347,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.43
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.20.3
       '@types/react':
         specifier: ^19
         version: 19.2.18
@@ -4738,7 +4753,7 @@ snapshots:
 
   '@types/pg@8.20.3':
     dependencies:
-      '@types/node': 24.13.3
+      '@types/node': 20.19.43
       pg-protocol: 1.15.0
       pg-types: 2.2.0
 
