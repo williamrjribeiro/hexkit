@@ -114,6 +114,7 @@ Architectural principles remain those in the RFC: contract-first, boundary valid
 **Petstore is a dogfood fixture, not a generator domain.** Hexkit plugins must work for any OpenAPI 3.1 contract in PoC scope. Sample-specific knowledge (Pet, Order, `petId`, Petstore paths, operationIds, table names, Compose service names, etc.) belongs **only** in:
 
 - `apps/petstore-sample/` — OpenAPI fixtures, acceptance tests, dogfood scripts
+- `apps/petstore-next/` — vanilla Next.js PetShop fixture UI (not plugin source)
 - PoC **acceptance criteria** that describe the expected sample outcome
 
 It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit/codegen`, or CLI packaging generators.
@@ -124,6 +125,7 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 | `@hexkit/plugin-apical`                 | **No**             | Runs craft against `context.inputPath`                                                                                            |
 | `@hexkit/plugin-architecture-hexagonal` | **No**             | Derives domain, ports, and use-case skeletons from Apical contracts / OpenAPI IR                                                  |
 | `@hexkit/plugin-hono`                   | **No**             | Derives routes/controllers from Apical operations                                                                                 |
+| `@hexkit/plugin-next`                   | **No**             | Derives Route Handlers, RSC pages, and server-access from Apical operations (opt-in via `--http next`)                            |
 | `@hexkit/plugin-drizzle`                | **No**             | Derives schemas/repos/mappers from contracts + hexagonal ports                                                                    |
 | Packaging / Compose emission            | **No**             | Generic deployable packaging from generation context (names/paths from options or contract metadata, not baked Petstore literals) |
 
@@ -138,17 +140,18 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 
 ### 5.1 Package requirements (PoC)
 
-| Package                                 | PoC must deliver                                                                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                  |
-| `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter |
-| `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                 |
-| `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                           |
-| `@hexkit/plugin-architecture-hexagonal` | **Contract-derived** domain entities, repository ports, use-case skeletons; designate protected user zones |
-| `@hexkit/plugin-hono`                   | **Contract-derived** JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations       |
-| `@hexkit/plugin-drizzle`                | **Contract-derived** Postgres schemas, repository implementations, mappings; Zod-validate DB reads         |
-| `@hexkit/cli`                           | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory)                        |
-| `@hexkit/petstore-sample`               | Trimmed OpenAPI, fully generated app output, Compose packaging, API tests                                  |
+| Package                                 | PoC must deliver                                                                                                                               |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                                                      |
+| `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter                                     |
+| `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                                                     |
+| `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                                                               |
+| `@hexkit/plugin-architecture-hexagonal` | **Contract-derived** domain entities, repository ports, use-case skeletons; designate protected user zones                                     |
+| `@hexkit/plugin-hono`                   | **Contract-derived** JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations (default)                                 |
+| `@hexkit/plugin-next`                   | **Contract-derived** Next.js Route Handlers + optional RSC surface; OpenAPI → Route Handlers only (Server Actions are fixture/UI, not OpenAPI) |
+| `@hexkit/plugin-drizzle`                | **Contract-derived** Postgres schemas, repository implementations, mappings; Zod-validate DB reads                                             |
+| `@hexkit/cli`                           | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory)                                                            |
+| `@hexkit/petstore-sample`               | Trimmed OpenAPI, fully generated app output, Compose packaging, API tests                                                                      |
 
 `@hexkit/plugin-sst` is present in the repo scaffold but is **not a PoC deliverable**.
 
@@ -158,9 +161,11 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 openapi.poc.yaml
   → plugin-apical
   → plugin-architecture-hexagonal
-  → plugin-hono  ∥  plugin-drizzle
+  → plugin-hono  ∥  plugin-next (when --http next)  ∥  plugin-drizzle
   → generated application (+ Compose packaging)
 ```
+
+Hono remains the default HTTP adapter. `--http next` swaps `plugin-hono` for `plugin-next`. `--next-surface both|routes|rsc` (default `both`) selects emitted Next surfaces.
 
 `core` must not contain framework-specific logic. Plugins communicate through `plugin-api` contracts and shared generation context. Downstream plugins (hexagonal → hono/drizzle) must read **generated contracts and prior plugin outputs**, not a Petstore-specific constant table in Hexkit source.
 
@@ -272,7 +277,7 @@ Ordered delivery milestones for implementation planning:
 1. **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring.
 2. **Contracts** — `plugin-apical` end-to-end; author `openapi.poc.yaml` (Pet↔Order dogfood fixture, JSON only, no auth).
 3. **Hexagonal skeleton** — `plugin-architecture-hexagonal` derives domain/ports/use-case skeletons + protected zones **from Apical contracts** (prove with Petstore fixture; no hardcoded Pet/Order in the plugin).
-4. **HTTP adapter** — `plugin-hono` derives JSON routes/controllers from Apical operations (fixture-driven tests only).
+4. **HTTP adapter** — `plugin-hono` derives JSON routes/controllers from Apical operations (default; fixture-driven tests only). Opt-in `plugin-next` emits OpenAPI Route Handlers and/or RSC pages (`--http next`, `--next-surface both|routes|rsc`).
 5. **Persistence** — `plugin-drizzle` derives Postgres schema, repos, and Zod DB-read validation from contracts/ports (Pet↔Order appears in the dogfood contract, not in plugin literals).
 6. **Packaging** — Docker Compose for Hono + Postgres emitted generically for the generated app (sample dogfood uses the Petstore fixture).
 7. **Test suite** — package unit tests, cross-package integration tests, Vitest+PactumJS API tests against Compose.
@@ -287,24 +292,37 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, auth, full Petstore surface, 
 - Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.).
 - GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
+- Automated tests for `apps/petstore-next` (the vanilla PetShop Next fixture has no Vitest/Pactum/Playwright suite; `plugin-next` and CLI tests cover the generator).
 
 ### 11.1 In-PoC correction (blocking)
 
 - Remove Petstore hardcoding from hexagonal, Hono, Drizzle, and packaging generators so §5.0 holds; keep Petstore exclusively as sample OpenAPI + dogfood tests.
 
+### 11.2 Next.js opt-in HTTP adapter (delivered alongside PoC)
+
+Delivered as an extension to the Hono-first PoC (see `docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`):
+
+- **Hono remains default**; Next is opt-in: `hexkit generate <openapi> <out> [--http hono|next]`.
+- **`--next-surface both|routes|rsc`** (default `both`) selects Route Handlers, RSC pages, or both.
+- **`@hexkit/plugin-next` is domain-agnostic** (§5.0): derives handlers and RSC wiring from Apical contracts; no Petstore literals in plugin production source.
+- **OpenAPI → Route Handlers** at literal contract paths; Server Actions are not the OpenAPI HTTP surface (PetShop forms live in the fixture only).
+- **`apps/petstore-next`** — vanilla create-next-app-shaped App Router fixture; installs via **`vp` / pnpm**; Tailwind + optional CSS Modules; RSC reads via generated server-access; form Server Actions for writes; **no client-side data fetching**; **no PetShop test suite**.
+
 ## 12. Decisions log
 
-| Decision            | Choice                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| PoC success bar     | Local generate + validate + Compose + API tests; no live AWS                          |
-| Contract            | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched   |
-| Baseline operations | add/update/get/delete Pet; place/get/delete Order (**sample fixture**, not plugin IR) |
-| Media types         | JSON only                                                                             |
-| Auth                | None                                                                                  |
-| Extension model     | Generated skeletons + protected user zones                                            |
-| Generator domain    | Plugins are domain-agnostic; derive all sample domain from OpenAPI/Apical (§5.0)      |
-| PRD shape           | Single master `PRD.md` at repo root                                                   |
-| Infra plugin        | Exclude `plugin-sst` from PoC                                                         |
-| Packaging           | Hexkit emits Docker Compose (Hono + Postgres)                                         |
-| API test stack      | Vitest + PactumJS against Docker Compose                                              |
-| CI                  | Local only for PoC                                                                    |
+| Decision               | Choice                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| PoC success bar        | Local generate + validate + Compose + API tests; no live AWS                          |
+| Contract               | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched   |
+| Baseline operations    | add/update/get/delete Pet; place/get/delete Order (**sample fixture**, not plugin IR) |
+| Media types            | JSON only                                                                             |
+| Auth                   | None                                                                                  |
+| Extension model        | Generated skeletons + protected user zones                                            |
+| Generator domain       | Plugins are domain-agnostic; derive all sample domain from OpenAPI/Apical (§5.0)      |
+| PRD shape              | Single master `PRD.md` at repo root                                                   |
+| Infra plugin           | Exclude `plugin-sst` from PoC                                                         |
+| HTTP adapter (default) | Hono via `plugin-hono`                                                                |
+| HTTP adapter (opt-in)  | Next.js App Router via `plugin-next` (`--http next`, `--next-surface both             | routes | rsc`) |
+| Packaging              | Hexkit emits Docker Compose (Hono + Postgres)                                         |
+| API test stack         | Vitest + PactumJS against Docker Compose                                              |
+| CI                     | Local only for PoC                                                                    |
