@@ -60,7 +60,13 @@ Route Handlers are **dynamic by default**. Caching `GET` (`force-static` / `use 
 
 ### 2.5 `page` vs `route` conflict
 
-Because `page` and `route` cannot share a segment, Hexkit **must** place RSC UI under a dedicated URL prefix (see §5.1). Public OpenAPI paths keep Route Handlers; sample UI lives under `/ui/...`.
+Because `page` and `route` cannot share a segment, Hexkit must avoid colocating them. Path placement depends on the plugin **surface** option (see §6.0):
+
+| Surface | Route Handlers | RSC pages |
+| ------- | -------------- | --------- |
+| `both` (default) | Literal OpenAPI paths | Under `/ui/...` (no collision) |
+| `routes` | Literal OpenAPI paths | Not emitted |
+| `rsc` | Not emitted | Literal OpenAPI paths (safe — no `route.ts`) |
 
 ## 3. Plugin domain-agnostic invariant (normative)
 
@@ -86,13 +92,13 @@ Sample domains (Petstore, library, auth-api) are **fixtures only**. They must no
 
 ### Goals (v1)
 
-1. Add `@hexkit/plugin-next` that emits App Router **Route Handlers** and **basic RSC pages** from Apical + hexagonal artifacts.
+1. Add `@hexkit/plugin-next` that can emit App Router **Route Handlers**, **basic RSC pages**, or **both**, selected by a plugin/CLI surface option.
 2. Keep Hono as the **default** HTTP adapter; Next.js is **opt-in** via CLI / plugin set.
 3. Keep `plugin-next` **domain-agnostic** (§3 / PRD §5.0).
 4. Map auth the same way as Hono for Route Handlers: Apical wire validation → 401 → `Authenticator` → `Principal`.
 5. RSC pages call a generated **server-access / DAL** module (composed use cases) in-process — never self-HTTP.
-6. Dogfood with a Next-targeted fixture that generates, typechecks, serves Route Handlers, and renders basic UI pages.
-7. Document Route Handlers (public REST) vs RSC DAL (same-app UI).
+6. Dogfood the default `both` surface; unit/integration tests cover `routes` and `rsc` only.
+7. Document Route Handlers (public REST) vs RSC DAL (same-app UI) and the surface switch.
 
 ### Non-goals (v1)
 
@@ -109,19 +115,17 @@ Sample domains (Petstore, library, auth-api) are **fixtures only**. They must no
 
 ### Approach A — Native Route Handlers + RSC pages (recommended)
 
-`plugin-next` emits:
+`plugin-next` emits a configurable subset:
 
-1. One `route.ts` per OpenAPI path (method-coalesced) at **literal contract URLs**.
-2. Shared HTTP helpers + runtime under `src/adapters/http-next/`.
-3. A **server-access** composition module for RSC.
-4. Basic `page.tsx` Server Components under `/ui/...` derived from readable (GET) operations.
-5. Minimal `app/layout.tsx` + `app/page.tsx` index linking to generated UI pages.
+1. **Routes surface:** one `route.ts` per OpenAPI path (method-coalesced) at literal contract URLs + HTTP helpers/runtime.
+2. **RSC surface:** **server-access** DAL + basic `page.tsx` Server Components (path rules in §6.0) + minimal layout/index.
+3. **Both (default):** routes at contract paths; RSC under `/ui/...`.
 
 | Pros | Cons |
 | ---- | ---- |
 | Matches Next.js Route Handler + DAL guidance | Duplicates some HTTP adapter logic vs Hono |
-| RSC supported from day one | Need `/ui` prefix to avoid `page`/`route` conflicts |
-| Domain-agnostic derivation from contracts | CLI target selection / packaging fork |
+| RSC from day one with opt-out of either surface | `both` needs `/ui` prefix to avoid collisions |
+| Domain-agnostic derivation from contracts | CLI target + surface selection / packaging fork |
 
 ### Approach B — Catch-all Hono inside Next
 
@@ -155,7 +159,44 @@ OpenAPI
 
 Business logic remains independent of Next.js, Hono, Drizzle, and deploy tooling.
 
-### 6.1 Generated layout (Next target)
+### 6.0 Surface option (normative)
+
+```ts
+export type NextSurface = "routes" | "rsc" | "both";
+
+export type NextPluginOptions = {
+  /** @default "both" */
+  surface?: NextSurface;
+};
+
+export function createNextPlugin(options?: NextPluginOptions): HexkitPlugin;
+```
+
+CLI (when `--http next`):
+
+```text
+hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]
+```
+
+Default: `--next-surface both`.
+
+| `surface` | Emits | Does not emit |
+| --------- | ----- | ------------- |
+| `both` | `route.ts` at OpenAPI paths; RSC under `app/ui/...`; server-access; HTTP helpers/runtime; layout/index | — |
+| `routes` | `route.ts`; HTTP helpers/controllers/runtime; auth stub if needed; minimal `app/layout.tsx` + stub `app/page.tsx` (Next needs a root page) | `app/ui/**`, GET UI scaffolds, server-access (unless shared later — **v1: omit server-access**) |
+| `rsc` | server-access; RSC `page.tsx` at **literal OpenAPI paths**; layout/index | `route.ts`, HTTP controller/route helpers used only by handlers |
+
+**Path rules by surface:**
+
+| Surface | Handler file for `/pet/{petId}` | RSC page file for GET `/pet/{petId}` |
+| ------- | --------------------------------- | ----------------------------------- |
+| `both` | `app/pet/[petId]/route.ts` | `app/ui/pet/[petId]/page.tsx` |
+| `routes` | `app/pet/[petId]/route.ts` | _(none)_ |
+| `rsc` | _(none)_ | `app/pet/[petId]/page.tsx` |
+
+Invalid: empty surface / unknown token → CLI non-zero exit with clear message.
+
+### 6.1 Generated layout (Next target, `both`)
 
 ```
 src/
@@ -167,7 +208,7 @@ src/
 │   └── http-next/           # helpers, controllers, runtime, server-access
 app/
 ├── layout.tsx               # minimal root layout (generated)
-├── page.tsx                 # index linking to /ui/... pages (generated)
+├── page.tsx                 # index linking to UI pages (generated)
 ├── pet/route.ts             # OpenAPI path Route Handlers (example)
 ├── pet/[petId]/route.ts
 └── ui/                      # RSC sample UI (no collision with route.ts)
@@ -176,7 +217,7 @@ app/
     └── pet/[petId]/page.tsx # detail scaffold when GET /pet/{petId} exists
 ```
 
-**URL mapping:**
+**URL mapping (`both`):**
 
 | Kind | OpenAPI / source | Generated URL / file |
 | ---- | ---------------- | -------------------- |
@@ -185,7 +226,7 @@ app/
 | UI index | all GET ops | `/` and `/ui` list links derived from operations |
 
 Multiple HTTP methods on one OpenAPI path share one `route.ts`.  
-`page.tsx` is emitted only under `app/ui/...` (and root index/layout), never beside a `route.ts` on the same segment.
+Under `both`, `page.tsx` for resources is emitted only under `app/ui/...`, never beside a `route.ts` on the same segment. Under `rsc`, pages use literal OpenAPI paths.
 
 ### 6.2 Handler shape (Route Handlers)
 
@@ -198,9 +239,9 @@ Each method:
 5. Validates response with Apical response map; returns `Response.json(...)`.
 6. Maps validation → **400**; unexpected → **500** without leaking stacks.
 
-### 6.3 RSC + server-access (required in v1)
+### 6.3 RSC + server-access (when surface includes `rsc`)
 
-Generate `src/adapters/http-next/server-access.ts` that:
+When `surface` is `rsc` or `both`, generate `src/adapters/http-next/server-access.ts` that:
 
 - Lazily composes DB repos → use-case factories → (optional) authenticator the same way runtime does for HTTP.
 - Exports a stable `getServerAccess()` returning named use-case functions keyed by `operationId` (or derived safe names from the contract).
@@ -210,12 +251,14 @@ Generated pages:
 - Are **async Server Components**.
 - Call `getServerAccess()` and invoke the matching use case with path/search params from `await props.params` / `searchParams`.
 - Render a minimal, domain-agnostic presentation (e.g. title = `operationId` or path; body = pretty-printed JSON or simple key/value list). **No sample-domain copy in the generator.**
-- For secured GET ops in v1: pages may call use cases **without** browser credential UI (document limitation) **or** read a documented stub header/env only in dogfood — prefer documenting that authenticated RSC demos use Route Handlers / follow-up cookie session work; unsecured GET pages are the normative v1 UI slice.
+- For secured GET ops in v1: pages may call use cases **without** browser credential UI (document limitation); unsecured GET pages are the normative v1 UI slice. Authenticated demos prefer Route Handlers (`routes` / `both`).
 
 Ownership:
 
-- `app/ui/**/page.tsx`, `app/page.tsx`, `app/layout.tsx`: ownership **`generated`** (overwrite) for v1 scaffolds.
+- Generated pages / layout / index: ownership **`generated`** (overwrite) for v1 scaffolds.
 - Protected use cases under `src/core/application/**` remain protected (unchanged hexagonal policy).
+
+When `surface` is `routes`, **omit** server-access and UI page scaffolds; still emit a minimal root `app/layout.tsx` + stub `app/page.tsx` so `next build` has an App Router entry.
 
 ### 6.4 Auth
 
@@ -224,8 +267,10 @@ Reuse contract security IR on `ContractArtifact`. Route Handlers read headers fr
 ### 6.5 Packaging & CLI
 
 - Default pipeline stays Hono + current Compose packaging.
-- CLI: `hexkit generate <openapi> <out> --http next` swaps `plugin-hono` for `plugin-next` and emits Next packaging.
+- CLI: `hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]` swaps `plugin-hono` for `plugin-next` (with surface) and emits Next packaging.
+- `--next-surface` is valid **only** with `--http next`; otherwise CLI errors.
 - Petstore PoC dogfood remains Hono unless explicitly extended.
+- Next dogfood uses `--next-surface both` (or default).
 
 ### 6.6 Runtime
 
@@ -233,10 +278,10 @@ v1 targets the **Node.js** Next runtime (needed for Drizzle). Edge runtime is ou
 
 ## 7. Testing strategy
 
-1. **Unit:** path mapping for handlers and UI pages; method coalescing; auth status mapping.
-2. **Domain-agnostic:** plugin production sources contain no Petstore/sample literals; Library vs Petstore fixtures both generate coherent `route.ts` + `app/ui/**/page.tsx` without plugin edits.
-3. **Generation integration:** `--http next` emits handlers + pages + server-access; typecheck generated app.
-4. **Acceptance:** Next + Postgres Compose; Pactum against OpenAPI Route Handler URLs; smoke check that `/ui/...` pages return 200 HTML for unsecured GET ops.
+1. **Unit:** path mapping for handlers and UI pages (including `rsc` vs `both` path differences); method coalescing; auth status mapping; surface filtering.
+2. **Domain-agnostic:** plugin production sources contain no Petstore/sample literals; Library vs Petstore fixtures generate coherent outputs without plugin edits.
+3. **Generation integration:** `--http next` with each surface; assert emitted/omitted files; typecheck generated app for `both`.
+4. **Acceptance:** Next + Postgres Compose with default `both`; Pactum against Route Handler URLs; smoke `/ui/...` pages for unsecured GET ops.
 5. **Regression:** Hono default dogfood stays green.
 
 ## 8. Docs / product amendments
@@ -249,11 +294,11 @@ v1 targets the **Node.js** Next runtime (needed for Drizzle). Edge runtime is ou
 
 Hexkit Next.js v1 is done when:
 
-1. `plugin-next` generates Route Handlers **and** basic RSC pages from any in-scope JSON contract **without** domain hardcoding.
-2. RSC pages call `getServerAccess()` / use cases in-process (no self-`fetch` to Route Handlers).
-3. No `page.tsx` collides with `route.ts` on the same segment (`/ui` prefix strategy).
-4. Generated app typechecks and serves handlers + pages under Next.js 16 App Router.
-5. Auth fixture returns 401/200 correctly via Route Handlers.
+1. `plugin-next` supports `surface: "routes" | "rsc" | "both"` and generates the correct subset from any in-scope JSON contract **without** domain hardcoding.
+2. When RSC is enabled, pages call `getServerAccess()` / use cases in-process (no self-`fetch` to Route Handlers).
+3. No `page.tsx` collides with `route.ts` on the same segment (`both` uses `/ui`; `rsc` uses contract paths with no handlers).
+4. Default `both` app typechecks and serves handlers + pages under Next.js 16 App Router.
+5. Auth fixture returns 401/200 correctly via Route Handlers when routes are enabled.
 6. Domain-agnostic scanner covers `packages/plugin-next/src`.
 7. Default Hono Petstore dogfood is unchanged.
 
@@ -262,8 +307,9 @@ Hexkit Next.js v1 is done when:
 | Decision | Choice |
 | -------- | ------ |
 | Next surface for OpenAPI | App Router Route Handlers at literal contract paths |
-| RSC support | **v1 required** — basic generated Server Component pages + server-access DAL |
-| UI vs API paths | UI under `/ui/...` to avoid `page`/`route` segment conflict |
+| RSC support | **v1 required** as selectable surface — basic pages + server-access DAL |
+| Generation modes | `NextSurface = "routes" \| "rsc" \| "both"` (default `both`) |
+| UI vs API paths | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers only |
 | Server Actions | Out of v1 for OpenAPI mapping |
 | Pages Router API routes | Out of scope |
 | Default HTTP adapter | Hono (unchanged) |
