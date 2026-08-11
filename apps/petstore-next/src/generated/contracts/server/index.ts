@@ -17,7 +17,7 @@ export { getOrderByIdWrapper } from "./getOrderById.ts";
 export { deleteOrderWrapper } from "./deleteOrder.ts";
 
 /* Re-export all handlers */
-export type { addPetHandler } from "./addPet.ts";
+  export type { addPetHandler } from "./addPet.ts";
 export type { updatePetHandler } from "./updatePet.ts";
 export type { getPetByIdHandler } from "./getPetById.ts";
 export type { deletePetHandler } from "./deletePet.ts";
@@ -27,11 +27,11 @@ export type { deleteOrderHandler } from "./deleteOrder.ts";
 
 /* Routes object with all route functions */
 export const routes = {
-  addPet: addPetRoute,
-  updatePet: updatePetRoute,
-  getPetById: getPetByIdRoute,
-  deletePet: deletePetRoute,
-  placeOrder: placeOrderRoute,
-  getOrderById: getOrderByIdRoute,
-  deleteOrder: deleteOrderRoute,
+addPet: addPetRoute,
+updatePet: updatePetRoute,
+getPetById: getPetByIdRoute,
+deletePet: deletePetRoute,
+placeOrder: placeOrderRoute,
+getOrderById: getOrderByIdRoute,
+deleteOrder: deleteOrderRoute,
 } as const;

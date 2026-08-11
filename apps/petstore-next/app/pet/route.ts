@@ -6,7 +6,10 @@ import {
   toApicalRequest,
 } from "@/adapters/http-next/helpers";
 
-export async function POST(request: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+export async function POST(
+  request: NextRequest,
+  ctx: { params: Promise<Record<string, string>> },
+) {
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
@@ -18,7 +21,10 @@ export async function POST(request: NextRequest, ctx: { params: Promise<Record<s
   }
 }
 
-export async function PUT(request: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+export async function PUT(
+  request: NextRequest,
+  ctx: { params: Promise<Record<string, string>> },
+) {
   const params = await ctx.params;
   const runtime = getRuntime();
   try {

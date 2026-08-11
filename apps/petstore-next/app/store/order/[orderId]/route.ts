@@ -21,7 +21,10 @@ export async function DELETE(
   }
 }
 
-export async function GET(request: NextRequest, ctx: { params: Promise<Record<string, string>> }) {
+export async function GET(
+  request: NextRequest,
+  ctx: { params: Promise<Record<string, string>> },
+) {
   const params = await ctx.params;
   const runtime = getRuntime();
   try {

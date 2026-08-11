@@ -12,7 +12,8 @@ export type deletePetResponseHeadersMap = typeof deletePetResponseHeadersMap;
 export const deletePetResponseMap = {} as const;
 export type deletePetResponseMap = typeof deletePetResponseMap;
 
-export type deletePetRouteResponse = { status: "204" };
+export type deletePetRouteResponse =
+  | { status: "204";   };
 
 export const clientRoute = {
   path: "/pet/{petId}",

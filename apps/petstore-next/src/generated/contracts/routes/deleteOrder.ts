@@ -12,7 +12,8 @@ export type deleteOrderResponseHeadersMap = typeof deleteOrderResponseHeadersMap
 export const deleteOrderResponseMap = {} as const;
 export type deleteOrderResponseMap = typeof deleteOrderResponseMap;
 
-export type deleteOrderRouteResponse = { status: "204" };
+export type deleteOrderRouteResponse =
+  | { status: "204";   };
 
 export const clientRoute = {
   path: "/store/order/{orderId}",

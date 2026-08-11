@@ -99,7 +99,7 @@ export function createHttpControllers(useCases: HttpUseCases) {
         contentType: "application/json",
         data: updatePetResponseMap["200"]["application/json"].parse(result),
       };
-    }),
+    })
   };
 }
 

@@ -15,7 +15,8 @@ export const updatePetResponseMap = {
 } as const;
 export type updatePetResponseMap = typeof updatePetResponseMap;
 
-export type updatePetRouteResponse = { status: "200"; contentType: "application/json"; data: Pet };
+export type updatePetRouteResponse =
+  | { status: "200"; contentType: "application/json"; data: Pet; };
 
 export const clientRoute = {
   path: "/pet",

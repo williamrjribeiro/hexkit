@@ -1,10 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import {
-  createStandardSchemaValidationError,
-  type StandardSchemaValidationError,
-  validateStandardSchema,
-} from "../standard-schema.ts";
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as getPetByIdRouteMetadata } from "../routes/getPetById.ts";
 
@@ -26,7 +22,9 @@ export type getPetByIdHandler = (
   params: { isValid: true; value: getPetByIdParsedParams } | getPetByIdValidationError,
 ) => Promise<getPetByIdRouteResponse>;
 
-export function getPetByIdWrapper(handler: getPetByIdHandler) {
+export function getPetByIdWrapper(
+  handler: getPetByIdHandler,
+) {
   return async (req: {
     query: unknown;
     path: unknown;
@@ -34,20 +32,16 @@ export function getPetByIdWrapper(handler: getPetByIdHandler) {
     body?: unknown;
     contentType?: string;
   }): Promise<getPetByIdRouteResponse> => {
-    const pathParse = await validateStandardSchema(
-      getPetByIdRouteMetadata.params.shape.path,
-      req.path,
-    );
-    if (!pathParse.success)
-      return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-    let parsedBody: undefined = undefined;
-    return handler({
-      isValid: true,
-      value: {
-        path: pathParse.value,
-        body: parsedBody,
-      },
-    });
+  const pathParse = await validateStandardSchema(getPetByIdRouteMetadata.params.shape.path, req.path);
+  if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
+  let parsedBody: undefined | undefined = undefined;
+  return handler({
+    isValid: true,
+    value: {
+      path: pathParse.value,
+      body: parsedBody
+    },
+  });
   };
 }
 

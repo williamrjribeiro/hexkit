@@ -19,8 +19,8 @@ export const getOrderByIdResponseMap = {
 export type getOrderByIdResponseMap = typeof getOrderByIdResponseMap;
 
 export type getOrderByIdRouteResponse =
-  | { status: "200"; contentType: "application/json"; data: Order }
-  | { status: "404" };
+  | { status: "200"; contentType: "application/json"; data: Order; }
+  | { status: "404";   };
 
 export const clientRoute = {
   path: "/store/order/{orderId}",

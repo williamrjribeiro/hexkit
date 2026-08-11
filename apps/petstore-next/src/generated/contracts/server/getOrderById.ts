@@ -1,10 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import {
-  createStandardSchemaValidationError,
-  type StandardSchemaValidationError,
-  validateStandardSchema,
-} from "../standard-schema.ts";
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as getOrderByIdRouteMetadata } from "../routes/getOrderById.ts";
 
@@ -26,7 +22,9 @@ export type getOrderByIdHandler = (
   params: { isValid: true; value: getOrderByIdParsedParams } | getOrderByIdValidationError,
 ) => Promise<getOrderByIdRouteResponse>;
 
-export function getOrderByIdWrapper(handler: getOrderByIdHandler) {
+export function getOrderByIdWrapper(
+  handler: getOrderByIdHandler,
+) {
   return async (req: {
     query: unknown;
     path: unknown;
@@ -34,20 +32,16 @@ export function getOrderByIdWrapper(handler: getOrderByIdHandler) {
     body?: unknown;
     contentType?: string;
   }): Promise<getOrderByIdRouteResponse> => {
-    const pathParse = await validateStandardSchema(
-      getOrderByIdRouteMetadata.params.shape.path,
-      req.path,
-    );
-    if (!pathParse.success)
-      return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-    let parsedBody: undefined = undefined;
-    return handler({
-      isValid: true,
-      value: {
-        path: pathParse.value,
-        body: parsedBody,
-      },
-    });
+  const pathParse = await validateStandardSchema(getOrderByIdRouteMetadata.params.shape.path, req.path);
+  if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
+  let parsedBody: undefined | undefined = undefined;
+  return handler({
+    isValid: true,
+    value: {
+      path: pathParse.value,
+      body: parsedBody
+    },
+  });
   };
 }
 

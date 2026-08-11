@@ -15,11 +15,8 @@ export const placeOrderResponseMap = {
 } as const;
 export type placeOrderResponseMap = typeof placeOrderResponseMap;
 
-export type placeOrderRouteResponse = {
-  status: "201";
-  contentType: "application/json";
-  data: Order;
-};
+export type placeOrderRouteResponse =
+  | { status: "201"; contentType: "application/json"; data: Order; };
 
 export const clientRoute = {
   path: "/store/order",

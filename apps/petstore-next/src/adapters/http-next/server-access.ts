@@ -34,8 +34,8 @@ function getRepositories(): RuntimeRepositories {
   if (cachedRepositories === undefined) {
     const db = getDatabase();
     cachedRepositories = {
-      orders: createDrizzleOrderRepository(db),
-      pets: createDrizzlePetRepository(db),
+    orders: createDrizzleOrderRepository(db),
+    pets: createDrizzlePetRepository(db),
     };
   }
   return cachedRepositories;

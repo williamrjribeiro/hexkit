@@ -31,8 +31,8 @@ function getRepositories(): RuntimeRepositories {
   if (cachedRepositories === undefined) {
     const db = getDatabase();
     cachedRepositories = {
-      orders: createDrizzleOrderRepository(db),
-      pets: createDrizzlePetRepository(db),
+    orders: createDrizzleOrderRepository(db),
+    pets: createDrizzlePetRepository(db),
     };
   }
   return cachedRepositories;
@@ -41,13 +41,13 @@ function getRepositories(): RuntimeRepositories {
 function composeRuntime(repositories: RuntimeRepositories): NextRuntime {
   return {
     controllers: createHttpControllers({
-      addPet: createAddPet(repositories.pets),
-      deleteOrder: createDeleteOrder(repositories.orders),
-      deletePet: createDeletePet(repositories.pets),
-      getOrderById: createGetOrderById(repositories.orders),
-      getPetById: createGetPetById(repositories.pets),
-      placeOrder: createPlaceOrder(repositories.orders),
-      updatePet: createUpdatePet(repositories.pets),
+    addPet: createAddPet(repositories.pets),
+    deleteOrder: createDeleteOrder(repositories.orders),
+    deletePet: createDeletePet(repositories.pets),
+    getOrderById: createGetOrderById(repositories.orders),
+    getPetById: createGetPetById(repositories.pets),
+    placeOrder: createPlaceOrder(repositories.orders),
+    updatePet: createUpdatePet(repositories.pets),
     }),
     repositories,
   };

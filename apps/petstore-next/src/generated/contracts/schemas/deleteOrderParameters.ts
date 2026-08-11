@@ -2,10 +2,10 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import * as z from "zod";
 
 /* Parameter schemas for type-safe inputs */
-const deleteOrderPathSchema = z.object({ orderId: z.number().int() });
+const deleteOrderPathSchema = z.object({ "orderId": z.number().int() });
 
 /* Server parameter schemas with coercion and lowercase headers */
-const deleteOrderServerPathSchema = z.object({ orderId: z.coerce.number().int() });
+const deleteOrderServerPathSchema = z.object({ "orderId": z.coerce.number().int() });
 
 /* Export schemas for external use */
 export { deleteOrderPathSchema };
@@ -18,20 +18,16 @@ export type deleteOrderPathSchema = StandardSchemaV1.InferOutput<typeof deleteOr
 
 /* Combined parsed parameters object */
 export const deleteOrderParsedParams = z.object({
-  path: deleteOrderPathSchema,
+  path: deleteOrderPathSchema
 });
 
 /* Combined parsed parameters type */
-export type deleteOrderParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof deleteOrderParsedParams
->;
+export type deleteOrderParsedParamsType = StandardSchemaV1.InferOutput<typeof deleteOrderParsedParams>;
 
 /* Combined server parsed parameters object */
 export const deleteOrderServerParsedParams = z.object({
-  path: deleteOrderServerPathSchema,
+  path: deleteOrderServerPathSchema
 });
 
 /* Combined server parsed parameters type */
-export type deleteOrderServerParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof deleteOrderServerParsedParams
->;
+export type deleteOrderServerParsedParamsType = StandardSchemaV1.InferOutput<typeof deleteOrderServerParsedParams>;

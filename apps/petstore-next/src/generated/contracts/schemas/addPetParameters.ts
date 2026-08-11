@@ -3,6 +3,7 @@ import * as z from "zod";
 
 /* Parameter schemas for type-safe inputs */
 
+
 /* Combined parsed parameters object */
 export const addPetParsedParams = z.object({});
 
@@ -13,6 +14,4 @@ export type addPetParsedParamsType = StandardSchemaV1.InferOutput<typeof addPetP
 export const addPetServerParsedParams = z.object({});
 
 /* Combined server parsed parameters type */
-export type addPetServerParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof addPetServerParsedParams
->;
+export type addPetServerParsedParamsType = StandardSchemaV1.InferOutput<typeof addPetServerParsedParams>;

@@ -34,7 +34,11 @@
           "type": {
             "kind": "string",
             "nullable": false,
-            "enum": ["available", "pending", "sold"]
+            "enum": [
+              "available",
+              "pending",
+              "sold"
+            ]
           }
         }
       ],
@@ -84,7 +88,11 @@
           "type": {
             "kind": "string",
             "nullable": false,
-            "enum": ["placed", "approved", "delivered"]
+            "enum": [
+              "placed",
+              "approved",
+              "delivered"
+            ]
           }
         },
         {

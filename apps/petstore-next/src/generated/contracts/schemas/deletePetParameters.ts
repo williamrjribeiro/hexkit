@@ -2,10 +2,10 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import * as z from "zod";
 
 /* Parameter schemas for type-safe inputs */
-const deletePetPathSchema = z.object({ petId: z.number().int() });
+const deletePetPathSchema = z.object({ "petId": z.number().int() });
 
 /* Server parameter schemas with coercion and lowercase headers */
-const deletePetServerPathSchema = z.object({ petId: z.coerce.number().int() });
+const deletePetServerPathSchema = z.object({ "petId": z.coerce.number().int() });
 
 /* Export schemas for external use */
 export { deletePetPathSchema };
@@ -18,7 +18,7 @@ export type deletePetPathSchema = StandardSchemaV1.InferOutput<typeof deletePetP
 
 /* Combined parsed parameters object */
 export const deletePetParsedParams = z.object({
-  path: deletePetPathSchema,
+  path: deletePetPathSchema
 });
 
 /* Combined parsed parameters type */
@@ -26,10 +26,8 @@ export type deletePetParsedParamsType = StandardSchemaV1.InferOutput<typeof dele
 
 /* Combined server parsed parameters object */
 export const deletePetServerParsedParams = z.object({
-  path: deletePetServerPathSchema,
+  path: deletePetServerPathSchema
 });
 
 /* Combined server parsed parameters type */
-export type deletePetServerParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof deletePetServerParsedParams
->;
+export type deletePetServerParsedParamsType = StandardSchemaV1.InferOutput<typeof deletePetServerParsedParams>;

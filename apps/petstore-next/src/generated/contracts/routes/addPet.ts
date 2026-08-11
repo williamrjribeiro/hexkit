@@ -15,7 +15,8 @@ export const addPetResponseMap = {
 } as const;
 export type addPetResponseMap = typeof addPetResponseMap;
 
-export type addPetRouteResponse = { status: "201"; contentType: "application/json"; data: Pet };
+export type addPetRouteResponse =
+  | { status: "201"; contentType: "application/json"; data: Pet; };
 
 export const clientRoute = {
   path: "/pet",

@@ -19,9 +19,14 @@ export type StandardSchemaValidationResult<T> =
 export async function validateStandardSchema<TSchema extends StandardSchemaV1>(
   schema: TSchema,
   value: unknown,
-): Promise<StandardSchemaValidationResult<StandardSchemaV1.InferOutput<TSchema>>> {
+): Promise<
+  StandardSchemaValidationResult<StandardSchemaV1.InferOutput<TSchema>>
+> {
   const validationResult = schema["~standard"].validate(value);
-  const result = validationResult instanceof Promise ? await validationResult : validationResult;
+  const result =
+    validationResult instanceof Promise
+      ? await validationResult
+      : validationResult;
 
   if (result.issues) {
     return {

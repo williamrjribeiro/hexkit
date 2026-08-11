@@ -1,10 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import {
-  createStandardSchemaValidationError,
-  type StandardSchemaValidationError,
-  validateStandardSchema,
-} from "../standard-schema.ts";
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as deletePetRouteMetadata } from "../routes/deletePet.ts";
 
@@ -26,7 +22,9 @@ export type deletePetHandler = (
   params: { isValid: true; value: deletePetParsedParams } | deletePetValidationError,
 ) => Promise<deletePetRouteResponse>;
 
-export function deletePetWrapper(handler: deletePetHandler) {
+export function deletePetWrapper(
+  handler: deletePetHandler,
+) {
   return async (req: {
     query: unknown;
     path: unknown;
@@ -34,20 +32,16 @@ export function deletePetWrapper(handler: deletePetHandler) {
     body?: unknown;
     contentType?: string;
   }): Promise<deletePetRouteResponse> => {
-    const pathParse = await validateStandardSchema(
-      deletePetRouteMetadata.params.shape.path,
-      req.path,
-    );
-    if (!pathParse.success)
-      return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-    let parsedBody: undefined = undefined;
-    return handler({
-      isValid: true,
-      value: {
-        path: pathParse.value,
-        body: parsedBody,
-      },
-    });
+  const pathParse = await validateStandardSchema(deletePetRouteMetadata.params.shape.path, req.path);
+  if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
+  let parsedBody: undefined | undefined = undefined;
+  return handler({
+    isValid: true,
+    value: {
+      path: pathParse.value,
+      body: parsedBody
+    },
+  });
   };
 }
 

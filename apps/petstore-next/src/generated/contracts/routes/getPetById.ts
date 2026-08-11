@@ -19,8 +19,8 @@ export const getPetByIdResponseMap = {
 export type getPetByIdResponseMap = typeof getPetByIdResponseMap;
 
 export type getPetByIdRouteResponse =
-  | { status: "200"; contentType: "application/json"; data: Pet }
-  | { status: "404" };
+  | { status: "200"; contentType: "application/json"; data: Pet; }
+  | { status: "404";   };
 
 export const clientRoute = {
   path: "/pet/{petId}",

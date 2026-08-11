@@ -2,10 +2,10 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 import * as z from "zod";
 
 /* Parameter schemas for type-safe inputs */
-const getPetByIdPathSchema = z.object({ petId: z.number().int() });
+const getPetByIdPathSchema = z.object({ "petId": z.number().int() });
 
 /* Server parameter schemas with coercion and lowercase headers */
-const getPetByIdServerPathSchema = z.object({ petId: z.coerce.number().int() });
+const getPetByIdServerPathSchema = z.object({ "petId": z.coerce.number().int() });
 
 /* Export schemas for external use */
 export { getPetByIdPathSchema };
@@ -18,20 +18,16 @@ export type getPetByIdPathSchema = StandardSchemaV1.InferOutput<typeof getPetByI
 
 /* Combined parsed parameters object */
 export const getPetByIdParsedParams = z.object({
-  path: getPetByIdPathSchema,
+  path: getPetByIdPathSchema
 });
 
 /* Combined parsed parameters type */
-export type getPetByIdParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof getPetByIdParsedParams
->;
+export type getPetByIdParsedParamsType = StandardSchemaV1.InferOutput<typeof getPetByIdParsedParams>;
 
 /* Combined server parsed parameters object */
 export const getPetByIdServerParsedParams = z.object({
-  path: getPetByIdServerPathSchema,
+  path: getPetByIdServerPathSchema
 });
 
 /* Combined server parsed parameters type */
-export type getPetByIdServerParsedParamsType = StandardSchemaV1.InferOutput<
-  typeof getPetByIdServerParsedParams
->;
+export type getPetByIdServerParsedParamsType = StandardSchemaV1.InferOutput<typeof getPetByIdServerParsedParams>;

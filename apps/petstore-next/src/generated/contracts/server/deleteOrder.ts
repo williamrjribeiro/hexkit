@@ -1,10 +1,6 @@
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 
-import {
-  createStandardSchemaValidationError,
-  type StandardSchemaValidationError,
-  validateStandardSchema,
-} from "../standard-schema.ts";
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as deleteOrderRouteMetadata } from "../routes/deleteOrder.ts";
 
@@ -26,7 +22,9 @@ export type deleteOrderHandler = (
   params: { isValid: true; value: deleteOrderParsedParams } | deleteOrderValidationError,
 ) => Promise<deleteOrderRouteResponse>;
 
-export function deleteOrderWrapper(handler: deleteOrderHandler) {
+export function deleteOrderWrapper(
+  handler: deleteOrderHandler,
+) {
   return async (req: {
     query: unknown;
     path: unknown;
@@ -34,20 +32,16 @@ export function deleteOrderWrapper(handler: deleteOrderHandler) {
     body?: unknown;
     contentType?: string;
   }): Promise<deleteOrderRouteResponse> => {
-    const pathParse = await validateStandardSchema(
-      deleteOrderRouteMetadata.params.shape.path,
-      req.path,
-    );
-    if (!pathParse.success)
-      return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-    let parsedBody: undefined = undefined;
-    return handler({
-      isValid: true,
-      value: {
-        path: pathParse.value,
-        body: parsedBody,
-      },
-    });
+  const pathParse = await validateStandardSchema(deleteOrderRouteMetadata.params.shape.path, req.path);
+  if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
+  let parsedBody: undefined | undefined = undefined;
+  return handler({
+    isValid: true,
+    value: {
+      path: pathParse.value,
+      body: parsedBody
+    },
+  });
   };
 }
 
