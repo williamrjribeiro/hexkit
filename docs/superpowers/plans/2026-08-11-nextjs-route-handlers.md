@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers **and** basic RSC pages (in-process DAL) from OpenAPI/Apical contracts, while keeping Hono as the default HTTP adapter.
+**Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers, basic RSC pages, or **both** (selectable surface) from OpenAPI/Apical contracts, while keeping Hono as the default HTTP adapter.
 
-**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next`, which emits (1) thin `app/**/route.ts` at literal OpenAPI paths, (2) `src/adapters/http-next/server-access.ts` for RSC, and (3) basic `app/ui/**/page.tsx` Server Components that call use cases in-process. Auth and Zod boundaries for HTTP match Hono. Packaging emits a Next + Postgres Compose stack for dogfood.
+**Architecture:** Reuse apical + hexagonal + drizzle artifacts. When `--http next` is selected, swap `plugin-hono` for `plugin-next` with `surface: "routes" | "rsc" | "both"` (default `both`). Routes emit `app/**/route.ts` at literal OpenAPI paths; RSC emits server-access + pages (`app/ui/...` when `both`, contract paths when `rsc`-only). Auth/Zod for HTTP match Hono. Packaging emits a Next + Postgres Compose stack for dogfood.
 
 **Tech Stack:** TypeScript, Vite+, Vitest, Next.js 16 App Router (`route.ts`, `page.tsx` RSC, `NextRequest`/`Response.json`), Apical Zod wrappers, existing Hexkit plugins.
 
@@ -18,8 +18,11 @@
 - `apps/cli` domain-agnostic scanner **must** include `packages/plugin-next/src`.
 - OpenAPI → public HTTP mapping uses **Route Handlers only** (no Server Actions, no `pages/api`).
 - RSC pages call **server-access / use cases in-process** — never `fetch` own Route Handlers.
-- Never emit `page.tsx` beside `route.ts` on the same segment; UI lives under `app/ui/...`.
+- `NextSurface = "routes" | "rsc" | "both"` (default `both`). Filter generators by surface; do not emit disabled artifacts.
+- Path placement: `both` → RSC under `app/ui/...`; `rsc` → RSC at literal OpenAPI paths; `routes` → handlers only (+ stub root page).
+- Never emit `page.tsx` beside `route.ts` on the same segment.
 - No forced `/api` prefix on Route Handlers — map OpenAPI paths literally under `app/`.
+- `--next-surface` only valid with `--http next`.
 - Dynamic/request-time handlers and pages by default (do not emit `force-static` / `use cache` for these scaffolds).
 - Reuse Apical wrappers + hexagonal `Authenticator`/`Principal`; no parallel auth schemas.
 - Calculation/action separation; TDD with Vitest BDD style; Conventional Commits per task.
@@ -41,13 +44,13 @@
 | `packages/plugin-next/src/generate/pages.ts` | Emit `app/layout.tsx`, `app/page.tsx`, `app/ui/**/page.tsx` |
 | `packages/plugin-next/src/generate/runtime.ts` | Compose use cases + authenticator for handlers |
 | `packages/plugin-next/src/generate/auth-adapter.ts` | In-memory authenticator stub when security present |
-| `packages/plugin-next/src/plugin.ts` | `createNextPlugin()` |
-| `packages/plugin-next/src/plugin.test.ts` | Fixtures (Petstore + Library), snapshots, domain-agnostic assertions |
+| `packages/plugin-next/src/plugin.ts` | `createNextPlugin({ surface })` |
+| `packages/plugin-next/src/plugin.test.ts` | Fixtures (Petstore + Library), surfaces, snapshots |
 | `packages/plugin-next/src/domain-agnostic.test.ts` | Banned sample-domain literals in plugin production sources |
-| `apps/cli/src/command.ts` | Parse `--http hono\|next` |
-| `apps/cli/src/main.ts` | Select plugin set + packaging variant |
+| `apps/cli/src/command.ts` | Parse `--http hono\|next` and `--next-surface` |
+| `apps/cli/src/main.ts` | Select plugin set + packaging + surface |
 | `apps/cli/src/packaging-plugin.ts` | Next packaging branch |
-| `apps/cli/src/next-generation.test.ts` | Integration: handlers + RSC pages |
+| `apps/cli/src/next-generation.test.ts` | Integration: each surface |
 | `apps/cli/src/domain-agnostic.test.ts` | Add `packages/plugin-next/src` to scan roots |
 | `apps/fixtures/next-api/` | Dogfood fixture + Pactum + UI smoke |
 | `RFC.md` / `PRD.md` / `docs/README.md` | Product amendment + links |
@@ -73,9 +76,12 @@
 export function openApiPathToAppRouteFile(openApiPath: string): string;
 // "/pet/{petId}" → "app/pet/[petId]/route.ts"
 
-export function openApiPathToUiPageFile(openApiPath: string): string;
-// "/pet/{petId}" → "app/ui/pet/[petId]/page.tsx"
-// "/pet" → "app/ui/pet/page.tsx"
+export function openApiPathToUiPageFile(
+  openApiPath: string,
+  options: { surface: "rsc" | "both" },
+): string;
+// surface "both" → "app/ui/pet/[petId]/page.tsx"
+// surface "rsc"  → "app/pet/[petId]/page.tsx"
 
 export function openApiPathToAppRouteSegments(openApiPath: string): string[];
 ```
@@ -87,12 +93,16 @@ import { describe, expect, it } from "vite-plus/test";
 import { openApiPathToAppRouteFile, openApiPathToUiPageFile } from "./paths.ts";
 
 describe("Given OpenAPI paths", () => {
-  it("when mapped, then handlers use contract paths and UI pages use /ui prefix", () => {
-    expect(openApiPathToAppRouteFile("/pet")).toBe("app/pet/route.ts");
+  it("when mapped for both, then handlers use contract paths and UI uses /ui prefix", () => {
     expect(openApiPathToAppRouteFile("/pet/{petId}")).toBe("app/pet/[petId]/route.ts");
-    expect(openApiPathToUiPageFile("/pet/{petId}")).toBe("app/ui/pet/[petId]/page.tsx");
-    expect(openApiPathToUiPageFile("/store/order/{orderId}")).toBe(
-      "app/ui/store/order/[orderId]/page.tsx",
+    expect(openApiPathToUiPageFile("/pet/{petId}", { surface: "both" })).toBe(
+      "app/ui/pet/[petId]/page.tsx",
+    );
+  });
+
+  it("when mapped for rsc-only, then pages use contract paths", () => {
+    expect(openApiPathToUiPageFile("/pet/{petId}", { surface: "rsc" })).toBe(
+      "app/pet/[petId]/page.tsx",
     );
   });
 });
@@ -109,7 +119,7 @@ Run: `vp test packages/plugin-next/src/model/paths.test.ts`
 
 - [ ] **Step 3: Scaffold package and implement path helpers**
 
-Mirror `packages/plugin-hono` package shape. `{param}` → `[param]`; no `/api` prefix on handlers; UI always under `app/ui/`. README must state the domain-agnostic invariant.
+Mirror `packages/plugin-hono` package shape. `{param}` → `[param]`; no `/api` prefix on handlers; UI under `app/ui/` only for `both`. README must state the domain-agnostic invariant and surface options.
 
 - [ ] **Step 4: Re-run tests and `vp check`**
 
@@ -144,11 +154,11 @@ export type NextRouteFile = {
 };
 
 export type NextUiPage = {
-  filePath: string; // app/ui/.../page.tsx
+  filePath: string; // app/ui/.../page.tsx OR app/.../page.tsx when surface=rsc
   openApiPath: string;
   operationId: string;
-  useCaseAccessorName: string; // key on getServerAccess()
-  paramNames: readonly string[]; // from {param} segments
+  useCaseAccessorName: string;
+  paramNames: readonly string[];
 };
 
 export type NextMethodBinding = {
@@ -164,9 +174,12 @@ export type NextMethodBinding = {
   requiresPrincipal: boolean;
 };
 
+export type NextSurface = "routes" | "rsc" | "both";
+
 export type NextHttpModel = {
-  routes: readonly NextRouteFile[];
-  uiPages: readonly NextUiPage[]; // derived from GET operations only in v1
+  surface: NextSurface;
+  routes: readonly NextRouteFile[]; // empty when surface === "rsc"
+  uiPages: readonly NextUiPage[]; // empty when surface === "routes"; GET-only when present
   repositories: ApplicationArtifact["repositories"];
   authenticator?: {
     portFilePath: string;
@@ -178,10 +191,11 @@ export type NextHttpModel = {
 export function deriveNextHttpModel(
   contract: ContractArtifact,
   application: ApplicationArtifact,
+  options?: { surface?: NextSurface },
 ): NextHttpModel;
 ```
 
-`server-access.ts` generated API:
+`server-access.ts` generated API (only when surface includes RSC):
 
 ```ts
 export function getServerAccess(): {
@@ -193,10 +207,11 @@ export function getServerAccess(): {
 
 Assert:
 
-- Same OpenAPI path coalesces methods into one `NextRouteFile`.
-- Each GET operation yields a `NextUiPage` under `app/ui/...`.
-- Library fixture produces book paths **without** requiring Petstore strings in plugin source.
-- Auth GET ops still appear in `uiPages` but document unsecured UI slice for dogfood (handlers remain authoritative for 401).
+- Same OpenAPI path coalesces methods into one `NextRouteFile` when routes enabled.
+- `surface: "both"` → routes + `app/ui/...` pages.
+- `surface: "routes"` → routes only; `uiPages` empty; no server-access file planned.
+- `surface: "rsc"` → pages at contract paths; `routes` empty.
+- Library fixture produces book paths **without** Petstore strings in plugin source.
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
@@ -229,10 +244,21 @@ git commit -m "feat(plugin-next): derive model and emit DAL server-access helper
 **Interfaces:**
 
 ```ts
-export function createNextPlugin(): HexkitPlugin;
+export type NextPluginOptions = {
+  surface?: NextSurface; // default "both"
+};
+
+export function createNextPlugin(options?: NextPluginOptions): HexkitPlugin;
 ```
 
-**Route Handler pattern** (names come from the contract fixture at generation time — do not hardcode in plugin source):
+Plugin `generate` must:
+
+- Derive model with `options.surface ?? "both"`.
+- Emit route/runtime/controller/helper files only if surface includes routes.
+- Emit server-access + resource pages only if surface includes rsc.
+- Always emit minimal `app/layout.tsx`; emit stub or index `app/page.tsx` appropriate to surface (`routes` → stub “API only”; `rsc`/`both` → links to pages).
+
+**Route Handler pattern** (operation names from contract at generation time — never hardcoded in plugin source):
 
 ```ts
 import type { NextRequest } from "next/server";
@@ -290,13 +316,16 @@ Rules:
 
 - [ ] **Step 1: Write failing generation tests**
 
-Use **two** OpenAPI fixtures (Petstore PoC + Library). Assert:
+Use **two** OpenAPI fixtures (Petstore PoC + Library). Assert for `surface: "both"`:
 
-- Handlers exist at contract paths.
-- UI pages exist only under `app/ui/...`.
-- Library output contains no Petstore identifiers.
-- Petstore output contains no Library identifiers.
-- `server-access` exports accessors for operations used by pages.
+- Handlers exist at contract paths; UI pages under `app/ui/...`.
+- Library output contains no Petstore identifiers (and vice versa).
+- `server-access` exports accessors used by pages.
+
+Additionally assert:
+
+- `surface: "routes"` → `route.ts` present; no `app/ui/**`; no `server-access.ts`.
+- `surface: "rsc"` → pages at contract paths (not under `/ui`); no `route.ts`.
 - Plugin production source still passes domain-agnostic scan.
 
 - [ ] **Step 2: Run tests — expect FAIL**
@@ -309,7 +338,7 @@ Use **two** OpenAPI fixtures (Petstore PoC + Library). Assert:
 
 ```bash
 git add packages/plugin-next
-git commit -m "feat(plugin-next): generate Route Handlers and basic RSC pages"
+git commit -m "feat(plugin-next): generate Route Handlers and RSC pages by surface"
 ```
 
 ---
@@ -329,12 +358,15 @@ git commit -m "feat(plugin-next): generate Route Handlers and basic RSC pages"
 **Interfaces:**
 
 ```ts
-// hexkit generate <openapi> <output> [--http hono|next]
-// default: hono
+// hexkit generate <openapi> <output> [--http hono|next] [--next-surface both|routes|rsc]
+// default http: hono
+// default next-surface when --http next: both
+// --next-surface without --http next → error
 
 export function createDefaultPlugins(options?: {
   apical?: ApicalPluginOptions;
   http?: "hono" | "next";
+  nextSurface?: NextSurface;
 }): readonly HexkitPlugin[];
 ```
 
@@ -343,19 +375,20 @@ Next packaging emits: `package.json` (`next`, `react`, `react-dom`, drizzle, scr
 - [ ] **Step 1: Write failing CLI / integration tests**
 
 ```ts
-it("when --http next is passed, then parse selects next adapter", () => {});
+it("when --http next is passed, then parse selects next adapter with surface both by default", () => {});
 
-it("when generating with http next, then route handlers and ui pages are emitted", async () => {
-  // assert app/**/route.ts and app/ui/**/page.tsx exist
-  // assert src/adapters/http/routes.ts (Hono) does not
-});
+it("when --next-surface routes is passed with --http next, then only route handlers are emitted", async () => {});
+
+it("when --next-surface rsc is passed with --http next, then only RSC pages at contract paths are emitted", async () => {});
+
+it("when --next-surface is passed without --http next, then CLI errors", () => {});
 ```
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-- [ ] **Step 3: Implement flag + packaging + domain-agnostic root scan update**
+- [ ] **Step 3: Implement flags + packaging + domain-agnostic root scan update**
 
-Pipeline for next: apical → hexagonal → **next** → drizzle → packaging(next).
+Pipeline for next: apical → hexagonal → **next(surface)** → drizzle → packaging(next).
 
 - [ ] **Step 4: Run CLI tests + `vp check`**
 
@@ -363,7 +396,7 @@ Pipeline for next: apical → hexagonal → **next** → drizzle → packaging(n
 
 ```bash
 git add apps/cli packages/plugin-next
-git commit -m "feat(cli): add --http next packaging for handlers and RSC pages"
+git commit -m "feat(cli): add --http next and --next-surface options"
 ```
 
 ---
@@ -380,15 +413,18 @@ git commit -m "feat(cli): add --http next packaging for handlers and RSC pages"
 
 **Acceptance matrix:**
 
-- Pactum: OpenAPI Route Handler happy paths (and auth 401 matrix if auth OpenAPI used).
-- UI smoke: `GET /ui/...` for each generated unsecured GET page returns HTTP 200 and HTML containing the operation heading or JSON body marker.
-- Confirm generated pages do not `fetch` local Route Handler URLs (static assert on page source: no `fetch(` to self, imports `getServerAccess`).
+- Pactum: OpenAPI Route Handler happy paths under default `both` (and auth 401 if auth OpenAPI used).
+- UI smoke: `GET /ui/...` for generated unsecured GET pages returns 200 HTML.
+- Optional focused generation checks (no full Compose required): `--next-surface routes` and `--next-surface rsc` file sets.
+- Confirm RSC page sources import `getServerAccess` and do not `fetch` local handler URLs.
 
 - [ ] **Step 1: Write failing Pactum + UI smoke tests**
 
 Env: `NEXT_API_URL` default `http://127.0.0.1:3000`.
 
 - [ ] **Step 2: Implement dogfood script** (`generate --http next` → install → compose up → tests)
+
+Default dogfood uses surface `both` (omit flag or pass explicitly).
 
 - [ ] **Step 3: Run `vp run dogfood-next` until green**
 
@@ -418,11 +454,12 @@ git commit -m "test: dogfood Next Route Handlers and RSC pages"
 Must state:
 
 - Hono remains default; Next is opt-in (`--http next`).
+- `--next-surface both|routes|rsc` (default `both`) selects generators.
 - `plugin-next` is **domain-agnostic** (PRD §5.0).
-- OpenAPI → Route Handlers at contract paths.
-- RSC pages under `/ui/...` call use cases via `getServerAccess()` (DAL).
+- OpenAPI → Route Handlers at contract paths when routes enabled.
+- RSC pages call use cases via `getServerAccess()` (DAL); path prefix `/ui` only when `both`.
 - Server Actions are not the OpenAPI surface.
-- `page`/`route` collision avoided via `/ui` prefix.
+- `page`/`route` collision avoided by surface-specific path rules.
 
 - [ ] **Step 2: `vp check`**
 
@@ -447,9 +484,9 @@ git commit -m "docs: record Next.js Route Handlers and RSC page generation"
 
 ## Self-review checklist (plan author)
 
-1. **Spec coverage:** Domain-agnostic §3 → Global Constraints + Tasks 1/3/4; Route Handlers → Tasks 2–3; RSC pages + server-access → Tasks 2–3/5; CLI → Task 4; dogfood → Task 5; docs → Task 6.
-2. **Placeholders:** None intentional; `/ui` mapping and `getServerAccess()` are concrete.
-3. **Type consistency:** `NextHttpModel.uiPages`, `openApiPathToUiPageFile`, `--http next` stable across tasks.
+1. **Spec coverage:** Domain-agnostic §3 → Global Constraints + Tasks 1/3/4; surfaces §6.0 → Tasks 1–4; Route Handlers → Tasks 2–3; RSC pages + server-access → Tasks 2–3/5; CLI → Task 4; dogfood → Task 5; docs → Task 6.
+2. **Placeholders:** None intentional; `NextSurface`, path rules, and CLI flags are concrete.
+3. **Type consistency:** `NextSurface`, `createNextPlugin({ surface })`, `--next-surface` stable across tasks.
 4. **PoC safety:** Default Hono pipeline preserved.
-5. **Next.js fidelity:** No `page`/`route` same-segment conflict; RSC uses DAL not self-fetch; Server Actions excluded from OpenAPI mapping.
+5. **Next.js fidelity:** No `page`/`route` same-segment conflict for any surface; RSC uses DAL not self-fetch; Server Actions excluded from OpenAPI mapping.
 6. **Domain agnosticism:** Explicit tests and scanner coverage for `plugin-next`.
