@@ -34,6 +34,12 @@
     "check": "vp check",
     "prepublishOnly": "vp run build"
   },
+  "dependencies": {
+    "@hexkit/codegen": "workspace:*",
+    "@hexkit/plugin-api": "workspace:*",
+    "@hexkit/plugin-apical": "workspace:*",
+    "@hexkit/plugin-architecture-hexagonal": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
