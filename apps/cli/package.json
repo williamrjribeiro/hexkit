@@ -27,7 +27,8 @@
     "@hexkit/plugin-apical": "workspace:*",
     "@hexkit/plugin-architecture-hexagonal": "workspace:*",
     "@hexkit/plugin-drizzle": "workspace:*",
-    "@hexkit/plugin-hono": "workspace:*"
+    "@hexkit/plugin-hono": "workspace:*",
+    "@hexkit/plugin-next": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

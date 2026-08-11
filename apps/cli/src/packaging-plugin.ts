@@ -4,8 +4,10 @@ import type { GeneratedFile, GenerationContext, HexkitPlugin } from "@hexkit/plu
 import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
 import { PERSISTENCE_ARTIFACT, type PersistenceArtifact } from "@hexkit/plugin-drizzle";
 import { HTTP_ARTIFACT, type HttpArtifact } from "@hexkit/plugin-hono";
+import { NEXT_HTTP_ARTIFACT, type NextHttpArtifact } from "@hexkit/plugin-next";
 
 const SERVER_FILE_PATH = "src/runtime/server.ts";
+const NEXT_DATABASE_FILE_PATH = "src/adapters/db/database.ts";
 
 const tsconfig = {
   compilerOptions: {
@@ -23,6 +25,32 @@ const tsconfig = {
     skipLibCheck: true,
   },
   include: ["src"],
+};
+
+const nextTsconfig = {
+  compilerOptions: {
+    target: "es2017",
+    lib: ["dom", "dom.iterable", "esnext"],
+    allowJs: false,
+    skipLibCheck: true,
+    strict: true,
+    noEmit: true,
+    esModuleInterop: true,
+    module: "esnext",
+    moduleResolution: "bundler",
+    resolveJsonModule: true,
+    isolatedModules: true,
+    jsx: "preserve",
+    incremental: true,
+    allowImportingTsExtensions: true,
+    plugins: [{ name: "next" }],
+    baseUrl: ".",
+    paths: {
+      "@/*": ["./src/*"],
+    },
+  },
+  include: ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  exclude: ["node_modules"],
 };
 
 const startupScript = `#!/bin/sh
@@ -53,12 +81,60 @@ CMD ["./scripts/start.sh"]
 
 const dockerignore = `node_modules
 dist
+.next
 .git
+`;
+
+const nextConfig = `import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {};
+
+export default nextConfig;
+`;
+
+const nextEnv = `/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+
+// This file is generated so type-checking works before Next.js writes next-env.d.ts.
+`;
+
+const nextStartupScript = `#!/bin/sh
+set -eu
+
+pnpm run migrate
+exec pnpm start
+`;
+
+const nextDockerfile = `FROM node:24-alpine
+
+WORKDIR /app
+
+RUN apk add --no-cache postgresql-client \\
+  && corepack enable \\
+  && corepack prepare pnpm@11.18.0 --activate
+
+COPY package.json ./
+RUN pnpm install
+
+COPY . .
+RUN chmod +x scripts/start.sh \\
+  && pnpm build \\
+  && pnpm prune --prod
+
+EXPOSE 3000
+
+CMD ["./scripts/start.sh"]
 `;
 
 export type PackagingInputs = {
   contract: ContractArtifact;
   http: HttpArtifact;
+  persistence: PersistenceArtifact;
+};
+
+export type NextPackagingInputs = {
+  contract: ContractArtifact;
+  nextHttp: NextHttpArtifact;
   persistence: PersistenceArtifact;
 };
 
@@ -117,15 +193,86 @@ export function generatePackagingFiles(inputs: PackagingInputs): GeneratedFile[]
   ];
 }
 
-export function createPackagingPlugin(): HexkitPlugin {
+export function generateNextPackagingFiles(inputs: NextPackagingInputs): GeneratedFile[] {
+  const { contract, nextHttp, persistence } = inputs;
+  const applicationSlug = contract.application.slug;
+  const packageName = `generated-${applicationSlug}`;
+  const databaseName = toDatabaseIdentifier(applicationSlug);
+  resolveNextRuntimeRepositories(nextHttp, persistence);
+
+  return [
+    {
+      path: "package.json",
+      contents: `${JSON.stringify(
+        createNextPackageManifest(packageName, persistence.migrationPath),
+        undefined,
+        2,
+      )}\n`,
+      ownership: "generated",
+    },
+    {
+      path: "next.config.ts",
+      contents: nextConfig,
+      ownership: "generated",
+    },
+    {
+      path: "next-env.d.ts",
+      contents: nextEnv,
+      ownership: "generated",
+    },
+    {
+      path: "tsconfig.json",
+      contents: `${JSON.stringify(nextTsconfig, undefined, 2)}\n`,
+      ownership: "generated",
+    },
+    {
+      path: NEXT_DATABASE_FILE_PATH,
+      contents: renderNextDatabaseSource(),
+      ownership: "generated",
+    },
+    {
+      path: "scripts/start.sh",
+      contents: nextStartupScript,
+      ownership: "generated",
+    },
+    {
+      path: "Dockerfile",
+      contents: nextDockerfile,
+      ownership: "generated",
+    },
+    {
+      path: "docker-compose.yml",
+      contents: renderNextDockerCompose(databaseName),
+      ownership: "generated",
+    },
+    {
+      path: ".dockerignore",
+      contents: dockerignore,
+      ownership: "generated",
+    },
+  ];
+}
+
+export function createPackagingPlugin(options: { http?: "hono" | "next" } = {}): HexkitPlugin {
   return {
     name: "packaging",
     generate(context: GenerationContext) {
       const contract = context.artifacts.require(APICAL_CONTRACT_ARTIFACT);
-      const http = context.artifacts.require(HTTP_ARTIFACT);
       const persistence = context.artifacts.require(PERSISTENCE_ARTIFACT);
+      const files =
+        options.http === "next"
+          ? generateNextPackagingFiles({
+              contract,
+              nextHttp: context.artifacts.require(NEXT_HTTP_ARTIFACT),
+              persistence,
+            })
+          : generatePackagingFiles({
+              contract,
+              http: context.artifacts.require(HTTP_ARTIFACT),
+              persistence,
+            });
 
-      for (const file of generatePackagingFiles({ contract, http, persistence })) {
+      for (const file of files) {
         context.writeFile(file);
       }
     },
@@ -172,6 +319,40 @@ function resolveRuntimeRepositories(
     .toSorted((left, right) => compareText(left.runtimeKey, right.runtimeKey));
 }
 
+function resolveNextRuntimeRepositories(
+  nextHttp: NextHttpArtifact,
+  persistence: PersistenceArtifact,
+): RuntimeRepositoryBinding[] {
+  const nextKeys = new Set(nextHttp.repositories.map((repository) => repository.parameterName));
+
+  for (const repository of persistence.repositories) {
+    if (!nextKeys.has(repository.runtimeKey)) {
+      throw new Error(
+        `PersistenceArtifact repository runtime key "${repository.runtimeKey}" is missing from NextHttpArtifact repositories.`,
+      );
+    }
+  }
+
+  const persistenceKeys = new Set(
+    persistence.repositories.map((repository) => repository.runtimeKey),
+  );
+  for (const repository of nextHttp.repositories) {
+    if (!persistenceKeys.has(repository.parameterName)) {
+      throw new Error(
+        `NextHttpArtifact repository parameter "${repository.parameterName}" has no PersistenceArtifact factory binding.`,
+      );
+    }
+  }
+
+  return [...persistence.repositories]
+    .map((repository) => ({
+      runtimeKey: repository.runtimeKey,
+      factoryName: repository.factoryName,
+      filePath: repository.filePath,
+    }))
+    .toSorted((left, right) => compareText(left.runtimeKey, right.runtimeKey));
+}
+
 function createPackageManifest(packageName: string, migrationPath: string) {
   return {
     name: packageName,
@@ -201,6 +382,65 @@ function createPackageManifest(packageName: string, migrationPath: string) {
     },
     packageManager: "pnpm@11.18.0",
   };
+}
+
+function createNextPackageManifest(packageName: string, migrationPath: string) {
+  return {
+    name: packageName,
+    version: "0.0.0",
+    private: true,
+    type: "module",
+    scripts: {
+      dev: "next dev",
+      build: "next build",
+      start: "next start",
+      check: "next build",
+      migrate: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}`,
+    },
+    dependencies: {
+      "@standard-schema/spec": "1.1.0",
+      "drizzle-orm": "0.45.2",
+      next: "16.3.0",
+      pg: "8.22.0",
+      react: "19.2.8",
+      "react-dom": "19.2.8",
+      zod: "4.4.3",
+    },
+    devDependencies: {
+      "@types/node": "26.1.2",
+      "@types/pg": "8.20.3",
+      "@types/react": "19.2.18",
+      "@types/react-dom": "19.2.4",
+      typescript: "7.0.2",
+    },
+    engines: {
+      node: ">=24.18.1",
+    },
+    packageManager: "pnpm@11.18.0",
+  };
+}
+
+function renderNextDatabaseSource(): string {
+  return `import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+export type Database = ReturnType<typeof drizzle>;
+
+let pool: Pool | undefined;
+let database: Database | undefined;
+
+export function getDatabase(): Database {
+  if (database === undefined) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) throw new Error("DATABASE_URL is required");
+
+    pool = new Pool({ connectionString });
+    database = drizzle(pool);
+  }
+
+  return database;
+}
+`;
 }
 
 function renderServerSource(options: {
@@ -276,6 +516,39 @@ function renderDockerCompose(databaseName: string): string {
     build: .
     environment:
       DATABASE_URL: postgres://\${POSTGRES_USER:-${databaseName}}:\${POSTGRES_PASSWORD:-${databaseName}}@postgres:5432/\${POSTGRES_DB:-${databaseName}}
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+`;
+}
+
+function renderNextDockerCompose(databaseName: string): string {
+  return `services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: \${POSTGRES_DB:-${databaseName}}
+      POSTGRES_USER: \${POSTGRES_USER:-${databaseName}}
+      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-${databaseName}}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  next:
+    build: .
+    environment:
+      DATABASE_URL: postgres://\${POSTGRES_USER:-${databaseName}}:\${POSTGRES_PASSWORD:-${databaseName}}@postgres:5432/\${POSTGRES_DB:-${databaseName}}
+      HOSTNAME: "0.0.0.0"
       PORT: "3000"
     depends_on:
       postgres:

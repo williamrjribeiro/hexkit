@@ -282,6 +282,9 @@ importers:
       '@hexkit/plugin-hono':
         specifier: workspace:*
         version: link:../../packages/plugin-hono
+      '@hexkit/plugin-next':
+        specifier: workspace:*
+        version: link:../../packages/plugin-next
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
