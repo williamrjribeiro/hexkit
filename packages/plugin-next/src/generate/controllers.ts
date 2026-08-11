@@ -188,6 +188,7 @@ function deriveControllerOperation(
         }),
     hasJsonBody,
     requiresPrincipal: useCase.requiresAuth,
+    authSchemes: [],
     successStatus: successResponse.status,
     ...(hasNotFound ? { notFoundStatus: "404" } : {}),
     hasJsonSuccessBody: jsonSuccessMedia !== undefined,

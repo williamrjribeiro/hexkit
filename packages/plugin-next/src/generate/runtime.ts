@@ -81,6 +81,7 @@ export function renderRuntimeFile(
       "export type NextRuntime = {",
       "  controllers: HttpControllers;",
       "  repositories: RuntimeRepositories;",
+      ...(hasAuth ? ["  authenticator: Authenticator;"] : []),
       "};",
     ].join("\n"),
     "let cachedRepositories: RuntimeRepositories | undefined;",
@@ -102,7 +103,7 @@ export function renderRuntimeFile(
             "function createDefaultAuthenticator(): Authenticator {",
             "  return createInMemoryAuthenticator({",
             '    bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
-            "    apiKeys: new Map(),",
+            `    apiKeys: new Map(${renderApiKeyDefaults(model)}),`,
             "  });",
             "}",
           ].join("\n"),
@@ -119,6 +120,7 @@ export function renderRuntimeFile(
       controllerBindings,
       hasAuth ? "    }, authenticator)," : "    }),",
       "    repositories,",
+      ...(hasAuth ? ["    authenticator,"] : []),
       "  };",
       "}",
     ].join("\n"),
@@ -157,4 +159,29 @@ function routeUseCases(
 
 function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function renderApiKeyDefaults(model: NextHttpModel): string {
+  const apiKeyHeaderNames = unique(
+    model.routes.flatMap((route) =>
+      route.methods.flatMap((method) =>
+        method.authSchemes.flatMap((scheme) =>
+          scheme.type === "apiKey" ? [scheme.headerName.toLowerCase()] : [],
+        ),
+      ),
+    ),
+  );
+
+  if (apiKeyHeaderNames.length === 0) return "[]";
+
+  const entries = apiKeyHeaderNames.map(
+    (headerName) =>
+      `[${JSON.stringify(headerName)}, new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]`,
+  );
+
+  return `[${entries.join(", ")}]`;
+}
+
+function unique<T>(values: readonly T[]): readonly T[] {
+  return [...new Set(values)];
 }

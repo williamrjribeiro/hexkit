@@ -2,10 +2,22 @@ import type { ImportDeclaration } from "@hexkit/codegen";
 import { renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
+import type { NextHttpModel } from "../artifact.ts";
 import { HELPERS_FILE_PATH } from "../model/derive.ts";
+import { relativeImportPath } from "../model/paths.ts";
 
-export function renderHelpersFile(): GeneratedFile {
+export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
+  const hasAuth = model.authenticator !== undefined;
   const imports: ImportDeclaration[] = [
+    ...(hasAuth
+      ? [
+          {
+            from: relativeImportPath(HELPERS_FILE_PATH, "src/core/ports/authenticator.ts"),
+            names: ["AuthCredentials"],
+            typeOnly: true,
+          },
+        ]
+      : []),
     {
       from: "next/server",
       names: ["NextRequest"],
@@ -13,7 +25,7 @@ export function renderHelpersFile(): GeneratedFile {
     },
     {
       from: "./controllers.ts",
-      names: ["AuthenticationError", "RequestValidationError"],
+      names: [...(hasAuth ? ["AuthenticationError"] : []), "RequestValidationError"],
     },
   ];
 
@@ -36,6 +48,44 @@ export function renderHelpersFile(): GeneratedFile {
       "  return result;",
       "}",
     ].join("\n"),
+    ...(hasAuth
+      ? [
+          [
+            "type SecuritySchemeMeta =",
+            '  | { name: string; type: "apiKey"; headerName: string }',
+            '  | { name: string; type: "http"; scheme: "bearer"; headerName: "Authorization" };',
+          ].join("\n"),
+          [
+            "type OperationSecurityMeta = {",
+            "  schemes: readonly SecuritySchemeMeta[];",
+            "};",
+          ].join("\n"),
+          [
+            "export function extractCredentials(",
+            "  headers: Headers,",
+            "  securityMeta: OperationSecurityMeta,",
+            "): AuthCredentials | undefined {",
+            "  for (const scheme of securityMeta.schemes) {",
+            '    if (scheme.type === "http" && scheme.scheme === "bearer") {',
+            "      const value = headers.get(scheme.headerName);",
+            "      if (value === null) continue;",
+            "      const bearerMatch = /^Bearer\\s+(.+)$/i.exec(value.trim());",
+            "      if (bearerMatch === null) continue;",
+            '      const token = bearerMatch[1]?.trim() ?? "";',
+            "      if (token.length === 0) continue;",
+            '      return { kind: "bearer", schemeName: scheme.name, token };',
+            "    }",
+            "",
+            "    const apiKey = headers.get(scheme.headerName);",
+            "    if (apiKey === null || apiKey.trim().length === 0) continue;",
+            '    return { kind: "apiKey", schemeName: scheme.name, headerName: scheme.headerName.toLowerCase(), apiKey };',
+            "  }",
+            "",
+            "  return undefined;",
+            "}",
+          ].join("\n"),
+        ]
+      : []),
     [
       "export async function toApicalRequest(",
       "  request: NextRequest,",
@@ -83,9 +133,13 @@ export function renderHelpersFile(): GeneratedFile {
     ].join("\n"),
     [
       "export function handleControllerError(error: unknown): Response {",
-      "  if (error instanceof AuthenticationError) {",
-      '    return Response.json({ error: "Unauthorized" }, { status: 401 });',
-      "  }",
+      ...(hasAuth
+        ? [
+            "  if (error instanceof AuthenticationError) {",
+            '    return Response.json({ error: "Unauthorized" }, { status: 401 });',
+            "  }",
+          ]
+        : []),
       "  if (error instanceof RequestValidationError) {",
       '    return Response.json({ error: "Bad Request" }, { status: 400 });',
       "  }",

@@ -146,6 +146,150 @@ function expectNoPageRouteCollisions(paths: readonly string[]): void {
   }
 }
 
+function countPath(paths: readonly string[], path: string): number {
+  return paths.filter((candidate) => candidate === path).length;
+}
+
+function createRootContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const rootReference = { kind: "reference", nullable: false, schema: "RootResource" } as const;
+
+  return {
+    artifactVersion: 1,
+    openapiVersion: "3.1.0",
+    application: {
+      title: "Root API Fixture",
+      version: "1.0.0",
+      slug: "root-api-fixture",
+    },
+    schemas: [
+      {
+        name: "RootResource",
+        modulePath: "schemas/RootResource.ts",
+        properties: [{ name: "id", required: true, type: stringType }],
+      },
+    ],
+    securitySchemes: [],
+    globalSecurity: [],
+    operations: [
+      {
+        operationId: "getRootResource",
+        method: "get",
+        path: "/",
+        modulePath: "routes/getRootResource.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [{ mediaType: "application/json", type: rootReference }],
+          },
+        ],
+        security: {
+          overridesGlobal: true,
+          requirements: [],
+          apicalServerHeaderNames: [],
+        },
+        extension: { aggregate: "RootResource", action: "get" },
+      },
+    ],
+  };
+}
+
+function createSecuredContract(): ContractArtifact {
+  const stringType = { kind: "string", nullable: false } as const;
+  const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
+
+  return {
+    artifactVersion: 1,
+    openapiVersion: "3.1.0",
+    application: {
+      title: "Secured API Fixture",
+      version: "1.0.0",
+      slug: "secured-api-fixture",
+    },
+    schemas: [
+      {
+        name: "Item",
+        modulePath: "schemas/Item.ts",
+        properties: [
+          { name: "id", required: true, type: stringType },
+          { name: "name", required: true, type: stringType },
+        ],
+      },
+    ],
+    securitySchemes: [
+      {
+        name: "adminBearer",
+        type: "http",
+        scheme: "bearer",
+        headerName: "Authorization",
+        bearerFormat: "JWT",
+      },
+      { name: "internalKey", type: "apiKey", in: "header", headerName: "X-Internal-Key" },
+    ],
+    globalSecurity: [{ schemes: ["adminBearer"], scopes: { adminBearer: [] } }],
+    operations: [
+      {
+        operationId: "createItem",
+        method: "post",
+        path: "/items",
+        modulePath: "routes/createItem.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "201",
+            description: "created",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+        security: {
+          overridesGlobal: true,
+          requirements: [{ schemes: ["internalKey"], scopes: { internalKey: [] } }],
+          apicalServerHeaderNames: ["x-internal-key"],
+        },
+        requestBody: {
+          required: true,
+          media: [{ mediaType: "application/json", type: itemReference }],
+        },
+        extension: { aggregate: "Item", action: "create" },
+      },
+      {
+        operationId: "listItems",
+        method: "get",
+        path: "/items/{itemId}",
+        modulePath: "routes/listItems.ts",
+        parameters: [
+          {
+            name: "itemId",
+            location: "path",
+            required: true,
+            type: stringType,
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "array", nullable: false, items: itemReference },
+              },
+            ],
+          },
+        ],
+        security: {
+          overridesGlobal: false,
+          requirements: [{ schemes: ["adminBearer"], scopes: { adminBearer: [] } }],
+          apicalServerHeaderNames: ["authorization"],
+        },
+        extension: { aggregate: "Item", action: "list" },
+      },
+    ],
+  };
+}
+
 describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
   it("when routes are derived, then the same OpenAPI path coalesces methods into one NextRouteFile", () => {
     const application = generateApplicationFromContract(petstoreContract).artifact;
@@ -344,6 +488,86 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
   });
 });
 
+describe("Given a root OpenAPI path", () => {
+  it("when surface is both, then route handler, root resource page, and hubs do not collide", async () => {
+    const { files } = await collectGeneratedFiles(createRootContract(), "both");
+    const filesByPath = fileMap(files);
+    const paths = files.map((file) => file.path);
+    const rootPage = filesByPath.get("app/ui/page.tsx");
+
+    expect(paths).toContain("app/route.ts");
+    expect(paths).not.toContain("app/page.tsx");
+    expect(countPath(paths, "app/ui/page.tsx")).toBe(1);
+    expect(rootPage?.contents).toContain("const result = await access.getRootResource();");
+    expect(rootPage?.contents).not.toContain("<ul>");
+    expectNoPageRouteCollisions(paths);
+  });
+
+  it("when surface is routes, then the generated API-only hub does not collide with app route", async () => {
+    const { files } = await collectGeneratedFiles(createRootContract(), "routes");
+    const paths = files.map((file) => file.path);
+
+    expect(paths).toContain("app/route.ts");
+    expect(paths).not.toContain("app/page.tsx");
+    expectNoPageRouteCollisions(paths);
+  });
+
+  it("when surface is rsc, then the root resource page wins over the root hub", async () => {
+    const { files } = await collectGeneratedFiles(createRootContract(), "rsc");
+    const filesByPath = fileMap(files);
+    const paths = files.map((file) => file.path);
+    const rootPage = filesByPath.get("app/page.tsx");
+
+    expect(paths).not.toContain("app/route.ts");
+    expect(countPath(paths, "app/page.tsx")).toBe(1);
+    expect(rootPage?.contents).toContain("const result = await access.getRootResource();");
+    expect(rootPage?.contents).not.toContain("<ul>");
+  });
+});
+
+describe("Given ContractArtifact + ApplicationArtifact with secured operations", () => {
+  it("when Next route handlers are generated, then secured methods authenticate and pass Principal", async () => {
+    const { files } = await collectGeneratedFiles(createSecuredContract(), "routes");
+    const createRoute = fileMap(files).get("app/items/route.ts");
+    const listRoute = fileMap(files).get("app/items/[itemId]/route.ts");
+    const helpers = fileMap(files).get("src/adapters/http-next/helpers.ts");
+    const runtime = fileMap(files).get("src/adapters/http-next/runtime.ts");
+
+    expect(helpers?.contents).toContain(
+      'import type { AuthCredentials } from "../../core/ports/authenticator.ts";',
+    );
+    expect(helpers?.contents).toContain("type SecuritySchemeMeta =");
+    expect(helpers?.contents).toContain("export function extractCredentials(");
+    expect(helpers?.contents).toContain("/^Bearer\\s+(.+)$/i.exec(value.trim())");
+    expect(runtime?.contents).toContain("authenticator: Authenticator;");
+    expect(runtime?.contents).toContain("authenticator,");
+    expect(runtime?.contents).toContain(
+      'apiKeys: new Map([["x-internal-key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),',
+    );
+
+    expect(createRoute?.contents).toContain("extractCredentials(request.headers, {");
+    expect(createRoute?.contents).toContain(
+      '{ name: "internalKey", type: "apiKey", headerName: "X-Internal-Key" }',
+    );
+    expect(createRoute?.contents).toContain(
+      'throw new AuthenticationError("credentials-missing");',
+    );
+    expect(createRoute?.contents).toContain(
+      "const principal = await runtime.authenticator.authenticate(credentials);",
+    );
+    expect(createRoute?.contents).toContain('throw new AuthenticationError("principal-missing");');
+    expect(createRoute?.contents).toContain(
+      "const result = await runtime.controllers.createItem(apicalRequest, principal);",
+    );
+    expect(listRoute?.contents).toContain(
+      '{ name: "adminBearer", type: "http", scheme: "bearer", headerName: "Authorization" }',
+    );
+    expect(listRoute?.contents).toContain(
+      "const result = await runtime.controllers.listItems(apicalRequest, principal);",
+    );
+  });
+});
+
 describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
   it("when generation runs, then it emits book paths without Petstore output in generated output or plugin source", async () => {
     const application = generateApplicationFromContract(libraryContract).artifact;
@@ -399,5 +623,19 @@ describe("Given generated server-access", () => {
     expect(serverAccess?.contents).toContain("createBook:");
     expect(serverAccess?.contents).toContain("getBook:");
     expect(serverAccess?.contents).toContain("export type ServerAccess = {");
+  });
+});
+
+describe("Given generated route helpers without security", () => {
+  it("when emitted, then they omit auth-only imports and credential helpers", () => {
+    const application = generateApplicationFromContract(libraryContract).artifact;
+    const { files } = generateNextDalFromArtifacts(libraryContract, application, {
+      surface: "routes",
+    });
+    const helpers = fileMap(files).get("src/adapters/http-next/helpers.ts");
+
+    expect(helpers?.contents).not.toContain("AuthenticationError");
+    expect(helpers?.contents).not.toContain("AuthCredentials");
+    expect(helpers?.contents).not.toContain("extractCredentials");
   });
 });

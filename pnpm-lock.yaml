@@ -516,6 +516,19 @@ importers:
         version: 4.4.3
 
   packages/plugin-next:
+    dependencies:
+      '@hexkit/codegen':
+        specifier: workspace:*
+        version: link:../codegen
+      '@hexkit/plugin-api':
+        specifier: workspace:*
+        version: link:../plugin-api
+      '@hexkit/plugin-apical':
+        specifier: workspace:*
+        version: link:../plugin-apical
+      '@hexkit/plugin-architecture-hexagonal':
+        specifier: workspace:*
+        version: link:../plugin-architecture-hexagonal
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

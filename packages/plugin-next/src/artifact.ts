@@ -7,6 +7,19 @@ export type NextRouteFile = {
   methods: readonly NextMethodBinding[];
 };
 
+export type NextAuthSchemeBinding =
+  | {
+      name: string;
+      type: "apiKey";
+      headerName: string;
+    }
+  | {
+      name: string;
+      type: "http";
+      scheme: "bearer";
+      headerName: "Authorization";
+    };
+
 export type NextUiPage = {
   filePath: string;
   openApiPath: string;
@@ -26,6 +39,7 @@ export type NextMethodBinding = {
   responseMapImportPath?: string;
   hasJsonBody: boolean;
   requiresPrincipal: boolean;
+  authSchemes: readonly NextAuthSchemeBinding[];
 };
 
 export type NextSurface = "routes" | "rsc" | "both";

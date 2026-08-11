@@ -7,11 +7,26 @@ export function renderPageFiles(
   model: NextHttpModel,
   application: ApplicationArtifact,
 ): GeneratedFile[] {
+  const routePagePaths = new Set(
+    model.routes.map((route) => route.filePath.replace(/route\.ts$/, "page.tsx")),
+  );
+  const resourcePages = model.uiPages.filter((page) => !routePagePaths.has(page.filePath));
+  const resourcePagePaths = new Set(resourcePages.map((page) => page.filePath));
+  const rootPagePath = "app/page.tsx";
+  const uiHubPath = "app/ui/page.tsx";
+
   return [
     renderLayoutFile(),
-    renderRootPageFile(model),
-    ...(model.surface === "both" && model.uiPages.length > 0 ? [renderUiHubFile(model)] : []),
-    ...model.uiPages.map((page) => renderResourcePageFile(page, application)),
+    ...(routePagePaths.has(rootPagePath) || resourcePagePaths.has(rootPagePath)
+      ? []
+      : [renderRootPageFile(model)]),
+    ...(model.surface === "both" &&
+    resourcePages.length > 0 &&
+    !routePagePaths.has(uiHubPath) &&
+    !resourcePagePaths.has(uiHubPath)
+      ? [renderUiHubFile({ ...model, uiPages: resourcePages })]
+      : []),
+    ...resourcePages.map((page) => renderResourcePageFile(page, application)),
   ];
 }
 
