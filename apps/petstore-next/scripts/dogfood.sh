@@ -4,17 +4,12 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
 SAMPLE_DIR="$ROOT_DIR/apps/petstore-sample"
 NEXT_DIR="$ROOT_DIR/apps/petstore-next"
+OVERLAY_SCRIPT="$NEXT_DIR/scripts/overlay-fixture.sh"
 NEXT_URL=${PETSTORE_NEXT_URL:-http://127.0.0.1:3000}
-NEXT_PORT=${PETSTORE_NEXT_PORT:-3000}
-POSTGRES_PORT=${PETSTORE_NEXT_POSTGRES_PORT:-55432}
-POSTGRES_DB=${POSTGRES_DB:-hexkit_petstore_poc}
-POSTGRES_USER=${POSTGRES_USER:-hexkit_petstore_poc}
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hexkit_petstore_poc}
 KEEP_STACK=${HEXKIT_KEEP_STACK:-0}
 SKIP_COMPOSE=${HEXKIT_SKIP_COMPOSE:-auto}
 REMOVE_OUTPUT=0
 COMPOSE_STARTED=0
-NEXT_PID=
 
 # `vp run` prepends workspace node_modules/.bin, whose local `vp` lacks managed
 # runtime commands like `vp node`. Prefer the global Vite+ CLI when present.
@@ -27,8 +22,6 @@ fi
 case "${1:-}" in
   --print-config)
     printf 'PETSTORE_NEXT_URL=%s\n' "$NEXT_URL"
-    printf 'PETSTORE_NEXT_PORT=%s\n' "$NEXT_PORT"
-    printf 'PETSTORE_NEXT_POSTGRES_PORT=%s\n' "$POSTGRES_PORT"
     printf 'HEXKIT_KEEP_STACK=%s\n' "$KEEP_STACK"
     printf 'HEXKIT_SKIP_COMPOSE=%s\n' "$SKIP_COMPOSE"
     printf 'HEXKIT_DOGFOOD_OUTPUT=%s\n' "${HEXKIT_DOGFOOD_OUTPUT:-}"
@@ -50,16 +43,11 @@ else
   REMOVE_OUTPUT=1
 fi
 
-COMPOSE_FILE="$OUTPUT_DIR/docker-compose.petstore-next.yml"
+COMPOSE_FILE="$OUTPUT_DIR/docker-compose.yml"
 
 cleanup() {
   status=$?
   trap - EXIT INT TERM
-
-  if [ -n "$NEXT_PID" ]; then
-    kill "$NEXT_PID" 2>/dev/null || true
-    wait "$NEXT_PID" 2>/dev/null || true
-  fi
 
   if [ "$COMPOSE_STARTED" -eq 1 ]; then
     if [ "$KEEP_STACK" = "1" ]; then
@@ -76,30 +64,6 @@ cleanup() {
   exit "$status"
 }
 trap cleanup EXIT INT TERM
-
-write_postgres_compose() {
-  cat >"$COMPOSE_FILE" <<EOF
-services:
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: "$POSTGRES_DB"
-      POSTGRES_USER: "$POSTGRES_USER"
-      POSTGRES_PASSWORD: "$POSTGRES_PASSWORD"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \$\$POSTGRES_USER -d \$\$POSTGRES_DB"]
-      interval: 2s
-      timeout: 5s
-      retries: 15
-    ports:
-      - "127.0.0.1:$POSTGRES_PORT:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-volumes:
-  postgres-data:
-EOF
-}
 
 copy_generated_routes() {
   find "$NEXT_DIR/app" -type f -name route.ts -exec rm -f {} +
@@ -127,6 +91,7 @@ fetch(url)
 '; do
     if [ "$attempt" -ge 30 ]; then
       printf 'Error: %s did not return HTTP %s at %s.\n' "$label" "$expected_status" "$url" >&2
+      docker compose -f "$COMPOSE_FILE" logs
       exit 1
     fi
 
@@ -154,6 +119,8 @@ vp run -F @hexkit/cli... build
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR" \
   --http next --next-surface routes
 
+sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
+
 rm -rf "$NEXT_DIR/src"
 mkdir -p "$NEXT_DIR/src"
 cp -R "$OUTPUT_DIR/src/." "$NEXT_DIR/src/"
@@ -167,7 +134,7 @@ vp install
 )
 
 if [ "$SKIP_COMPOSE" = "1" ]; then
-  printf 'HEXKIT_SKIP_COMPOSE=1; skipping optional Postgres and next start smoke after successful build.\n'
+  printf 'HEXKIT_SKIP_COMPOSE=1; skipping Docker Compose Next+Postgres stack after successful build.\n'
   exit 0
 fi
 
@@ -177,30 +144,17 @@ if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
     exit 127
   fi
 
-  printf 'Docker is unavailable; skipping optional Postgres and next start smoke after successful build.\n'
+  printf 'Docker is unavailable; skipping Docker Compose Next+Postgres stack after successful build.\n'
   exit 0
 fi
 
-schema_file=$(find "$OUTPUT_DIR/drizzle" -type f -name '*.sql' | sort | sed -n '1p')
-if [ -z "$schema_file" ]; then
-  printf 'Error: generated Drizzle schema was not found in %s.\n' "$OUTPUT_DIR/drizzle" >&2
+if [ ! -f "$COMPOSE_FILE" ]; then
+  printf 'Error: generated Compose file was not found at %s.\n' "$COMPOSE_FILE" >&2
   exit 1
 fi
 
-write_postgres_compose
 COMPOSE_STARTED=1
-docker compose -f "$COMPOSE_FILE" up -d --wait postgres
-docker compose -f "$COMPOSE_FILE" exec -T postgres \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 <"$schema_file"
-
-DATABASE_URL="postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:$POSTGRES_PORT/$POSTGRES_DB"
-export DATABASE_URL
-
-(
-  cd "$NEXT_DIR"
-  HOSTNAME=127.0.0.1 PORT="$NEXT_PORT" vp run start
-) &
-NEXT_PID=$!
+docker compose -f "$COMPOSE_FILE" up --build -d --wait
 
 wait_for_url "$NEXT_URL/" 200 "PetShop home page"
 wait_for_url "$NEXT_URL/pets" 200 "PetShop pets page"

@@ -21,14 +21,14 @@
 
 ## File map
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `apps/cli/src/next-generation.test.ts` | Assert generated Compose has `next` service, `HOSTNAME`, Postgres, and Dockerfile builds Next |
-| `apps/petstore-next/scripts/overlay-fixture.sh` | Copy fixture UI + Tailwind/postcss onto a generated tree without touching `route.ts` |
-| `apps/cli/src/petstore-next-overlay.test.ts` | Temp-dir test for overlay copy rules |
-| `apps/petstore-next/scripts/dogfood.sh` | Generate → overlay TMP → merge into fixture → Compose up --build (Hono-shaped) |
-| `apps/petstore-next/README.md` | Document Compose dogfood |
-| `docs/README.md` | Link this plan |
+| Path                                            | Responsibility                                                                                |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/cli/src/next-generation.test.ts`          | Assert generated Compose has `next` service, `HOSTNAME`, Postgres, and Dockerfile builds Next |
+| `apps/petstore-next/scripts/overlay-fixture.sh` | Copy fixture UI + Tailwind/postcss onto a generated tree without touching `route.ts`          |
+| `apps/cli/src/petstore-next-overlay.test.ts`    | Temp-dir test for overlay copy rules                                                          |
+| `apps/petstore-next/scripts/dogfood.sh`         | Generate → overlay TMP → merge into fixture → Compose up --build (Hono-shaped)                |
+| `apps/petstore-next/README.md`                  | Document Compose dogfood                                                                      |
+| `docs/README.md`                                | Link this plan                                                                                |
 
 ---
 
@@ -116,10 +116,8 @@ import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vite-plus/test";
 
-const overlayScript = new URL(
-  "../../petstore-next/scripts/overlay-fixture.sh",
-  import.meta.url,
-).pathname;
+const overlayScript = new URL("../../petstore-next/scripts/overlay-fixture.sh", import.meta.url)
+  .pathname;
 
 describe("Given a generated Next tree and PetShop fixture", () => {
   it("when overlaid, then fixture UI replaces stubs and generated route.ts stays", () => {
@@ -128,8 +126,14 @@ describe("Given a generated Next tree and PetShop fixture", () => {
     const fixture = join(root, "fixture");
 
     mkdirSync(join(generated, "app/pet"), { recursive: true });
-    writeFileSync(join(generated, "app/page.tsx"), "export default function Page() { return <p>API only</p>; }\n");
-    writeFileSync(join(generated, "app/layout.tsx"), "export default function L({ children }) { return children; }\n");
+    writeFileSync(
+      join(generated, "app/page.tsx"),
+      "export default function Page() { return <p>API only</p>; }\n",
+    );
+    writeFileSync(
+      join(generated, "app/layout.tsx"),
+      "export default function L({ children }) { return children; }\n",
+    );
     writeFileSync(join(generated, "app/pet/route.ts"), "export async function POST() {}\n");
     writeFileSync(
       join(generated, "package.json"),
@@ -138,12 +142,27 @@ describe("Given a generated Next tree and PetShop fixture", () => {
 
     mkdirSync(join(fixture, "app/pets"), { recursive: true });
     mkdirSync(join(fixture, "app/orders"), { recursive: true });
-    writeFileSync(join(fixture, "app/page.tsx"), "export default function Page() { return <h1>Shop</h1>; }\n");
-    writeFileSync(join(fixture, "app/layout.tsx"), "export default function L({ children }) { return children; }\n");
+    writeFileSync(
+      join(fixture, "app/page.tsx"),
+      "export default function Page() { return <h1>Shop</h1>; }\n",
+    );
+    writeFileSync(
+      join(fixture, "app/layout.tsx"),
+      "export default function L({ children }) { return children; }\n",
+    );
     writeFileSync(join(fixture, "app/globals.css"), '@import "tailwindcss";\n');
-    writeFileSync(join(fixture, "app/pets/page.tsx"), "export default function Pets() { return <h1>Pets</h1>; }\n");
-    writeFileSync(join(fixture, "app/orders/page.tsx"), "export default function Orders() { return <h1>Orders</h1>; }\n");
-    writeFileSync(join(fixture, "postcss.config.mjs"), "export default { plugins: { '@tailwindcss/postcss': {} } };\n");
+    writeFileSync(
+      join(fixture, "app/pets/page.tsx"),
+      "export default function Pets() { return <h1>Pets</h1>; }\n",
+    );
+    writeFileSync(
+      join(fixture, "app/orders/page.tsx"),
+      "export default function Orders() { return <h1>Orders</h1>; }\n",
+    );
+    writeFileSync(
+      join(fixture, "postcss.config.mjs"),
+      "export default { plugins: { '@tailwindcss/postcss': {} } };\n",
+    );
     writeFileSync(
       join(fixture, "package.json"),
       JSON.stringify({
@@ -156,7 +175,9 @@ describe("Given a generated Next tree and PetShop fixture", () => {
     expect(readFileSync(join(generated, "app/page.tsx"), "utf8")).toContain("Shop");
     expect(readFileSync(join(generated, "app/pets/page.tsx"), "utf8")).toContain("Pets");
     expect(readFileSync(join(generated, "app/pet/route.ts"), "utf8")).toContain("POST");
-    expect(readFileSync(join(generated, "postcss.config.mjs"), "utf8")).toContain("tailwindcss/postcss");
+    expect(readFileSync(join(generated, "postcss.config.mjs"), "utf8")).toContain(
+      "tailwindcss/postcss",
+    );
     const manifest = JSON.parse(readFileSync(join(generated, "package.json"), "utf8")) as {
       devDependencies: Record<string, string>;
     };
