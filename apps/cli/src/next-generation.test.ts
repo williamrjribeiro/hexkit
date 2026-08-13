@@ -154,6 +154,8 @@ describe("Given Next.js CLI generation", () => {
     };
     const database = generatedFile(result, "src/adapters/db/database.ts");
     const dockerfile = generatedFile(result, "Dockerfile");
+    const compose = generatedFile(result, "docker-compose.yml");
+    const startScript = generatedFile(result, "scripts/start.sh");
 
     expect(result.exitCode).toBe(0);
     expect(paths).toEqual(
@@ -190,6 +192,12 @@ describe("Given Next.js CLI generation", () => {
     expect(database).toContain("export function getDatabase()");
     expect(dockerfile).toContain("RUN pnpm install\n");
     expect(dockerfile).toContain("pnpm build");
+    expect(compose).toContain("next:");
+    expect(compose).toContain('HOSTNAME: "0.0.0.0"');
+    expect(compose).toContain("postgres:17-alpine");
+    expect(compose).toContain("3000:3000");
+    expect(startScript).toContain("pnpm run migrate");
+    expect(startScript).toContain("exec pnpm start");
   });
 
   it("when --next-surface rsc is passed with --http next, then only RSC pages emit at contract paths plus server access", async () => {
