@@ -40,11 +40,10 @@ const nextTsconfig = {
     moduleResolution: "bundler",
     resolveJsonModule: true,
     isolatedModules: true,
-    jsx: "preserve",
+    jsx: "react-jsx",
     incremental: true,
     allowImportingTsExtensions: true,
     plugins: [{ name: "next" }],
-    baseUrl: ".",
     paths: {
       "@/*": ["./src/*"],
     },
@@ -102,7 +101,7 @@ const nextStartupScript = `#!/bin/sh
 set -eu
 
 pnpm run migrate
-exec pnpm start
+exec pnpm exec next start --hostname 0.0.0.0 --port "\${PORT:-3000}"
 `;
 
 const nextDockerfile = `FROM node:24-alpine
@@ -555,6 +554,12 @@ function renderNextDockerCompose(databaseName: string): string {
         condition: service_healthy
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 45s
 
 volumes:
   postgres-data:

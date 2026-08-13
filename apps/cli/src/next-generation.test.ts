@@ -192,12 +192,52 @@ describe("Given Next.js CLI generation", () => {
     expect(database).toContain("export function getDatabase()");
     expect(dockerfile).toContain("RUN pnpm install\n");
     expect(dockerfile).toContain("pnpm build");
-    expect(compose).toContain("next:");
-    expect(compose).toContain('HOSTNAME: "0.0.0.0"');
-    expect(compose).toContain("postgres:17-alpine");
-    expect(compose).toContain("3000:3000");
+    expect(compose).toMatchInlineSnapshot(`
+      "services:
+        postgres:
+          image: postgres:17-alpine
+          environment:
+            POSTGRES_DB: \${POSTGRES_DB:-hexkit_petstore_poc}
+            POSTGRES_USER: \${POSTGRES_USER:-hexkit_petstore_poc}
+            POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-hexkit_petstore_poc}
+          healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+            interval: 2s
+            timeout: 5s
+            retries: 15
+          volumes:
+            - postgres-data:/var/lib/postgresql/data
+
+        next:
+          build: .
+          environment:
+            DATABASE_URL: postgres://\${POSTGRES_USER:-hexkit_petstore_poc}:\${POSTGRES_PASSWORD:-hexkit_petstore_poc}@postgres:5432/\${POSTGRES_DB:-hexkit_petstore_poc}
+            HOSTNAME: "0.0.0.0"
+            PORT: "3000"
+          depends_on:
+            postgres:
+              condition: service_healthy
+          ports:
+            - "3000:3000"
+          healthcheck:
+            test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/"]
+            interval: 2s
+            timeout: 5s
+            retries: 30
+            start_period: 45s
+
+      volumes:
+        postgres-data:
+      "
+    `);
     expect(startScript).toContain("pnpm run migrate");
-    expect(startScript).toContain("exec pnpm start");
+    expect(startScript).toContain("exec pnpm exec next start --hostname 0.0.0.0 --port");
+    const tsconfig = JSON.parse(generatedFile(result, "tsconfig.json")) as {
+      compilerOptions: { baseUrl?: string; jsx?: string; paths?: Record<string, string[]> };
+    };
+    expect(tsconfig.compilerOptions.baseUrl).toBeUndefined();
+    expect(tsconfig.compilerOptions.jsx).toBe("react-jsx");
+    expect(tsconfig.compilerOptions.paths?.["@/*"]).toEqual(["./src/*"]);
   });
 
   it("when --next-surface rsc is passed with --http next, then only RSC pages emit at contract paths plus server access", async () => {
