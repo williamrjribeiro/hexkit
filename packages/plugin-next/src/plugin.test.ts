@@ -408,18 +408,20 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(page?.contents).toContain(
       'import { getServerAccess } from "@/adapters/http-next/server-access";',
     );
+    expect(page?.contents).toContain('export const dynamic = "force-dynamic";');
     expect(page?.contents).toContain("const params = await props.params;");
-    expect(page?.contents).toContain("const searchParams = await props.searchParams;");
+    expect(page?.contents).not.toContain("const searchParams = await props.searchParams;");
     expect(page?.contents).toContain("const access = getServerAccess();");
     expect(page?.contents).toContain("const result = await access.getPetById(");
     expect(page?.contents).toContain('<h1>{"getPetById"}</h1>');
     expect(page?.contents).not.toContain("fetch(");
     expect(page?.contents).not.toContain("force-static");
 
-    expect(filesByPath.get("app/page.tsx")?.contents).toContain('href="/ui/pet/[petId]"');
-    expect(filesByPath.get("app/ui/page.tsx")?.contents).toContain(
-      'href="/ui/store/order/[orderId]"',
-    );
+    expect(filesByPath.get("app/page.tsx")?.contents).toContain("getPetById");
+    expect(filesByPath.get("app/page.tsx")?.contents).not.toContain("<a href");
+    expect(filesByPath.get("app/page.tsx")?.contents).not.toContain('href="/ui/pet/[petId]"');
+    expect(filesByPath.get("app/ui/page.tsx")?.contents).toContain("getOrderById");
+    expect(filesByPath.get("app/ui/page.tsx")?.contents).not.toContain("<a href");
     for (const uiPage of artifact.uiPages) {
       const generatedPage = filesByPath.get(uiPage.filePath);
       expect(serverAccess?.contents).toContain(`  ${uiPage.useCaseAccessorName}:`);
@@ -510,6 +512,45 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(artifact.uiPages.map((page) => page.filePath)).toEqual(
       expect.arrayContaining(["app/pet/[petId]/page.tsx", "app/store/order/[orderId]/page.tsx"]),
     );
+  });
+});
+
+describe("Given generated Next App Router UI", () => {
+  it("when layout is emitted, then it sets html lang and Metadata", async () => {
+    const { files } = await collectGeneratedFiles(petstoreContract, "routes");
+    const layout = fileMap(files).get("app/layout.tsx")?.contents ?? "";
+
+    expect(layout).toContain('import type { Metadata } from "next";');
+    expect(layout).toContain("export const metadata:");
+    expect(layout).toContain('<html lang="en">');
+    expect(layout).not.toMatch(/<html>/);
+  });
+
+  it("when resource pages are emitted, then they opt into request-time rendering", async () => {
+    const { files } = await collectGeneratedFiles(petstoreContract, "both");
+    const page = fileMap(files).get("app/ui/pet/[petId]/page.tsx")?.contents ?? "";
+
+    expect(page).toContain('export const dynamic = "force-dynamic";');
+    expect(page).not.toContain("force-static");
+  });
+
+  it("when hub pages link to static UI routes, then they use next/link", async () => {
+    const { files } = await collectGeneratedFiles(createSecuredContract(), "both");
+    const hub = fileMap(files).get("app/page.tsx")?.contents ?? "";
+
+    expect(hub).toContain('import Link from "next/link";');
+    expect(hub).toContain('<Link href="/ui/catalog">');
+    expect(hub).not.toContain("<a href");
+  });
+
+  it("when hub pages list dynamic UI routes, then they do not emit html links to bracket paths", async () => {
+    const { files } = await collectGeneratedFiles(petstoreContract, "both");
+    const hub = fileMap(files).get("app/page.tsx")?.contents ?? "";
+
+    expect(hub).not.toContain("<a href");
+    expect(hub).not.toContain('href="/ui/pet/[petId]"');
+    expect(hub).not.toContain('import Link from "next/link"');
+    expect(hub).toContain("getPetById");
   });
 });
 

@@ -34,11 +34,16 @@ function renderLayoutFile(): GeneratedFile {
   return {
     path: "app/layout.tsx",
     contents: [
+      'import type { Metadata } from "next";',
       'import type { ReactNode } from "react";',
+      "",
+      "export const metadata: Metadata = {",
+      '  title: "Hexkit generated app",',
+      "};",
       "",
       "export default function RootLayout(props: { children: ReactNode }) {",
       "  return (",
-      "    <html>",
+      '    <html lang="en">',
       "      <body>{props.children}</body>",
       "    </html>",
       "  );",
@@ -81,9 +86,11 @@ function renderRoutesOnlyPageSource(): string {
 }
 
 function renderHubPageSource(model: NextHttpModel): string {
-  const pageEntries = model.uiPages.map(renderHubPageLink).join("\n");
+  const hasStaticPages = model.uiPages.some((page) => !hasDynamicSegments(page));
+  const pageEntries = model.uiPages.map(renderHubPageEntry).join("\n");
 
   return [
+    ...(hasStaticPages ? ['import Link from "next/link";', ""] : []),
     "export default function Page() {",
     "  return (",
     "    <main>",
@@ -98,10 +105,19 @@ function renderHubPageSource(model: NextHttpModel): string {
   ].join("\n");
 }
 
-function renderHubPageLink(page: NextUiPage): string {
+function renderHubPageEntry(page: NextUiPage): string {
+  const href = pageHref(page.filePath);
+  if (hasDynamicSegments(page)) {
+    return [
+      "        <li>",
+      `          ${page.operationId} <code>${href}</code>`,
+      "        </li>",
+    ].join("\n");
+  }
+
   return [
     "        <li>",
-    `          <a href=${JSON.stringify(pageHref(page.filePath))}>${page.operationId}</a>`,
+    `          <Link href=${JSON.stringify(href)}>${page.operationId}</Link>`,
     "        </li>",
   ].join("\n");
 }
@@ -117,9 +133,18 @@ function renderResourcePageFile(page: NextUiPage, application: ApplicationArtifa
   const argumentsList = useCase.parameters
     .map((parameter) => renderUseCaseArgument(parameter, page))
     .join(", ");
+  const needsParams = useCase.parameters.some((parameter) =>
+    page.paramNames.includes(parameter.name),
+  );
   const needsSearchHelper = useCase.parameters.some(
     (parameter) => !page.paramNames.includes(parameter.name),
   );
+  const pagePropsType = [
+    ...(needsParams ? ["  params: Promise<Record<string, string>>;"] : []),
+    ...(needsSearchHelper
+      ? ["  searchParams: Promise<Record<string, string | string[] | undefined>>;"]
+      : []),
+  ];
 
   return {
     path: page.filePath,
@@ -127,12 +152,17 @@ function renderResourcePageFile(page: NextUiPage, application: ApplicationArtifa
       'import { getServerAccess } from "@/adapters/http-next/server-access";',
       "",
       ...(needsSearchHelper ? [renderSearchParamHelper(), ""] : []),
-      "export default async function Page(props: {",
-      "  params: Promise<Record<string, string>>;",
-      "  searchParams: Promise<Record<string, string | string[] | undefined>>;",
-      "}) {",
-      "  const params = await props.params;",
-      "  const searchParams = await props.searchParams;",
+      'export const dynamic = "force-dynamic";',
+      "",
+      ...(pagePropsType.length > 0
+        ? [
+            "export default async function Page(props: {",
+            ...pagePropsType,
+            "}) {",
+            ...(needsParams ? ["  const params = await props.params;"] : []),
+            ...(needsSearchHelper ? ["  const searchParams = await props.searchParams;"] : []),
+          ]
+        : ["export default async function Page() {"]),
       "  const access = getServerAccess();",
       `  const result = await access.${page.useCaseAccessorName}(${argumentsList});`,
       "",
@@ -176,6 +206,10 @@ function renderUseCaseArgument(
     return `(${expression} ?? "false") === "true"`;
   }
   return `${expression} ?? ""`;
+}
+
+function hasDynamicSegments(page: NextUiPage): boolean {
+  return page.paramNames.length > 0 || page.filePath.includes("[");
 }
 
 function pageHref(filePath: string): string {
