@@ -91,6 +91,38 @@ const nextConfig: NextConfig = {};
 export default nextConfig;
 `;
 
+const nextEslintConfig = `import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  {
+    rules: {
+      "@next/next/no-html-link-for-pages": "error",
+    },
+  },
+  {
+    files: ["src/generated/contracts/**/*.ts"],
+    rules: {
+      // Apical craft emits unused ResponseMap imports and \`let parsedBody\`.
+      // Keep Next.js plugin rules; relax only craft-local JS/TS hygiene.
+      "@typescript-eslint/no-unused-vars": "off",
+      "prefer-const": "off",
+    },
+  },
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+`;
+
 const nextEnv = `/// <reference types="next" />
 /// <reference types="next/image-types/global" />
 
@@ -212,6 +244,11 @@ export function generateNextPackagingFiles(inputs: NextPackagingInputs): Generat
     {
       path: "next.config.ts",
       contents: nextConfig,
+      ownership: "generated",
+    },
+    {
+      path: "eslint.config.mjs",
+      contents: nextEslintConfig,
       ownership: "generated",
     },
     {
@@ -393,6 +430,7 @@ function createNextPackageManifest(packageName: string, migrationPath: string) {
       dev: "next dev",
       build: "next build",
       start: "next start",
+      lint: "eslint . --max-warnings 0",
       check: "next build",
       migrate: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}`,
     },
@@ -410,6 +448,8 @@ function createNextPackageManifest(packageName: string, migrationPath: string) {
       "@types/pg": "8.20.3",
       "@types/react": "19.2.18",
       "@types/react-dom": "19.2.4",
+      eslint: "^9",
+      "eslint-config-next": "16.3.0",
       typescript: "7.0.2",
     },
     engines: {

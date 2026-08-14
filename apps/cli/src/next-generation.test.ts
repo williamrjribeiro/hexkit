@@ -151,6 +151,7 @@ describe("Given Next.js CLI generation", () => {
     const manifest = JSON.parse(generatedFile(result, "package.json")) as {
       scripts: Record<string, string>;
       dependencies: Record<string, string>;
+      devDependencies: Record<string, string>;
     };
     const database = generatedFile(result, "src/adapters/db/database.ts");
     const dockerfile = generatedFile(result, "Dockerfile");
@@ -164,6 +165,7 @@ describe("Given Next.js CLI generation", () => {
         "app/page.tsx",
         "app/pet/[petId]/route.ts",
         "next.config.ts",
+        "eslint.config.mjs",
         "tsconfig.json",
         "Dockerfile",
         "docker-compose.yml",
@@ -178,6 +180,7 @@ describe("Given Next.js CLI generation", () => {
       dev: "next dev",
       build: "next build",
       start: "next start",
+      lint: "eslint . --max-warnings 0",
     });
     expect(manifest.dependencies).toEqual(
       expect.objectContaining({
@@ -187,6 +190,19 @@ describe("Given Next.js CLI generation", () => {
         react: expect.any(String),
         "react-dom": expect.any(String),
       }),
+    );
+    expect(manifest.devDependencies).toEqual(
+      expect.objectContaining({
+        eslint: expect.any(String),
+        "eslint-config-next": "16.3.0",
+      }),
+    );
+    expect(generatedFile(result, "eslint.config.mjs")).toContain(
+      "eslint-config-next/core-web-vitals",
+    );
+    expect(generatedFile(result, "eslint.config.mjs")).toContain("eslint-config-next/typescript");
+    expect(generatedFile(result, "eslint.config.mjs")).toContain(
+      "@next/next/no-html-link-for-pages",
     );
     expect(database).toContain('import { drizzle } from "drizzle-orm/node-postgres";');
     expect(database).toContain("export function getDatabase()");
