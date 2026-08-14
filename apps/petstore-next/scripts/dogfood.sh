@@ -101,7 +101,7 @@ lint_next_app() {
   lint_status=0
   (
     cd "$app_dir"
-    vp node "$NEXT_DIR/node_modules/eslint/bin/eslint.js" . --max-warnings 0
+    vp node "$NEXT_DIR/node_modules/eslint/bin/eslint.js" . --max-warnings 0 --no-cache
   ) || lint_status=$?
 
   if [ "$created_modules_link" -eq 1 ]; then
@@ -112,6 +112,8 @@ lint_next_app() {
     printf 'Error: eslint-config-next failed for %s.\n' "$label" >&2
     exit "$lint_status"
   fi
+
+  printf 'eslint-config-next passed for %s\n' "$label"
 }
 
 wait_for_url() {
@@ -168,9 +170,10 @@ copy_generated_routes
 
 vp install
 
+lint_next_app "$NEXT_DIR" "PetShop Next.js fixture"
+
 (
   cd "$NEXT_DIR"
-  vp run lint
   vp run build
 )
 
