@@ -76,6 +76,44 @@ copy_generated_routes() {
   done
 }
 
+lint_next_app() {
+  app_dir=$1
+  label=$2
+
+  printf 'Running eslint-config-next on %s\n' "$label"
+
+  if [ ! -f "$NEXT_DIR/node_modules/eslint/bin/eslint.js" ]; then
+    printf 'Error: eslint is not installed in %s. Run vp install from the repo root.\n' "$NEXT_DIR" >&2
+    exit 1
+  fi
+
+  if [ ! -f "$app_dir/eslint.config.mjs" ]; then
+    cp "$NEXT_DIR/eslint.config.mjs" "$app_dir/eslint.config.mjs"
+  fi
+
+  modules_link=$app_dir/node_modules
+  created_modules_link=0
+  if [ ! -e "$modules_link" ]; then
+    ln -s "$NEXT_DIR/node_modules" "$modules_link"
+    created_modules_link=1
+  fi
+
+  lint_status=0
+  (
+    cd "$app_dir"
+    vp node "$NEXT_DIR/node_modules/eslint/bin/eslint.js" . --max-warnings 0
+  ) || lint_status=$?
+
+  if [ "$created_modules_link" -eq 1 ]; then
+    rm "$modules_link"
+  fi
+
+  if [ "$lint_status" -ne 0 ]; then
+    printf 'Error: eslint-config-next failed for %s.\n' "$label" >&2
+    exit "$lint_status"
+  fi
+}
+
 wait_for_url() {
   url=$1
   expected_status=$2
@@ -117,7 +155,9 @@ cd "$ROOT_DIR"
 
 vp run -F @hexkit/cli... build
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR" \
-  --http next --next-surface routes
+  --http next --next-surface both
+
+lint_next_app "$OUTPUT_DIR" "generated Next.js app"
 
 sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
 
@@ -130,6 +170,7 @@ vp install
 
 (
   cd "$NEXT_DIR"
+  vp run lint
   vp run build
 )
 

@@ -5,6 +5,8 @@ import { getServerAccess } from "@/adapters/http-next/server-access";
 
 import { deleteOrderAction } from "../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function OrderDetailPage(props: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await props.params;
   const numericOrderId = Number(orderId);

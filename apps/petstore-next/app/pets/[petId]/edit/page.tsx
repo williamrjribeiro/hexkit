@@ -5,6 +5,8 @@ import { getServerAccess } from "@/adapters/http-next/server-access";
 
 import { updatePetAction } from "../../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function EditPetPage(props: { params: Promise<{ petId: string }> }) {
   const { petId } = await props.params;
   const numericPetId = Number(petId);

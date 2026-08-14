@@ -38,13 +38,20 @@ vp run dogfood-petstore-next
 
 That follows the Hono Petstore pattern: generate into a temp tree, overlay this
 fixture's UI, then `docker compose up --build` using the **generated**
-`Dockerfile` + `docker-compose.yml` (Next.js app + Postgres). Set
-`HEXKIT_SKIP_COMPOSE=1` to stop after generate/merge/`next build` when Docker is
-unavailable. `HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
+`Dockerfile` + `docker-compose.yml` (Next.js app + Postgres). After generate,
+dogfood runs `eslint-config-next` (Core Web Vitals + TypeScript +
+`@next/next/no-html-link-for-pages`) on the generated tree, then again on this
+PetShop fixture after merge. Set `HEXKIT_SKIP_COMPOSE=1` to stop after
+generate/merge/lint/`next build` when Docker is unavailable. `HEXKIT_KEEP_STACK=1`
+leaves the Compose stack running.
 
 Input contract: `../petstore-sample/openapi.poc.yaml`.
 
-CLI default `--next-surface` is `both`; this fixture dogfood merge uses `--next-surface routes` so Route Handlers merge without overwriting RSC UI pages.
+CLI default `--next-surface` is `both`; this fixture dogfood generate uses
+`--next-surface both` so eslint-config-next can validate generated Route
+Handlers and RSC scaffolds before overlay replaces fixture-owned UI. Overlay
+still owns `/`, `/pets/**`, and `/orders/**`; only `src/**` and `app/**/route.ts`
+are copied back onto this fixture.
 
 ### Generate-to-TMP merge algorithm
 
@@ -52,7 +59,7 @@ CLI default `--next-surface` is `both`; this fixture dogfood merge uses `--next-
 
    ```bash
    hexkit generate apps/petstore-sample/openapi.poc.yaml "$TMPDIR/petstore-next" \
-     --http next --next-surface routes
+     --http next --next-surface both
    ```
 
 2. Overlay fixture-owned UI onto the temp tree (`scripts/overlay-fixture.sh`):
@@ -66,7 +73,10 @@ CLI default `--next-surface` is `both`; this fixture dogfood merge uses `--next-
    files under `app/` back onto the fixture. The fixture keeps ownership of `/`,
    `/pets/**`, and `/orders/**`.
 5. Confirm `tsconfig.json` still maps `@/*` to `./src/*`.
-6. From the repository root, run `vp install` and `vp run petstore-next#build`.
+6. From the repository root, run `vp install`, then lint and build this fixture
+   with `vp run petstore-next#lint` and `vp run petstore-next#build`.
+   Dogfood also lints the generated temp tree with the same `eslint-config-next`
+   rules before overlay.
 7. `docker compose -f "$TMP/docker-compose.yml" up --build -d --wait`, then
    smoke `GET /`, `GET /pets`, and `POST /pet`.
 8. For local iteration without Compose: `cd apps/petstore-next && pnpm next dev`.

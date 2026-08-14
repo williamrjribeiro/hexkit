@@ -5,7 +5,13 @@ export default defineConfig({
     "*": "vp check --fix",
   },
   fmt: {
-    ignorePatterns: ["RFC.md", "apps/petstore-sample/openapi.yaml"],
+    ignorePatterns: [
+      "RFC.md",
+      "apps/petstore-sample/openapi.yaml",
+      // Hexkit/Apical snapshots copied by Next dogfood; craft output is not oxfmt-shaped.
+      "apps/petstore-next/src/**",
+      "apps/petstore-next/app/**/route.ts",
+    ],
   },
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
