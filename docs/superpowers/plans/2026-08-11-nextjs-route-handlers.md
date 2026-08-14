@@ -34,32 +34,32 @@
 
 ## File map (what each new/changed unit owns)
 
-| Path | Responsibility |
-| ---- | -------------- |
-| `packages/plugin-next/package.json` | Package metadata |
-| `packages/plugin-next/README.md` | Package overview; domain-agnostic note |
-| `packages/plugin-next/src/model/paths.ts` | OpenAPI path → `route.ts` and `app/ui/.../page.tsx` paths |
-| `packages/plugin-next/src/model/derive.ts` | Derive Next HTTP + RSC model from contract + application |
-| `packages/plugin-next/src/artifact.ts` | `NextHttpArtifact` / page binding types |
-| `packages/plugin-next/src/generate/helpers.ts` | Shared request/auth/response helper source |
-| `packages/plugin-next/src/generate/controllers.ts` | Controller wiring to use cases |
-| `packages/plugin-next/src/generate/routes.ts` | Emit `app/**/route.ts` |
-| `packages/plugin-next/src/generate/server-access.ts` | Emit DAL composition for RSC |
-| `packages/plugin-next/src/generate/pages.ts` | Emit `app/layout.tsx`, `app/page.tsx`, `app/ui/**/page.tsx` |
-| `packages/plugin-next/src/generate/runtime.ts` | Compose use cases + authenticator for handlers |
-| `packages/plugin-next/src/generate/auth-adapter.ts` | In-memory authenticator stub when security present |
-| `packages/plugin-next/src/plugin.ts` | `createNextPlugin({ surface })` |
-| `packages/plugin-next/src/plugin.test.ts` | Fixtures (Petstore + Library), surfaces, snapshots |
-| `packages/plugin-next/src/domain-agnostic.test.ts` | Banned sample-domain literals in plugin production sources |
-| `apps/cli/src/command.ts` | Parse `--http hono\|next` and `--next-surface` |
-| `apps/cli/src/main.ts` | Select plugin set + packaging + surface |
-| `apps/cli/src/packaging-plugin.ts` | Next packaging branch |
-| `apps/cli/src/next-generation.test.ts` | Integration: each surface |
-| `apps/cli/src/domain-agnostic.test.ts` | Add `packages/plugin-next/src` to scan roots |
-| `apps/petstore-next/` | Vanilla PetShop Next dogfood app (no tests) |
-| `apps/petstore-next/app/**` | RSC pages + forms (create-next-app layout) |
-| `apps/fixtures/next-api/` | Optional generic (non-PetShop) surface fixture |
-| `RFC.md` / `PRD.md` / `docs/README.md` | Product amendment + links |
+| Path                                                 | Responsibility                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| `packages/plugin-next/package.json`                  | Package metadata                                            |
+| `packages/plugin-next/README.md`                     | Package overview; domain-agnostic note                      |
+| `packages/plugin-next/src/model/paths.ts`            | OpenAPI path → `route.ts` and `app/ui/.../page.tsx` paths   |
+| `packages/plugin-next/src/model/derive.ts`           | Derive Next HTTP + RSC model from contract + application    |
+| `packages/plugin-next/src/artifact.ts`               | `NextHttpArtifact` / page binding types                     |
+| `packages/plugin-next/src/generate/helpers.ts`       | Shared request/auth/response helper source                  |
+| `packages/plugin-next/src/generate/controllers.ts`   | Controller wiring to use cases                              |
+| `packages/plugin-next/src/generate/routes.ts`        | Emit `app/**/route.ts`                                      |
+| `packages/plugin-next/src/generate/server-access.ts` | Emit DAL composition for RSC                                |
+| `packages/plugin-next/src/generate/pages.ts`         | Emit `app/layout.tsx`, `app/page.tsx`, `app/ui/**/page.tsx` |
+| `packages/plugin-next/src/generate/runtime.ts`       | Compose use cases + authenticator for handlers              |
+| `packages/plugin-next/src/generate/auth-adapter.ts`  | In-memory authenticator stub when security present          |
+| `packages/plugin-next/src/plugin.ts`                 | `createNextPlugin({ surface })`                             |
+| `packages/plugin-next/src/plugin.test.ts`            | Fixtures (Petstore + Library), surfaces, snapshots          |
+| `packages/plugin-next/src/domain-agnostic.test.ts`   | Banned sample-domain literals in plugin production sources  |
+| `apps/cli/src/command.ts`                            | Parse `--http hono\|next` and `--next-surface`              |
+| `apps/cli/src/main.ts`                               | Select plugin set + packaging + surface                     |
+| `apps/cli/src/packaging-plugin.ts`                   | Next packaging branch                                       |
+| `apps/cli/src/next-generation.test.ts`               | Integration: each surface                                   |
+| `apps/cli/src/domain-agnostic.test.ts`               | Add `packages/plugin-next/src` to scan roots                |
+| `apps/petstore-next/`                                | Vanilla PetShop Next dogfood app (no tests)                 |
+| `apps/petstore-next/app/**`                          | RSC pages + forms (create-next-app layout)                  |
+| `apps/fixtures/next-api/`                            | Optional generic (non-PetShop) surface fixture              |
+| `RFC.md` / `PRD.md` / `docs/README.md`               | Product amendment + links                                   |
 
 ---
 
@@ -427,6 +427,7 @@ pnpm create next-app@latest petstore-next \
 ```
 
 Then set `tsconfig` paths so `@/*` → `./src/*` (Hexkit generated tree), keeping `app/` at package root.
+
 - Keep/adjust: `package.json` scripts `dev` / `build` / `start` / `lint` as in [Next.js installation](https://nextjs.org/docs/app/getting-started/installation)
 - Create: PetShop pages under `app/pets/**`, `app/orders/**`, root `app/page.tsx` / `app/layout.tsx`
 - Create: optional `*.module.css` beside pages for light scoped styles
@@ -454,9 +455,7 @@ Then set `tsconfig` paths so `@/*` → `./src/*` (Hexkit generated tree), keepin
 import styles from "./page.module.css";
 import { getServerAccess } from "@/adapters/http-next/server-access";
 
-export default async function PetDetailPage(props: {
-  params: Promise<{ petId: string }>;
-}) {
+export default async function PetDetailPage(props: { params: Promise<{ petId: string }> }) {
   const { petId } = await props.params;
   const access = getServerAccess();
   const pet = await access.getPetById({ petId: Number(petId) });

@@ -210,7 +210,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
       import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
       export function createDrizzlePetRepository(
-        db: NodePgDatabase,
+        db: NodePgDatabase<Record<string, unknown>>,
       ): PetRepository {
         return {
           async addPet(pet: Pet): Promise<Pet> {

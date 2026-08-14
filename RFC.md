@@ -15,7 +15,7 @@ Hexkit focuses on generating complete applications rather than API stubs. Genera
 
 OpenAPI 3.1
 Apical TS
-Hono
+Hono (default HTTP adapter; Next.js App Router is opt-in via `--http next`)
 Zod v4
 Drizzle ORM
 PostgreSQL
@@ -121,7 +121,8 @@ hexkit/
 
 ├── apps/
 │   ├── cli/
-│   └── petstore-sample/
+│   ├── petstore-sample/
+│   └── petstore-next/
 │
 ├── packages/
 │   ├── core/
@@ -131,6 +132,7 @@ hexkit/
 │   ├── plugin-apical/
 │   ├── plugin-architecture-hexagonal/
 │   ├── plugin-hono/
+│   ├── plugin-next/
 │   ├── plugin-drizzle/
 │   └── plugin-sst/
 │
@@ -215,6 +217,19 @@ Operation integration
 
 Consumes Apical-generated contracts. Routes and controllers are derived from those operations; the plugin must not hardcode sample operationIds or Petstore paths.
 
+plugin-next
+
+Generates Next.js App Router HTTP adapters (opt-in via CLI `--http next`).
+
+Responsibilities:
+
+Route Handlers at literal OpenAPI paths
+RSC pages and server-access wiring (surface-selectable)
+Middleware/auth wiring aligned with Hono behavior
+Operation integration
+
+Consumes Apical-generated contracts. OpenAPI maps to Route Handlers; Server Actions are not part of the OpenAPI HTTP surface. The plugin must not hardcode sample operationIds or Petstore paths (see PRD §5.0).
+
 plugin-drizzle
 
 Generates persistence adapters.
@@ -249,7 +264,7 @@ flowchart TD
 
     C --> D[plugin-architecture-hexagonal]
 
-    D --> E[plugin-hono]
+    D --> E[plugin-hono or plugin-next]
     D --> F[plugin-drizzle]
 
     E --> G[Generated Application]
@@ -352,6 +367,16 @@ apps/petstore-sample/
 
 Petstore knowledge lives in this app (OpenAPI fixtures, acceptance tests, dogfood scripts). Hexkit packages remain domain-agnostic and treat the sample only as an input contract.
 
+Next.js PetShop fixture
+
+A vanilla create-next-app-shaped App Router dogfood app validates the opt-in Next adapter:
+
+apps/petstore-next/
+
+The fixture owns PetShop UI (RSC reads via generated server-access; form Server Actions for writes; no client-side data fetching). Generated OpenAPI Route Handlers own contract paths. There is no PetShop test suite — generator and CLI tests cover `plugin-next`.
+
+CLI: `hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]` (`hono` remains default; `both` is the default Next surface). See `docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`.
+
 Verification Workflow
 Petstore OpenAPI
     ↓
@@ -376,12 +401,14 @@ The first release supports exactly:
 OpenAPI 3.1
 Apical TS
 TypeScript
-Hono
+Hono (default HTTP adapter)
 Drizzle ORM
 PostgreSQL
 AWS Lambda
 SST
 Hexagonal Architecture
+
+Next.js App Router (`@hexkit/plugin-next`) is an opt-in HTTP adapter (`--http next`) validated by the `apps/petstore-next` fixture; Hono remains the default.
 
 Any additional frameworks, runtimes, databases, ORMs, or deployment systems are explicitly out of scope until the initial architecture is validated through the Petstore sample.
 

@@ -11,12 +11,14 @@ requirements and acceptance criteria are in [PRD.md](./PRD.md).
 
 - [`apps/cli`](./apps/cli/README.md) — Hexkit command-line application
 - [`apps/petstore-sample`](./apps/petstore-sample/README.md) — canonical generation and deployment sample
+- [`apps/petstore-next`](./apps/petstore-next/README.md) — vanilla Next.js PetShop dogfood fixture (opt-in `--http next`)
 - [`packages/core`](./packages/core/README.md) — generation orchestration
 - [`packages/codegen`](./packages/codegen/README.md) — shared source generation utilities
 - [`packages/plugin-api`](./packages/plugin-api/README.md) — plugin contracts and lifecycle
 - [`packages/plugin-apical`](./packages/plugin-apical/README.md) — Apical TS contract generation
 - [`packages/plugin-architecture-hexagonal`](./packages/plugin-architecture-hexagonal/README.md) — hexagonal architecture generation
-- [`packages/plugin-hono`](./packages/plugin-hono/README.md) — Hono HTTP adapter generation
+- [`packages/plugin-hono`](./packages/plugin-hono/README.md) — Hono HTTP adapter generation (default)
+- [`packages/plugin-next`](./packages/plugin-next/README.md) — Next.js App Router adapter generation (opt-in)
 - [`packages/plugin-drizzle`](./packages/plugin-drizzle/README.md) — Drizzle persistence adapter generation
 - [`packages/plugin-sst`](./packages/plugin-sst/README.md) — SST infrastructure generation
 - [`docs`](./docs/README.md) — project documentation
@@ -72,3 +74,26 @@ vp run dogfood-auth
 
 Uses `apps/fixtures/auth-api/openapi.yaml`. Passes through `AUTH_API_URL`,
 `HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`.
+
+## Next.js PetShop dogfood
+
+Hono remains the default HTTP adapter. Opt in to Next.js with `--http next` and
+`--next-surface both|routes|rsc` (default `both`). OpenAPI maps to Route
+Handlers; Server Actions are fixture UI only, not the OpenAPI surface.
+
+Generate, merge, and start the vanilla create-next-app-shaped fixture:
+
+```bash
+vp run dogfood-petstore-next
+```
+
+Or manually:
+
+```bash
+hexkit generate apps/petstore-sample/openapi.poc.yaml /tmp/petstore-next \
+  --http next --next-surface routes
+```
+
+See [`apps/petstore-next/README.md`](./apps/petstore-next/README.md) for the
+generate-to-TMP merge algorithm. The PetShop app has no automated test suite;
+`@hexkit/plugin-next` stays domain-agnostic (PRD §5.0).

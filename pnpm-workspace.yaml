@@ -3,6 +3,10 @@ packages:
   - apps/fixtures/*
   - packages/*
 
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+
 catalogMode: prefer
 
 catalog:

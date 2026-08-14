@@ -189,14 +189,16 @@ describe("Given a Hexkit CLI invocation", () => {
         "Hexkit
 
       Usage:
-        hexkit generate <openapi> <output>
+        hexkit generate <openapi> <output> [--http hono|next] [--next-surface both|routes|rsc]
         hexkit --help
 
       Commands:
         generate  Generate a compose-ready application from an OpenAPI document
 
       Options:
-        -h, --help  Show this help",
+        --http <adapter>       Select HTTP adapter: hono (default) or next
+        --next-surface <mode>  Select Next output when --http next: both (default), routes, or rsc
+        -h, --help             Show this help",
       ]
     `);
   });
@@ -219,12 +221,12 @@ describe("Given a Hexkit CLI invocation", () => {
   });
 
   it("when generate receives an input and output, then it invokes generation exactly once", async () => {
-    const calls: Array<{ inputPath: string; outputDirectory: string }> = [];
+    const calls: Array<{ inputPath: string; outputDirectory: string; http: string }> = [];
 
     const exitCode = await runCli(["generate", "petstore.yaml", "generated/petstore"], {
-      async generate(inputPath: string, outputDirectory: string) {
+      async generate(inputPath: string, outputDirectory: string, options = { http: "hono" }) {
         await Promise.resolve();
-        calls.push({ inputPath, outputDirectory });
+        calls.push({ inputPath, outputDirectory, http: options.http });
       },
       log() {},
     });
@@ -234,6 +236,7 @@ describe("Given a Hexkit CLI invocation", () => {
       {
         inputPath: "petstore.yaml",
         outputDirectory: "generated/petstore",
+        http: "hono",
       },
     ]);
   });
@@ -243,7 +246,69 @@ describe("Given a Hexkit CLI invocation", () => {
       kind: "generate",
       inputPath: "petstore.yaml",
       outputDirectory: "generated/petstore",
+      http: "hono",
     });
+  });
+
+  it("when --http next is parsed, then the Next adapter is selected with surface both by default", () => {
+    expect(
+      parseArguments(["generate", "petstore.yaml", "generated/petstore", "--http", "next"]),
+    ).toEqual({
+      kind: "generate",
+      inputPath: "petstore.yaml",
+      outputDirectory: "generated/petstore",
+      http: "next",
+      nextSurface: "both",
+    });
+  });
+
+  it("when --next-surface is passed without --http next, then the CLI errors", async () => {
+    const messages: string[] = [];
+
+    const exitCode = await runCli(
+      ["generate", "petstore.yaml", "generated/petstore", "--next-surface", "routes"],
+      {
+        generate() {
+          throw new Error("invalid arguments must not generate");
+        },
+        log(text: string) {
+          messages.push(text);
+        },
+      },
+    );
+
+    expect(exitCode).toBe(1);
+    expect(messages[0]).toBe("Error: --next-surface can only be used with --http next.");
+  });
+
+  it("when --http next is passed, then generation receives the Next surface selection", async () => {
+    const calls: Array<{ http: string; nextSurface: string }> = [];
+
+    const exitCode = await runCli(
+      [
+        "generate",
+        "petstore.yaml",
+        "generated/petstore",
+        "--http",
+        "next",
+        "--next-surface",
+        "routes",
+      ],
+      {
+        async generate(
+          _inputPath,
+          _outputDirectory,
+          options: { http: string; nextSurface?: string } = { http: "hono" },
+        ) {
+          await Promise.resolve();
+          calls.push({ http: options.http, nextSurface: options.nextSurface ?? "both" });
+        },
+        log() {},
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(calls).toEqual([{ http: "next", nextSurface: "routes" }]);
   });
 
   it("when an async plugin fails, then main waits for and reports the failure", async () => {
@@ -284,6 +349,18 @@ describe("Given the default generation pipeline", () => {
       "drizzle",
       "packaging",
     ]);
+  });
+
+  it("when the Next adapter is selected, then the default pipeline swaps Hono for Next before Drizzle packaging", () => {
+    expect(
+      createDefaultPlugins({
+        http: "next",
+        nextSurface: "routes",
+      } as Parameters<typeof createDefaultPlugins>[0] & {
+        http: "next";
+        nextSurface: "routes";
+      }).map((plugin) => plugin.name),
+    ).toEqual(["apical", "architecture-hexagonal", "next", "drizzle", "packaging"]);
   });
 
   it("when the assembled CLI generates Petstore, then injected Craft and filesystem edges receive the complete application", async () => {
@@ -467,6 +544,16 @@ describe("Given the published CLI package", () => {
 
     expect(packageJson.bin).toEqual({
       hexkit: "./dist/index.mjs",
+    });
+  });
+
+  it("when package dependencies are resolved, then the Next plugin is available to the CLI", () => {
+    const packageJson = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { dependencies?: Record<string, string> };
+
+    expect(packageJson.dependencies).toMatchObject({
+      "@hexkit/plugin-next": "workspace:*",
     });
   });
 });
