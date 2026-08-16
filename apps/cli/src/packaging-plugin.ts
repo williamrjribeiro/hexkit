@@ -144,19 +144,17 @@ const nextDockerfile = `FROM node:24-alpine
 
 WORKDIR /app
 
-ENV npm_config_strict_dep_builds=false
-
 RUN apk add --no-cache postgresql-client \\
   && corepack enable \\
   && corepack prepare pnpm@11.18.0 --activate
 
-COPY package.json .npmrc ./
-RUN pnpm install --config.strict-dep-builds=false
+COPY package.json pnpm-workspace.yaml ./
+RUN pnpm install
 
 COPY . .
 RUN chmod +x scripts/start.sh \\
   && ./node_modules/.bin/next build \\
-  && pnpm prune --prod --config.strict-dep-builds=false
+  && pnpm prune --prod
 
 EXPOSE 3000
 
@@ -273,8 +271,8 @@ export function generateNextPackagingFiles(inputs: NextPackagingInputs): Generat
       ownership: "generated",
     },
     {
-      path: ".npmrc",
-      contents: "strict-dep-builds=false\n",
+      path: "pnpm-workspace.yaml",
+      contents: "allowBuilds:\n  unrs-resolver: true\n",
       ownership: "generated",
     },
     {
@@ -467,9 +465,6 @@ function createNextPackageManifest(packageName: string, migrationPath: string) {
       node: ">=24.18.1",
     },
     packageManager: "pnpm@11.18.0",
-    pnpm: {
-      ignoredBuiltDependencies: ["unrs-resolver"],
-    },
   };
 }
 
