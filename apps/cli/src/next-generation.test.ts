@@ -152,6 +152,7 @@ describe("Given Next.js CLI generation", () => {
       scripts: Record<string, string>;
       dependencies: Record<string, string>;
       devDependencies: Record<string, string>;
+      pnpm?: unknown;
     };
     const database = generatedFile(result, "src/adapters/db/database.ts");
     const dockerfile = generatedFile(result, "Dockerfile");
@@ -169,6 +170,7 @@ describe("Given Next.js CLI generation", () => {
         "tsconfig.json",
         "Dockerfile",
         "docker-compose.yml",
+        "pnpm-workspace.yaml",
         "src/adapters/http-next/server-access.ts",
         "src/adapters/http-next/runtime.ts",
         "src/adapters/db/database.ts",
@@ -206,8 +208,17 @@ describe("Given Next.js CLI generation", () => {
     );
     expect(database).toContain('import { drizzle } from "drizzle-orm/node-postgres";');
     expect(database).toContain("export function getDatabase()");
+    expect(manifest.pnpm).toBeUndefined();
+    expect(paths).not.toContain(".npmrc");
+    expect(generatedFile(result, "pnpm-workspace.yaml")).toBe(
+      "allowBuilds:\n  unrs-resolver: true\n",
+    );
+    expect(dockerfile).not.toContain("npm_config_strict_dep_builds");
+    expect(dockerfile).not.toContain("strict-dep-builds");
+    expect(dockerfile).toContain("COPY package.json pnpm-workspace.yaml ./");
     expect(dockerfile).toContain("RUN pnpm install\n");
-    expect(dockerfile).toContain("pnpm build");
+    expect(dockerfile).toContain("./node_modules/.bin/next build");
+    expect(dockerfile).not.toContain("pnpm build");
     expect(compose).toMatchInlineSnapshot(`
       "services:
         postgres:
@@ -246,8 +257,9 @@ describe("Given Next.js CLI generation", () => {
         postgres-data:
       "
     `);
-    expect(startScript).toContain("pnpm run migrate");
-    expect(startScript).toContain("exec pnpm exec next start --hostname 0.0.0.0 --port");
+    expect(startScript).toContain('psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/');
+    expect(startScript).not.toContain("pnpm");
+    expect(startScript).toContain("exec ./node_modules/.bin/next start --hostname 0.0.0.0 --port");
     const tsconfig = JSON.parse(generatedFile(result, "tsconfig.json")) as {
       compilerOptions: { baseUrl?: string; jsx?: string; paths?: Record<string, string[]> };
     };

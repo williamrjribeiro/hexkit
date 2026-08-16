@@ -786,6 +786,13 @@ describe("Given compose-ready generated packaging", () => {
       "
     `);
 
+    const startScript = files.find((file: GeneratedFile) => file.path === "scripts/start.sh");
+    expect(startScript?.contents).toContain(
+      'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_hexkit-petstore-poc.sql',
+    );
+    expect(startScript?.contents).toContain("exec node src/runtime/server.ts");
+    expect(startScript?.contents).not.toContain("pnpm");
+
     const server = files.find((file: GeneratedFile) => file.path === "src/runtime/server.ts");
     expect(server?.contents).toContain("createDrizzleOrderRepository");
     expect(server?.contents).toContain("createDrizzlePetRepository");
