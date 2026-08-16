@@ -52,12 +52,14 @@ const nextTsconfig = {
   exclude: ["node_modules"],
 };
 
-const startupScript = `#!/bin/sh
+function renderStartupScript(migrationPath: string): string {
+  return `#!/bin/sh
 set -eu
 
-pnpm run migrate
-exec pnpm start
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}
+exec node src/runtime/server.ts
 `;
+}
 
 const dockerfile = `FROM node:24-alpine
 
@@ -129,28 +131,32 @@ const nextEnv = `/// <reference types="next" />
 // This file is generated so type-checking works before Next.js writes next-env.d.ts.
 `;
 
-const nextStartupScript = `#!/bin/sh
+function renderNextStartupScript(migrationPath: string): string {
+  return `#!/bin/sh
 set -eu
 
-pnpm run migrate
-exec pnpm exec next start --hostname 0.0.0.0 --port "\${PORT:-3000}"
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}
+exec ./node_modules/.bin/next start --hostname 0.0.0.0 --port "\${PORT:-3000}"
 `;
+}
 
 const nextDockerfile = `FROM node:24-alpine
 
 WORKDIR /app
 
+ENV npm_config_strict_dep_builds=false
+
 RUN apk add --no-cache postgresql-client \\
   && corepack enable \\
   && corepack prepare pnpm@11.18.0 --activate
 
-COPY package.json ./
-RUN pnpm install
+COPY package.json .npmrc ./
+RUN pnpm install --config.strict-dep-builds=false
 
 COPY . .
 RUN chmod +x scripts/start.sh \\
-  && pnpm build \\
-  && pnpm prune --prod
+  && ./node_modules/.bin/next build \\
+  && pnpm prune --prod --config.strict-dep-builds=false
 
 EXPOSE 3000
 
@@ -203,7 +209,7 @@ export function generatePackagingFiles(inputs: PackagingInputs): GeneratedFile[]
     },
     {
       path: "scripts/start.sh",
-      contents: startupScript,
+      contents: renderStartupScript(persistence.migrationPath),
       ownership: "generated",
     },
     {
@@ -267,8 +273,13 @@ export function generateNextPackagingFiles(inputs: NextPackagingInputs): Generat
       ownership: "generated",
     },
     {
+      path: ".npmrc",
+      contents: "strict-dep-builds=false\n",
+      ownership: "generated",
+    },
+    {
       path: "scripts/start.sh",
-      contents: nextStartupScript,
+      contents: renderNextStartupScript(persistence.migrationPath),
       ownership: "generated",
     },
     {
@@ -456,6 +467,9 @@ function createNextPackageManifest(packageName: string, migrationPath: string) {
       node: ">=24.18.1",
     },
     packageManager: "pnpm@11.18.0",
+    pnpm: {
+      ignoredBuiltDependencies: ["unrs-resolver"],
+    },
   };
 }
 
