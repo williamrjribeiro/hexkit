@@ -1,6 +1,6 @@
 # Design: Next.js App Router Route Handlers + RSC in Hexkit
 
-**Status:** Draft  
+**Status:** Delivered (August 2026) — `@hexkit/plugin-next` and `apps/petstore-next` on `main`  
 **Date:** 2026-08-11  
 **Companion:** [RFC.md](../../../RFC.md), [PRD.md](../../../PRD.md)  
 **Implementation plan:** [2026-08-11-nextjs-route-handlers.md](../plans/2026-08-11-nextjs-route-handlers.md)  
@@ -8,7 +8,7 @@
 
 ## 1. Problem
 
-Hexkit currently generates a **Hono** HTTP adapter as the only driving adapter. Next.js is the dominant React full-stack framework; teams often want OpenAPI-backed APIs colocated with an App Router UI that uses **React Server Components (RSC)**.
+Hexkit generates a **Hono** HTTP adapter as the **default** driving adapter. Next.js is available opt-in via `--http next`. Next.js is the dominant React full-stack framework; teams often want OpenAPI-backed APIs colocated with an App Router UI that uses **React Server Components (RSC)**.
 
 RFC/PRD today treat **multiple web frameworks as a non-goal** for the initial release and fix the stack on Hono + (deferred) SST/Lambda. Adding Next.js is therefore an **explicit product amendment**, not a silent PoC stretch.
 

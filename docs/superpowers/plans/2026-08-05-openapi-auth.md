@@ -1,5 +1,7 @@
 # OpenAPI Authentication Support Implementation Plan
 
+> **Status:** Partially delivered (August 2026). Generator plugins support auth for fixture contracts; `openapi.poc.yaml` and PoC dogfood remain auth-free per PRD.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add contract-first API authentication to Hexkit so OpenAPI security schemes drive Apical header validation, hexagonal `Principal` / `Authenticator` wiring, and correct HTTP 401 behavior — without breaking the auth-free PoC.

@@ -1,20 +1,20 @@
 # Design: OpenAPI Authentication Support in Hexkit
 
-**Status:** Draft  
+**Status:** Partially implemented (August 2026) — auth fixture + generator wiring on `main`; `openapi.poc.yaml` stays auth-free for PoC  
 **Date:** 2026-08-05  
 **Companion:** [RFC.md](../../../RFC.md), [PRD.md](../../../PRD.md)  
 **Implementation plan:** [2026-08-05-openapi-auth.md](../plans/2026-08-05-openapi-auth.md)
 
 ## 1. Problem
 
-Hexkit generates hexagonal TypeScript apps from OpenAPI via Apical TS. Auth is explicitly out of PoC (`PRD.md` §2 / §11). Petstore’s full OpenAPI already declares `oauth2`, `apiKey`, and `mutualTLS`, but:
+Hexkit generates hexagonal TypeScript apps from OpenAPI via Apical TS. Auth is explicitly out of the **PoC contract** (`PRD.md` §2 / §11), but generator plugins now support secured fixtures (see `apps/fixtures/auth-api`). Petstore’s full OpenAPI already declares `oauth2`, `apiKey`, and `mutualTLS`, but:
 
-1. `openapi.poc.yaml` has **no** `security` / `securitySchemes`.
-2. Hexkit’s `ContractArtifact` drops all security metadata today.
-3. Generated Hono controllers map every Apical validation failure (including missing auth headers) to **HTTP 400**, not 401.
-4. There is no domain/port concept of a principal, authenticator, or authorization check.
+1. `openapi.poc.yaml` has **no** `security` / `securitySchemes` (intentional for PoC).
+2. ~~`ContractArtifact` dropped security metadata~~ — **addressed** for secured fixtures; `plugin-apical` carries security IR used by downstream plugins.
+3. ~~Generated Hono controllers mapped auth header failures to HTTP 400~~ — **addressed** for secured operations (401 for auth failures).
+4. ~~No principal / authenticator concept~~ — **addressed** — hexagonal `Principal` / `Authenticator` ports and a stub in-memory adapter are generated for secured contracts (`apps/fixtures/auth-api` dogfood).
 
-We need a contract-first path to support API authentication that:
+Original gaps (pre-implementation) motivated a contract-first path to support API authentication that:
 
 - Stays aligned with how **Apical TS** models security.
 - Preserves **Ports & Adapters** boundaries (HTTP ≠ domain).

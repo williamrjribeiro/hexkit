@@ -1,5 +1,7 @@
 # Hexkit PoC Implementation Plan
 
+> **Status:** Substantially complete on `main` (August 2026). Milestone 8 (dogfood green) remains the PoC sign-off gate — run `vp run dogfood`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Generate and dogfood a Petstore (Pet + Order) Hono/PostgreSQL application from `openapi.poc.yaml`.

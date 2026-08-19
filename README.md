@@ -7,6 +7,40 @@ Apical TS, Zod, Hono, Drizzle ORM, PostgreSQL, AWS Lambda, and SST.
 The architectural design is documented in [RFC.md](./RFC.md). PoC product
 requirements and acceptance criteria are in [PRD.md](./PRD.md).
 
+## Project status
+
+**Stage:** PoC implementation is substantially complete; local dogfood is the
+primary validation gate before PoC sign-off.
+
+| Area                                                    | Status                                                            |
+| ------------------------------------------------------- | ----------------------------------------------------------------- |
+| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts             |
+| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                    |
+| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                   |
+| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                |
+| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`) |
+| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, DB-read validation          |
+| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection          |
+| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                    |
+| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                   |
+| AWS Lambda / SST deploy                                 | Not in PoC scope                                                  |
+| GitHub Actions CI                                       | Not yet — local dogfood only for PoC                              |
+
+**Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
+(`vp run -r build` then `vp run -r test`). `apps/petstore-next` has no app test
+suite by design (`@hexkit/plugin-next` and CLI tests cover the generator).
+
+**Dogfood loops** (Docker required unless noted):
+
+| Command                        | What it proves                                                  |
+| ------------------------------ | --------------------------------------------------------------- |
+| `vp run dogfood`               | Hono Pet + Order from `openapi.poc.yaml` → Compose → Pactum     |
+| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only |
+| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                  |
+
+**Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
+§11.1), ongoing dogfood hardening, GitHub Actions for PR validation.
+
 ## Workspace
 
 - [`apps/cli`](./apps/cli/README.md) — Hexkit command-line application

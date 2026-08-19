@@ -1,5 +1,7 @@
 # Next.js App Router Route Handlers + RSC Implementation Plan
 
+> **Status:** Delivered on `main` (#9, August 2026).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add an opt-in, **domain-agnostic** `@hexkit/plugin-next` that generates Next.js 16 App Router Route Handlers, basic RSC pages, or **both** (selectable surface), plus a **vanilla PetShop Next.js dogfood app** (create-next-app-shaped; Tailwind; optional CSS Modules; RSC reads; form posts; **no app tests**; installs via **`vp` / pnpm**), while keeping Hono as the default HTTP adapter.
