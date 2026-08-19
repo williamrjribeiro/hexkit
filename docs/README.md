@@ -2,8 +2,24 @@
 
 - [RFC](../RFC.md) — architectural design and long-term scope
 - [PRD](../PRD.md) — PoC product requirements and acceptance criteria (includes the plugin domain-agnostic invariant in §5.0)
+- [README](../README.md) — workspace overview and **project status** tracker
 
 ## Specs & plans
+
+Implementation plans below are **delivered on `main`** unless noted. Checkbox
+lists remain for historical traceability.
+
+| Document                                                                                              | Status                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                       | Substantially complete — dogfood green is the remaining gate             |
+| [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md) | Delivered                                                                |
+| [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)          | Delivered (#9)                                                           |
+| [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)    | Delivered                                                                |
+| [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                          | Design reference — auth post-PoC for `openapi.poc.yaml`                  |
+| [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                    | Partial — generator support + auth fixture; PoC contract stays auth-free |
+| [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                           | Delivered (#7)                                                           |
+
+### Specs & plans (detail)
 
 - [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md) — how Apical models security and how Hexkit should integrate auth hexagonally
 - [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md) — phased tasks to implement that design

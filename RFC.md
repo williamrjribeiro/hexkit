@@ -1,7 +1,14 @@
 RFC: Hexkit — Contract-Driven REST API Application Generator
 Status
 
-Draft
+Draft (PoC implementation substantially complete — see [README.md](./README.md) § Project status)
+
+Implementation snapshot (August 2026)
+
+- `@hexkit/cli` generates compose-ready Hono or Next.js applications from OpenAPI 3.1.
+- Plugins implemented: apical, architecture-hexagonal, hono, next (opt-in), drizzle.
+- `@hexkit/plugin-sst` remains scaffold-only; AWS/SST deploy deferred post-PoC.
+- Dogfood: Hono Petstore (`vp run dogfood`), Next PetShop (`vp run dogfood-petstore-next`), auth fixture (`vp run dogfood-auth`).
 
 Authors
 

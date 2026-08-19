@@ -1,6 +1,6 @@
 # PRD: Hexkit PoC
 
-Status: Draft  
+Status: Draft (PoC implementation substantially complete — see §10 milestone tracker)  
 Companion: [RFC.md](./RFC.md)
 
 ## 1. Overview & relationship to RFC
@@ -272,7 +272,21 @@ The Hexkit PoC is complete when all of the following are true:
 
 ## 10. Milestones
 
-Ordered delivery milestones for implementation planning:
+Ordered delivery milestones for implementation planning. **Tracker** reflects
+August 2026 main-branch state.
+
+| #   | Milestone                                                                                                | Status                                       |
+| --- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring | Done                                         |
+| 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, no auth)           | Done                                         |
+| 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                           | Done                                         |
+| 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)       | Done                                         |
+| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, DB-read validation                            | Done                                         |
+| 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)              | Done                                         |
+| 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                    | Done                                         |
+| 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive         | In validation (`vp run dogfood` is the gate) |
+
+Detail (normative requirements unchanged):
 
 1. **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring.
 2. **Contracts** — `plugin-apical` end-to-end; author `openapi.poc.yaml` (Pet↔Order dogfood fixture, JSON only, no auth).
@@ -283,7 +297,7 @@ Ordered delivery milestones for implementation planning:
 7. **Test suite** — package unit tests, cross-package integration tests, Vitest+PactumJS API tests against Compose.
 8. **Dogfood green** — regenerate → validate source → Compose up → API tests pass; protected use cases survive re-generation.
 
-Deferred after PoC: `plugin-sst`, live AWS deploy, auth, full Petstore surface, GitHub Actions CI.
+Deferred after PoC: `plugin-sst`, live AWS deploy, auth in `openapi.poc.yaml`, full Petstore surface, GitHub Actions CI.
 
 ## 11. Follow-ups (explicitly out of PoC)
 

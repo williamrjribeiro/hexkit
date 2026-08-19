@@ -1,5 +1,7 @@
 # Auth API Compose + Pactum Dogfood Implementation Plan
 
+> **Status:** Delivered on `main` (#7, August 2026).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Prove OpenAPI auth end-to-end by generating the auth-api fixture, running it under Docker Compose, and accepting the auth matrix with Pactum using the in-memory stub authenticator (no real auth).

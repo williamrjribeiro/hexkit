@@ -1,5 +1,7 @@
 # PetShop Next Docker Dogfood Implementation Plan
 
+> **Status:** Delivered on `main` (August 2026).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make `vp run dogfood-petstore-next` bring up Next.js + Postgres with `docker compose up --build`, matching Hono `vp run dogfood`, while keeping the vanilla PetShop fixture UI.
