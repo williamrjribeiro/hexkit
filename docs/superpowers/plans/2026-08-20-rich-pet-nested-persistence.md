@@ -1,6 +1,6 @@
 # Rich Pet Nested Persistence — Phased Plan
 
-**Status:** Draft — for review (no implementation yet)  
+**Status:** Approved — awaiting plan review on PR (no implementation yet)  
 **Date:** 2026-08-20  
 **Companion:** [PRD.md](../../../PRD.md) §3.1 / §11, [RFC.md](../../../RFC.md)  
 **Fixture contract:** `apps/petstore-sample/openapi.poc.yaml` (normative dogfood)  
@@ -249,8 +249,9 @@ Tracked so this plan does not silently expand:
 
 ## 10. Review checklist
 
-- [ ] Phase 1 default (JSONB with no new extension) is accepted  
-- [ ] Phase 2 opt-in stays under `x-hexkit` (no `x-hexkit-entity` key)  
-- [ ] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted  
-- [ ] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)  
+- [x] Phase 1 default (JSONB with no new extension) is accepted  
+- [x] Phase 2 opt-in stays under `x-hexkit` (no `x-hexkit-entity` key)  
+- [x] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted  
+- [x] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)  
+- [ ] Plan review on PR complete  
 - [ ] Ready for a Phase 1 implementation task plan (still no code until that lands)
