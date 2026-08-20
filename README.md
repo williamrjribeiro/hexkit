@@ -32,11 +32,11 @@ suite by design (`@hexkit/plugin-next` and CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
-| Command                        | What it proves                                                  |
-| ------------------------------ | --------------------------------------------------------------- |
+| Command                        | What it proves                                                   |
+| ------------------------------ | ---------------------------------------------------------------- |
 | `vp run dogfood`               | Hono Rich Pet + Order from `openapi.poc.yaml` → Compose → Pactum |
-| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only |
-| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                  |
+| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only  |
+| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                   |
 
 **Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
 §11.1), ongoing dogfood hardening, GitHub Actions for PR validation.

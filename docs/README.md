@@ -18,7 +18,7 @@ lists remain for historical traceability.
 | [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                          | Design reference — auth post-PoC for `openapi.poc.yaml`                  |
 | [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                    | Partial — generator support + auth fixture; PoC contract stays auth-free |
 | [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                           | Delivered (#7)                                                           |
-| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)   | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
+| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)     | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
 
 ### Specs & plans (detail)
 

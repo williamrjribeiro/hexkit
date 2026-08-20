@@ -21,14 +21,14 @@ Closing that gap improves OpenAPI fidelity where it currently breaks generation,
 
 ## 3. Current behavior (baseline)
 
-| Layer | Nested `object` / `array` / `$ref` |
-| ----- | ---------------------------------- |
-| `@hexkit/plugin-apical` IR | Supported in `ContractType` (`normalizeContractType`) |
-| `@hexkit/plugin-architecture-hexagonal` domain | Renders nested types and referenced entity files (one domain file per component schema) |
-| `@hexkit/plugin-hono` / `@hexkit/plugin-next` | JSON request/response via Apical maps (no special case needed for nested JSON) |
-| `@hexkit/plugin-drizzle` | **Fails** in `resolveColumnType` for `reference` / `array` / `object` |
-| Scalar FK via property `x-hexkit.reference` | Already works (e.g. `Order.petId` → FK); FK attach runs after column type resolution |
-| Schemas without `x-hexkit.persistence` | No Drizzle table (filtered out of `derivePersistenceModel`); still must appear in Apical craft `schemas/index.ts` and get hexagonal domain files |
+| Layer                                          | Nested `object` / `array` / `$ref`                                                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@hexkit/plugin-apical` IR                     | Supported in `ContractType` (`normalizeContractType`)                                                                                            |
+| `@hexkit/plugin-architecture-hexagonal` domain | Renders nested types and referenced entity files (one domain file per component schema)                                                          |
+| `@hexkit/plugin-hono` / `@hexkit/plugin-next`  | JSON request/response via Apical maps (no special case needed for nested JSON)                                                                   |
+| `@hexkit/plugin-drizzle`                       | **Fails** in `resolveColumnType` for `reference` / `array` / `object`                                                                            |
+| Scalar FK via property `x-hexkit.reference`    | Already works (e.g. `Order.petId` → FK); FK attach runs after column type resolution                                                             |
+| Schemas without `x-hexkit.persistence`         | No Drizzle table (filtered out of `derivePersistenceModel`); still must appear in Apical craft `schemas/index.ts` and get hexagonal domain files |
 
 ## 4. Functionality to support
 
@@ -36,14 +36,14 @@ Closing that gap improves OpenAPI fidelity where it currently breaks generation,
 
 Extend `openapi.poc.yaml` **Pet** toward the reference Petstore shape, keeping PoC rules (JSON only, no security, no XML, local `#/components/schemas/...` refs only):
 
-| Field | OpenAPI shape | `required` on Pet | Phase 1 persistence |
-| ----- | ------------- | ----------------- | ------------------- |
-| `id` | integer | yes | column (identity) |
-| `name` | string | yes | `text` column |
-| `status` | string enum | no | enum column (existing) |
-| `category` | `$ref` → `Category` | no | **jsonb** (omit → SQL NULL → domain `undefined`) |
-| `photoUrls` | `array` of string | **yes** (Petstore-shaped) | **jsonb** (empty `[]` allowed) |
-| `tags` | `array` of `$ref` → `Tag` | no | **jsonb** (omit → NULL/`undefined`; empty `[]` allowed when present) |
+| Field       | OpenAPI shape             | `required` on Pet         | Phase 1 persistence                                                  |
+| ----------- | ------------------------- | ------------------------- | -------------------------------------------------------------------- |
+| `id`        | integer                   | yes                       | column (identity)                                                    |
+| `name`      | string                    | yes                       | `text` column                                                        |
+| `status`    | string enum               | no                        | enum column (existing)                                               |
+| `category`  | `$ref` → `Category`       | no                        | **jsonb** (omit → SQL NULL → domain `undefined`)                     |
+| `photoUrls` | `array` of string         | **yes** (Petstore-shaped) | **jsonb** (empty `[]` allowed)                                       |
+| `tags`      | `array` of `$ref` → `Tag` | no                        | **jsonb** (omit → NULL/`undefined`; empty `[]` allowed when present) |
 
 Normative fixture sketch (illustrative):
 
@@ -86,22 +86,22 @@ Do **not** import from the reference file: missing `type: object`, absolute/`$id
 
 **Normative round-trip cases (dogfood):**
 
-1. Full nest — `category`, non-empty `photoUrls`, non-empty `tags`  
-2. Minimal required — omit `category` / `tags` / `status`; `photoUrls: []`  
-3. Update — PUT changes nested fields and round-trips on GET  
+1. Full nest — `category`, non-empty `photoUrls`, non-empty `tags`
+2. Minimal required — omit `category` / `tags` / `status`; `photoUrls: []`
+3. Update — PUT changes nested fields and round-trips on GET
 
 ### 4.2 Persistence decision tree (Phase 1 evaluation order)
 
 Evaluate **in this order** for each property on a schema that has `x-hexkit.persistence`:
 
-1. **Scalar FK** — If `property.reference` (`x-hexkit.reference`) is set:  
-   - Require a **scalar** column type (`boolean` / `integer` / `string` ± enum).  
-   - Emit FK column (existing behavior).  
-   - **Reject** combining `$ref` (`type.kind === "reference"`) with `x-hexkit.reference` on the same property (fail at derive with a clear error).  
+1. **Scalar FK** — If `property.reference` (`x-hexkit.reference`) is set:
+   - Require a **scalar** column type (`boolean` / `integer` / `string` ± enum).
+   - Emit FK column (existing behavior).
+   - **Reject** combining `$ref` (`type.kind === "reference"`) with `x-hexkit.reference` on the same property (fail at derive with a clear error).
 
-2. **Nested JSONB** — Else if `type.kind` is `object`, `array`, or `reference` (bare `$ref`):  
-   - Emit **jsonb** column.  
-   - Target schema `x-hexkit.persistence` (if any) does **not** change this — embed stays JSONB until Phase 2 property-level opt-in.  
+2. **Nested JSONB** — Else if `type.kind` is `object`, `array`, or `reference` (bare `$ref`):
+   - Emit **jsonb** column.
+   - Target schema `x-hexkit.persistence` (if any) does **not** change this — embed stays JSONB until Phase 2 property-level opt-in.
 
 3. **Scalars** — Else map `boolean` / `integer` / `string` (± enum) as today (`number` still unsupported).
 
@@ -111,11 +111,11 @@ Phase 2 adds a relational opt-in branch **before** step 2 (see §5 Phase 2). Unt
 
 Keep the single OpenAPI vendor object **`x-hexkit`** (same as `persistence` / `reference` / `operation`). Do **not** introduce a parallel top-level key such as `x-hexkit-entity`.
 
-| Phase | Marker | Meaning |
-| ----- | ------ | ------- |
-| 1 | *(absence of relational marker)* | Nested value → JSONB |
-| 1 | `x-hexkit.reference` on a **scalar** property | FK (unchanged) |
-| 2 | Property-level opt-in under `x-hexkit` (exact key TBD in Phase 2 spike; requires `assertOnlyKeys` allowlist update in Apical) | Promote nested shape to relational storage |
+| Phase | Marker                                                                                                                        | Meaning                                    |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 1     | _(absence of relational marker)_                                                                                              | Nested value → JSONB                       |
+| 1     | `x-hexkit.reference` on a **scalar** property                                                                                 | FK (unchanged)                             |
+| 2     | Property-level opt-in under `x-hexkit` (exact key TBD in Phase 2 spike; requires `assertOnlyKeys` allowlist update in Apical) | Promote nested shape to relational storage |
 
 Phase 1 explicitly requires **no new extension** for the JSONB default.
 
@@ -138,8 +138,8 @@ Plugins must not hardcode Pet / Category / Tag. Behavior is driven only by OpenA
    - Reject `$ref` + `x-hexkit.reference` on the same property.
 
 2. **Mappers & write path**
-   - Keep today’s shape: **Row → domain** via Apical `Schema.parse` (with `?? undefined` for optional/nullable columns, including JSONB nulls).  
-   - **Insert/update:** passthrough nested objects/arrays into `jsonb` columns (same `.values(entity)` / `.set({...})` pattern as scalars). Add a cast/helper **only if** Drizzle/`$infer*` typing requires it — do not invent a separate domain→row serializer layer in Phase 1.  
+   - Keep today’s shape: **Row → domain** via Apical `Schema.parse` (with `?? undefined` for optional/nullable columns, including JSONB nulls).
+   - **Insert/update:** passthrough nested objects/arrays into `jsonb` columns (same `.values(entity)` / `.set({...})` pattern as scalars). Add a cast/helper **only if** Drizzle/`$infer*` typing requires it — do not invent a separate domain→row serializer layer in Phase 1.
    - No `JSON.parse`/`JSON.stringify` unless runtime evidence shows the driver returns strings.
 
 3. **Repository methods**
@@ -197,15 +197,15 @@ Lock a **property-level** `x-hexkit` shape (illustrative — finalize in a short
 category:
   $ref: "#/components/schemas/Category"
   x-hexkit:
-    storage: relation   # exact key TBD; must extend Apical assertOnlyKeys allowlists
+    storage: relation # exact key TBD; must extend Apical assertOnlyKeys allowlists
 ```
 
 If authors add `x-hexkit.persistence` to `Category` **without** a property-level relation opt-in on `Pet.category`, Phase 1/2 behavior is: **JSONB embed unchanged**; Category may also get an unused table if some other aggregate uses it — spike should decide warn vs allow.
 
 Document precedence (evaluation order):
 
-1. Scalar `x-hexkit.reference` → FK column (today; scalar only).  
-2. Phase 2 **property-level** relational opt-in → table + FK / joins.  
+1. Scalar `x-hexkit.reference` → FK column (today; scalar only).
+2. Phase 2 **property-level** relational opt-in → table + FK / joins.
 3. Else nested structured type → JSONB (Phase 1).
 
 **Deliverables (after spike)**
@@ -236,25 +236,25 @@ Document precedence (evaluation order):
 
 Tracked so this plan does not silently expand:
 
-| Theme | Notes |
-| ----- | ----- |
-| Query parameters + filtered lists | Separate capability; may query JSONB or relational tags later |
-| form-urlencoded / multipart / files | Separate capability |
-| Webhooks | Present only on reference YAML; separate capability |
-| Composition keywords / `additionalProperties` | Separate capability |
+| Theme                                         | Notes                                                         |
+| --------------------------------------------- | ------------------------------------------------------------- |
+| Query parameters + filtered lists             | Separate capability; may query JSONB or relational tags later |
+| form-urlencoded / multipart / files           | Separate capability                                           |
+| Webhooks                                      | Present only on reference YAML; separate capability           |
+| Composition keywords / `additionalProperties` | Separate capability                                           |
 
 ## 6. Package impact map
 
-| Package / app | Phase 1 | Phase 2 |
-| ------------- | ------- | ------- |
-| `plugin-apical` | Verify normalize; likely unchanged logic | Extension parse + IR field + `assertOnlyKeys` |
-| `plugin-architecture-hexagonal` | Domain files for Category/Tag (existing path) | Possibly unchanged at ports |
-| `plugin-hono` / `plugin-next` | Likely unchanged | Likely unchanged |
-| `plugin-drizzle` | **Primary** — JSONB columns + passthrough writes | **Primary** — tables, FK, junctions, tx |
-| `apps/petstore-sample` | Rich Pet OpenAPI + Pactum + generation path lists | Optional relation opt-in |
-| `apps/petstore-next` | Regen / align if contract shared | As needed |
-| `apps/fixtures/library-api` | Unchanged in Phase 1 | Optional relation example |
-| `PRD` / `docs` | Follow-up notes after ship | Authoring guide |
+| Package / app                   | Phase 1                                           | Phase 2                                       |
+| ------------------------------- | ------------------------------------------------- | --------------------------------------------- |
+| `plugin-apical`                 | Verify normalize; likely unchanged logic          | Extension parse + IR field + `assertOnlyKeys` |
+| `plugin-architecture-hexagonal` | Domain files for Category/Tag (existing path)     | Possibly unchanged at ports                   |
+| `plugin-hono` / `plugin-next`   | Likely unchanged                                  | Likely unchanged                              |
+| `plugin-drizzle`                | **Primary** — JSONB columns + passthrough writes  | **Primary** — tables, FK, junctions, tx       |
+| `apps/petstore-sample`          | Rich Pet OpenAPI + Pactum + generation path lists | Optional relation opt-in                      |
+| `apps/petstore-next`            | Regen / align if contract shared                  | As needed                                     |
+| `apps/fixtures/library-api`     | Unchanged in Phase 1                              | Optional relation example                     |
+| `PRD` / `docs`                  | Follow-up notes after ship                        | Authoring guide                               |
 
 ## 7. Testing strategy
 
@@ -276,31 +276,31 @@ Tracked so this plan does not silently expand:
 
 ## 8. Risks and decisions
 
-| Risk | Mitigation |
-| ---- | ---------- |
-| Authors expect nested `$ref` to always mean FK | Document default JSONB; Phase 2 property-level opt-in only |
-| Category gains `persistence` while Pet still embeds | Embed stays JSONB; spike decides warn vs allow unused table |
-| JSONB not query-friendly for find-by-tag | Accept in Phase 1; filters are a later capability |
-| Apical craft rejects enriched schemas | Validate craft early; keep local `#/` refs and `type: object` |
-| Next checked-in tree drifts | Include regen in Phase 1 dogfood checklist |
-| Phase 2 M:N complexity | Spike Category to-one first; tags junction as second slice inside Phase 2 |
-| New `x-hexkit` keys blocked by `assertOnlyKeys` | Phase 2 spike must update Apical allowlists (not YAML-only) |
+| Risk                                                | Mitigation                                                                |
+| --------------------------------------------------- | ------------------------------------------------------------------------- |
+| Authors expect nested `$ref` to always mean FK      | Document default JSONB; Phase 2 property-level opt-in only                |
+| Category gains `persistence` while Pet still embeds | Embed stays JSONB; spike decides warn vs allow unused table               |
+| JSONB not query-friendly for find-by-tag            | Accept in Phase 1; filters are a later capability                         |
+| Apical craft rejects enriched schemas               | Validate craft early; keep local `#/` refs and `type: object`             |
+| Next checked-in tree drifts                         | Include regen in Phase 1 dogfood checklist                                |
+| Phase 2 M:N complexity                              | Spike Category to-one first; tags junction as second slice inside Phase 2 |
+| New `x-hexkit` keys blocked by `assertOnlyKeys`     | Phase 2 spike must update Apical allowlists (not YAML-only)               |
 
 ## 9. Proposed sequencing
 
-1. ~~Review and approve this plan.~~ (content approved; plan-review fixes applied)  
-2. Re-review / merge this docs PR.  
-3. Write a short Phase 1 implementation task plan (TDD-style) from this document.  
-4. Implement Phase 1 only.  
-5. Design addendum for Phase 2 `x-hexkit` shape → implement Phase 2.  
+1. ~~Review and approve this plan.~~ (content approved; plan-review fixes applied)
+2. Re-review / merge this docs PR.
+3. Write a short Phase 1 implementation task plan (TDD-style) from this document.
+4. Implement Phase 1 only.
+5. Design addendum for Phase 2 `x-hexkit` shape → implement Phase 2.
 6. Revisit backlog (query filters, etc.) as separate plans.
 
 ## 10. Review checklist
 
-- [x] Phase 1 default (JSONB with no new extension) is accepted  
-- [x] Phase 2 opt-in stays under `x-hexkit` (no `x-hexkit-entity` key)  
-- [x] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted  
-- [x] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)  
-- [x] Plan review findings addressed in this document (decision tree, fixture shape, mappers, jsonb lock-in, tests)  
-- [x] Phase 1 implemented (JSONB nested columns + Rich Pet dogfood)  
+- [x] Phase 1 default (JSONB with no new extension) is accepted
+- [x] Phase 2 opt-in stays under `x-hexkit` (no `x-hexkit-entity` key)
+- [x] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted
+- [x] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)
+- [x] Plan review findings addressed in this document (decision tree, fixture shape, mappers, jsonb lock-in, tests)
+- [x] Phase 1 implemented (JSONB nested columns + Rich Pet dogfood)
 - [ ] Phase 2 design spike for property-level relational opt-in

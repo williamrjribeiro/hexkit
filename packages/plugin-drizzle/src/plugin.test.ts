@@ -631,7 +631,9 @@ describe("Given a property that combines $ref with x-hexkit.reference", () => {
       ],
     };
 
-    await expect(collectGeneratedFiles(contract, applicationFromContract(contract))).rejects.toThrow(
+    await expect(
+      collectGeneratedFiles(contract, applicationFromContract(contract)),
+    ).rejects.toThrow(
       /Schema "Widget" property "owner".*cannot combine \$ref with x-hexkit\.reference/i,
     );
   });
