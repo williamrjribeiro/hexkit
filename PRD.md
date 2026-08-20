@@ -23,7 +23,7 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 1. Generate a complete TypeScript application from a trimmed Petstore OpenAPI contract.
 2. Enforce Hexagonal Architecture in generated output.
 3. Use OpenAPI as the single source of truth via Apical TS (Zod schemas + operations).
-4. Persist Pet and Order data through Drizzle ORM against PostgreSQL, with a real Pet↔Order relation.
+4. Persist Pet and Order data through Drizzle ORM against PostgreSQL, with a real Pet↔Order relation. Nested Pet fields (`category`, `tags`, `photoUrls`) store as JSONB; Category and Tag are not tables unless they declare persistence.
 5. Validate HTTP and database-read boundaries with Apical-generated Zod schemas.
 6. Provide clear extension points so hand-written business logic survives regeneration.
 7. Keep Hexkit source quality and generated-app quality in sync (same formatter, linter, TypeScript settings).
@@ -46,17 +46,17 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 
 - Keep `apps/petstore-sample/openapi.yaml` **untouched** (checked-in Swagger Petstore 3.1 reference; currently Pet-focused and must not be edited for PoC work).
 - Add a trimmed contract used for generation and dogfooding: `apps/petstore-sample/openapi.poc.yaml`.
-- Author `openapi.poc.yaml` as a **Swagger Petstore 3.1 subset** for Pet + Order. It is not required to be a mechanical cut of the checked-in file (that file does not include Order today). Prefer standard Petstore path shapes so the sample stays recognizable.
+- Author `openapi.poc.yaml` as a **Swagger Petstore 3.1 subset** for Rich Pet + Order. It is not required to be a mechanical cut of the checked-in file (that file does not include Order today). Prefer standard Petstore path shapes so the sample stays recognizable. The PoC Pet includes nested `Category`, `Tag[]`, and `photoUrls[]`; those fields persist as JSONB. `Category` and `Tag` are not persisted tables.
 
 Trimmed contract rules:
 
-| Rule         | Requirement                                                                                            |
-| ------------ | ------------------------------------------------------------------------------------------------------ |
-| Resources    | **Pet** and **Order** only; Order references `petId`                                                   |
-| Media types  | **JSON only** — no XML (or other non-JSON) content                                                     |
-| Security     | **None** — no security schemes or per-operation requirements                                           |
-| Schemas      | Only components required by selected operations (e.g. Pet, Order, and nested types those schemas need) |
-| Completeness | Every operation in `openapi.poc.yaml` must be generated and work with DB persistence                   |
+| Rule         | Requirement                                                                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Resources    | **Pet** and **Order** only; Order references `petId`                                                                                                         |
+| Media types  | **JSON only** — no XML (or other non-JSON) content                                                                                                           |
+| Security     | **None** — no security schemes or per-operation requirements                                                                                                 |
+| Schemas      | Only components required by selected operations (Pet, Order, and nested Category / Tag). Nested Pet fields persist as JSONB; Category and Tag have no tables |
+| Completeness | Every operation in `openapi.poc.yaml` must be generated and work with DB persistence                                                                         |
 
 **Baseline operations (normative for PoC unless superseded by an explicit PRD amendment):**
 
@@ -126,7 +126,7 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 | `@hexkit/plugin-architecture-hexagonal` | **No**             | Derives domain, ports, and use-case skeletons from Apical contracts / OpenAPI IR                                                  |
 | `@hexkit/plugin-hono`                   | **No**             | Derives routes/controllers from Apical operations                                                                                 |
 | `@hexkit/plugin-next`                   | **No**             | Derives Route Handlers, RSC pages, and server-access from Apical operations (opt-in via `--http next`)                            |
-| `@hexkit/plugin-drizzle`                | **No**             | Derives schemas/repos/mappers from contracts + hexagonal ports                                                                    |
+| `@hexkit/plugin-drizzle`                | **No**             | Derives schemas/repos/mappers from contracts + hexagonal ports (nested structured properties → JSONB)                             |
 | Packaging / Compose emission            | **No**             | Generic deployable packaging from generation context (names/paths from options or contract metadata, not baked Petstore literals) |
 
 **Rules:**
@@ -140,18 +140,18 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 
 ### 5.1 Package requirements (PoC)
 
-| Package                                 | PoC must deliver                                                                                                                               |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                                                      |
-| `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter                                     |
-| `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                                                     |
-| `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                                                               |
-| `@hexkit/plugin-architecture-hexagonal` | **Contract-derived** domain entities, repository ports, use-case skeletons; designate protected user zones                                     |
-| `@hexkit/plugin-hono`                   | **Contract-derived** JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations (default)                                 |
-| `@hexkit/plugin-next`                   | **Contract-derived** Next.js Route Handlers + optional RSC surface; OpenAPI → Route Handlers only (Server Actions are fixture/UI, not OpenAPI) |
-| `@hexkit/plugin-drizzle`                | **Contract-derived** Postgres schemas, repository implementations, mappings; Zod-validate DB reads                                             |
-| `@hexkit/cli`                           | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory)                                                            |
-| `@hexkit/petstore-sample`               | Trimmed OpenAPI, fully generated app output, Compose packaging, API tests                                                                      |
+| Package                                 | PoC must deliver                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                                                                                |
+| `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter                                                               |
+| `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                                                                               |
+| `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                                                                                         |
+| `@hexkit/plugin-architecture-hexagonal` | **Contract-derived** domain entities, repository ports, use-case skeletons; designate protected user zones                                                               |
+| `@hexkit/plugin-hono`                   | **Contract-derived** JSON HTTP adapters: routes, controllers, middleware wiring to Apical operations (default)                                                           |
+| `@hexkit/plugin-next`                   | **Contract-derived** Next.js Route Handlers + optional RSC surface; OpenAPI → Route Handlers only (Server Actions are fixture/UI, not OpenAPI)                           |
+| `@hexkit/plugin-drizzle`                | **Contract-derived** Postgres schemas, repository implementations, mappings; nested object/array/`$ref` as JSONB; scalar `x-hexkit.reference` FKs; Zod-validate DB reads |
+| `@hexkit/cli`                           | CLI entry (`generate`, help) driving the pipeline (OpenAPI path + output directory)                                                                                      |
+| `@hexkit/petstore-sample`               | Trimmed Rich Pet + Order OpenAPI, fully generated app output, Compose packaging, API tests                                                                               |
 
 `@hexkit/plugin-sst` is present in the repo scaffold but is **not a PoC deliverable**.
 
@@ -265,7 +265,7 @@ The Hexkit PoC is complete when all of the following are true:
 3. **Domain-agnostic generators:** Hexkit plugins contain no Petstore-specific hardcoded domain/adapters (§5.0). Petstore appears only as OpenAPI input and sample tests; regenerating after a non-Petstore (or altered) contract of comparable shape does not require editing plugin source.
 4. **Build quality:** Generated source passes the same format, lint, and TypeScript checks as Hexkit source.
 5. **Boundaries:** Requests, responses, and DB reads are validated with Apical-generated Zod schemas before crossing into the application layer.
-6. **Relation:** For the Petstore dogfood contract, Pet and Order persist in PostgreSQL with correct relational behavior (`petId` / FK-style integrity as defined by that contract and the derived schema).
+6. **Relation:** For the Petstore dogfood contract, Pet and Order persist in PostgreSQL with correct relational behavior (`petId` / FK-style integrity as defined by that contract and the derived schema). Nested Pet `category`, `photoUrls`, and `tags` persist as JSONB; Category and Tag are domain types only (no tables).
 7. **Extension:** Re-running generation does not overwrite existing protected use-case files; new missing protected skeletons may still be added.
 8. **Local dogfood:** Developers can locally run unit tests, package integration tests, Compose-based E2E bring-up, and Vitest+PactumJS API tests successfully.
 9. **No SST/auth/XML/Users** required for the green bar.
@@ -281,7 +281,7 @@ August 2026 main-branch state.
 | 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, no auth)           | Done                                         |
 | 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                           | Done                                         |
 | 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)       | Done                                         |
-| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, DB-read validation                            | Done                                         |
+| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation              | Done                                         |
 | 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)              | Done                                         |
 | 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                    | Done                                         |
 | 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive         | In validation (`vp run dogfood` is the gate) |
@@ -292,7 +292,7 @@ Detail (normative requirements unchanged):
 2. **Contracts** — `plugin-apical` end-to-end; author `openapi.poc.yaml` (Pet↔Order dogfood fixture, JSON only, no auth).
 3. **Hexagonal skeleton** — `plugin-architecture-hexagonal` derives domain/ports/use-case skeletons + protected zones **from Apical contracts** (prove with Petstore fixture; no hardcoded Pet/Order in the plugin).
 4. **HTTP adapter** — `plugin-hono` derives JSON routes/controllers from Apical operations (default; fixture-driven tests only). Opt-in `plugin-next` emits OpenAPI Route Handlers and/or RSC pages (`--http next`, `--next-surface both|routes|rsc`).
-5. **Persistence** — `plugin-drizzle` derives Postgres schema, repos, and Zod DB-read validation from contracts/ports (Pet↔Order appears in the dogfood contract, not in plugin literals).
+5. **Persistence** — `plugin-drizzle` derives Postgres schema, repos, and Zod DB-read validation from contracts/ports (Pet↔Order appears in the dogfood contract, not in plugin literals). Nested object / array / `$ref` properties on persisted schemas store as JSONB; scalar `x-hexkit.reference` remains the FK path.
 6. **Packaging** — Docker Compose for Hono + Postgres emitted generically for the generated app (sample dogfood uses the Petstore fixture).
 7. **Test suite** — package unit tests, cross-package integration tests, Vitest+PactumJS API tests against Compose.
 8. **Dogfood green** — regenerate → validate source → Compose up → API tests pass; protected use cases survive re-generation.
@@ -303,7 +303,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, auth in `openapi.poc.yaml`, f
 
 - SST / AWS Lambda generation and deploy verification.
 - Authentication (post-PoC): see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/plans/2026-08-05-openapi-auth.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`; implemented in generator plugins, but remains post-PoC for the auth-free `openapi.poc.yaml` dogfood fixture. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
-- Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` persist as JSONB by default (Phase 1); property-level relational opt-in is Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`.
+- Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` already persist as JSONB (Phase 1 delivered). Property-level relational opt-in remains Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`.
 - GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
 - Automated tests for `apps/petstore-next` (the vanilla PetShop Next fixture has no Vitest/Pactum/Playwright suite; `plugin-next` and CLI tests cover the generator).

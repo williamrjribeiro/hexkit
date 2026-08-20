@@ -7,6 +7,9 @@ pages may use optional CSS Modules.
 
 The fixture owns the human UI under `/`, `/pets/**`, and `/orders/**`. Generated
 OpenAPI Route Handlers own contract paths such as `/pet` and `/store/order`.
+Pet create/edit forms send the contract-required `photoUrls` list (one URL per
+line). Optional nested `category` and `tags` are not collected by those forms;
+the generated API still accepts them as JSON.
 
 **Data flow:** no client-side data fetching. RSC pages read via generated
 server-access (DAL in-process). Writes use plain HTML forms wired to Server
@@ -45,7 +48,8 @@ PetShop fixture after merge. Set `HEXKIT_SKIP_COMPOSE=1` to stop after
 generate/merge/lint/`next build` when Docker is unavailable. `HEXKIT_KEEP_STACK=1`
 leaves the Compose stack running.
 
-Input contract: `../petstore-sample/openapi.poc.yaml`.
+Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order; nested
+Pet fields persist as JSONB).
 
 CLI default `--next-surface` is `both`; this fixture dogfood generate uses
 `--next-surface both` so eslint-config-next can validate generated Route
@@ -78,5 +82,6 @@ are copied back onto this fixture.
    Dogfood also lints the generated temp tree with the same `eslint-config-next`
    rules before overlay.
 7. `docker compose -f "$TMP/docker-compose.yml" up --build -d --wait`, then
-   smoke `GET /`, `GET /pets`, and `POST /pet`.
+   smoke `GET /`, `GET /pets`, and `POST /pet` (body includes required
+   `photoUrls`, which may be an empty list).
 8. For local iteration without Compose: `cd apps/petstore-next && pnpm next dev`.

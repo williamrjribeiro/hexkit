@@ -15,20 +15,22 @@ Expand Hexkit so OpenAPI schemas with **nested objects, arrays, and `$ref` value
 
 ## 2. Why this capability
 
-CRUD HTTP methods (GET/POST/PUT/DELETE) are already method-agnostic in the generators. The PoC Pet is deliberately flat. The checked-in Petstore 3.1 reference uses a richer Pet (`Category`, `Tag[]`, `photoUrls[]`), and Drizzle today **throws** on `object` / `array` / bare `$ref` columns.
+CRUD HTTP methods (GET/POST/PUT/DELETE) are already method-agnostic in the generators. Before Phase 1, the PoC Pet was deliberately flat. The checked-in Petstore 3.1 reference uses a richer Pet (`Category`, `Tag[]`, `photoUrls[]`), and Drizzle **threw** on `object` / `array` / bare `$ref` columns.
 
-Closing that gap improves OpenAPI fidelity where it currently breaks generation, while staying domain-agnostic (Petstore is a fixture, not plugin logic).
+Phase 1 closes that gap: nested shapes persist as JSONB, while staying domain-agnostic (Petstore is a fixture, not plugin logic).
 
-## 3. Current behavior (baseline)
+## 3. Baseline (before Phase 1)
 
 | Layer                                          | Nested `object` / `array` / `$ref`                                                                                                               |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@hexkit/plugin-apical` IR                     | Supported in `ContractType` (`normalizeContractType`)                                                                                            |
 | `@hexkit/plugin-architecture-hexagonal` domain | Renders nested types and referenced entity files (one domain file per component schema)                                                          |
 | `@hexkit/plugin-hono` / `@hexkit/plugin-next`  | JSON request/response via Apical maps (no special case needed for nested JSON)                                                                   |
-| `@hexkit/plugin-drizzle`                       | **Fails** in `resolveColumnType` for `reference` / `array` / `object`                                                                            |
+| `@hexkit/plugin-drizzle`                       | **Failed** in `resolveColumnType` for `reference` / `array` / `object`                                                                           |
 | Scalar FK via property `x-hexkit.reference`    | Already works (e.g. `Order.petId` → FK); FK attach runs after column type resolution                                                             |
 | Schemas without `x-hexkit.persistence`         | No Drizzle table (filtered out of `derivePersistenceModel`); still must appear in Apical craft `schemas/index.ts` and get hexagonal domain files |
+
+**After Phase 1:** drizzle maps nested `object` / `array` / `$ref` to Postgres JSONB. Scalar FKs and “no persistence ⇒ no table” are unchanged.
 
 ## 4. Functionality to support
 

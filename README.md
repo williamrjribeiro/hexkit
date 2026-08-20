@@ -93,8 +93,10 @@ Run the uncached root dogfood task from the workspace root:
 vp run dogfood
 ```
 
-The task passes through `PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and
-`HEXKIT_DOGFOOD_OUTPUT`. Docker is required for the live Compose and API phases.
+The task generates a Hono Rich Pet + Order app from `openapi.poc.yaml` (nested
+Pet fields as JSONB; Order `petId` FK), then Compose + Pactum. It passes through
+`PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. Docker is
+required for the live Compose and API phases.
 `apps/petstore-sample/scripts/prove-api-url.sh` verifies task-level environment
 propagation without starting Compose.
 

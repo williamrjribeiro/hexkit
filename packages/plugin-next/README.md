@@ -34,5 +34,7 @@ hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]
 ## Dogfood
 
 The vanilla PetShop Next.js fixture (`apps/petstore-next`) merges generated
-`src/**` and `app/**/route.ts` onto a create-next-app-shaped shell. See
+`src/**` and `app/**/route.ts` onto a create-next-app-shaped shell. PetShop
+forms send contract-required nested fields such as `photoUrls`; nested JSON
+bodies pass through generated Route Handlers without special-casing. See
 `docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`.

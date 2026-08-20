@@ -29,4 +29,4 @@ lists remain for historical traceability.
 - [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md) — opt-in `@hexkit/plugin-next` (domain-agnostic, PRD §5.0); Hono default, `--http next`, `--next-surface both|routes|rsc`; OpenAPI → Route Handlers; vanilla PetShop dogfood (`apps/petstore-next`, `vp`/pnpm, no app tests)
 - [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md) — phased tasks for `@hexkit/plugin-next` and `apps/petstore-next`
 - [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md) — `docker compose up --build` for Next + Postgres, matching Hono dogfood
-- [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md) — nested object/array/`$ref` → JSONB by default; later `x-hexkit` opt-in for relational tables/FKs
+- [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md) — Phase 1: nested object/array/`$ref` → JSONB by default (delivered); later `x-hexkit` opt-in for relational tables/FKs
