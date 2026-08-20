@@ -136,6 +136,8 @@ describe("Given the Petstore PoC contract", () => {
           "int32",
           "int32",
           "int32",
+          "int32",
+          "int32",
         ],
         "remainingInt64Formats": [],
       }
@@ -204,7 +206,7 @@ describe("Given real Apical craft output", () => {
     {
       fixture: "Petstore",
       input: pocContract,
-      expectedSchemas: ["Order", "Pet"],
+      expectedSchemas: ["Category", "Order", "Pet", "Tag"],
       expectedOperations: [
         "addPet",
         "updatePet",

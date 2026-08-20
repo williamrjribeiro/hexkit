@@ -33,8 +33,10 @@ const authOpenApi = new URL("../../../apps/fixtures/auth-api/openapi.yaml", impo
 
 const petstoreModules = {
   schemas: new Map([
+    ["Category", "schemas/Category.ts"],
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
+    ["Tag", "schemas/Tag.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -164,29 +166,32 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
 
     expect(files.find((file) => file.path === "src/adapters/db/schema.ts")?.contents)
       .toMatchInlineSnapshot(`
-      "import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+        "import { boolean, integer, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 
-      export const orderStatus = pgEnum("order_status", ["placed", "approved", "delivered"]);
+        export const orderStatus = pgEnum("order_status", ["placed", "approved", "delivered"]);
 
-      export const petStatus = pgEnum("pet_status", ["available", "pending", "sold"]);
+        export const petStatus = pgEnum("pet_status", ["available", "pending", "sold"]);
 
-      export const pets = pgTable("pets", {
-        id: integer("id").primaryKey(),
-        name: text("name").notNull(),
-        status: petStatus("status"),
-      });
+        export const pets = pgTable("pets", {
+          id: integer("id").primaryKey(),
+          name: text("name").notNull(),
+          status: petStatus("status"),
+          category: jsonb("category"),
+          photoUrls: jsonb("photo_urls").notNull(),
+          tags: jsonb("tags"),
+        });
 
-      export const orders = pgTable("orders", {
-        id: integer("id").primaryKey(),
-        petId: integer("pet_id")
-          .notNull()
-          .references(() => pets.id),
-        quantity: integer("quantity").notNull(),
-        status: orderStatus("status").notNull(),
-        complete: boolean("complete").notNull(),
-      });
-      "
-    `);
+        export const orders = pgTable("orders", {
+          id: integer("id").primaryKey(),
+          petId: integer("pet_id")
+            .notNull()
+            .references(() => pets.id),
+          quantity: integer("quantity").notNull(),
+          status: orderStatus("status").notNull(),
+          complete: boolean("complete").notNull(),
+        });
+        "
+      `);
   });
 
   it("when repository adapters are generated, then they implement every ApplicationArtifact port method", async () => {
@@ -202,42 +207,42 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
 
     expect(files.find((file) => file.path === "src/adapters/db/pet-repository.ts")?.contents)
       .toMatchInlineSnapshot(`
-      "import type { Pet } from "../../core/domain/pet.ts";
-      import type { PetRepository } from "../../core/ports/pet-repository.ts";
-      import { mapPetRow } from "./mappers.ts";
-      import { pets } from "./schema.ts";
-      import { eq } from "drizzle-orm";
-      import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+        "import type { Pet } from "../../core/domain/pet.ts";
+        import type { PetRepository } from "../../core/ports/pet-repository.ts";
+        import { mapPetRow } from "./mappers.ts";
+        import { pets } from "./schema.ts";
+        import { eq } from "drizzle-orm";
+        import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-      export function createDrizzlePetRepository(
-        db: NodePgDatabase<Record<string, unknown>>,
-      ): PetRepository {
-        return {
-          async addPet(pet: Pet): Promise<Pet> {
-            const [row] = await db.insert(pets).values(pet).returning();
-            if (!row) throw new Error("Drizzle did not return the inserted pet");
-            return mapPetRow(row);
-          },
-          async deletePet(petId: number): Promise<void> {
-            await db.delete(pets).where(eq(pets.id, petId));
-          },
-          async getPetById(petId: number): Promise<Pet | undefined> {
-            const [row] = await db.select().from(pets).where(eq(pets.id, petId)).limit(1);
-            return row ? mapPetRow(row) : undefined;
-          },
-          async updatePet(pet: Pet): Promise<Pet> {
-            const [row] = await db
-              .update(pets)
-              .set({ name: pet.name, status: pet.status })
-              .where(eq(pets.id, pet.id))
-              .returning();
-            if (!row) throw new Error(\`Pet \${pet.id} was not found\`);
-            return mapPetRow(row);
-          },
-        };
-      }
-      "
-    `);
+        export function createDrizzlePetRepository(
+          db: NodePgDatabase<Record<string, unknown>>,
+        ): PetRepository {
+          return {
+            async addPet(pet: Pet): Promise<Pet> {
+              const [row] = await db.insert(pets).values(pet).returning();
+              if (!row) throw new Error("Drizzle did not return the inserted pet");
+              return mapPetRow(row);
+            },
+            async deletePet(petId: number): Promise<void> {
+              await db.delete(pets).where(eq(pets.id, petId));
+            },
+            async getPetById(petId: number): Promise<Pet | undefined> {
+              const [row] = await db.select().from(pets).where(eq(pets.id, petId)).limit(1);
+              return row ? mapPetRow(row) : undefined;
+            },
+            async updatePet(pet: Pet): Promise<Pet> {
+              const [row] = await db
+                .update(pets)
+                .set({ name: pet.name, status: pet.status, category: pet.category, photoUrls: pet.photoUrls, tags: pet.tags })
+                .where(eq(pets.id, pet.id))
+                .returning();
+              if (!row) throw new Error(\`Pet \${pet.id} was not found\`);
+              return mapPetRow(row);
+            },
+          };
+        }
+        "
+      `);
   });
 
   it("when database rows are mapped, then generated Apical Zod contracts validate every read", async () => {
@@ -264,7 +269,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
       }
 
       export function mapPetRow(row: PetRow): Pet {
-        return PetSchema.parse({ ...row, status: row.status ?? undefined });
+        return PetSchema.parse({ ...row, status: row.status ?? undefined, category: row.category ?? undefined, tags: row.tags ?? undefined });
       }
       "
     `);

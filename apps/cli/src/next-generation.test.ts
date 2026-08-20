@@ -19,8 +19,10 @@ const petstoreApicalContractPaths = [
   "routes/index.ts",
   "routes/placeOrder.ts",
   "routes/updatePet.ts",
+  "schemas/Category.ts",
   "schemas/Order.ts",
   "schemas/Pet.ts",
+  "schemas/Tag.ts",
   "schemas/addPetParameters.ts",
   "schemas/deleteOrderParameters.ts",
   "schemas/deletePetParameters.ts",
@@ -43,9 +45,11 @@ const petstoreApicalContractPaths = [
 ] as const;
 
 const petstoreSchemasIndex = `
+import { Category } from "./Category.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
-export { Order, Pet };
+import { Tag } from "./Tag.ts";
+export { Category, Order, Pet, Tag };
 `;
 
 const petstoreRoutesIndex = `

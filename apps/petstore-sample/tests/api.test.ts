@@ -10,11 +10,28 @@ const addedPet = {
   id: petId,
   name: `Hexkit dogfood pet ${String(petId)}`,
   status: "available",
+  category: { id: 1, name: "Dogs" },
+  photoUrls: [`https://example.test/pets/${String(petId)}.jpg`],
+  tags: [{ id: 10, name: "friendly" }],
 };
 const updatedPet = {
   ...addedPet,
   name: `Updated Hexkit dogfood pet ${String(petId)}`,
   status: "sold",
+  category: { id: 2, name: "Working Dogs" },
+  photoUrls: [
+    `https://example.test/pets/${String(petId)}.jpg`,
+    `https://example.test/pets/${String(petId)}-2.jpg`,
+  ],
+  tags: [
+    { id: 10, name: "friendly" },
+    { id: 11, name: "trained" },
+  ],
+};
+const minimalPet = {
+  id: petId + 1,
+  name: `Minimal Hexkit pet ${String(petId + 1)}`,
+  photoUrls: [] as string[],
 };
 const placedOrder = {
   id: orderId,
@@ -57,6 +74,18 @@ describe.sequential("Given the generated Petstore API", () => {
         .get(`/pet/${String(petId)}`)
         .expectStatus(200)
         .expectJson(updatedPet),
+    );
+  });
+
+  it("when a Pet is added with only required nested fields, then empty photoUrls round-trip", async () => {
+    await runAgainstApi(() =>
+      spec().post("/pet").withJson(minimalPet).expectStatus(201).expectJson(minimalPet),
+    );
+    await runAgainstApi(() =>
+      spec()
+        .get(`/pet/${String(minimalPet.id)}`)
+        .expectStatus(200)
+        .expectJson(minimalPet),
     );
   });
 

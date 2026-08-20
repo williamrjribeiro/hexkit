@@ -29,8 +29,10 @@ const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml"
 
 const petstoreModules = {
   schemas: new Map([
+    ["Category", "schemas/Category.ts"],
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
+    ["Tag", "schemas/Tag.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],

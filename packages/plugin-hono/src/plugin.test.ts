@@ -36,8 +36,10 @@ const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml"
 
 const petstoreModules = {
   schemas: new Map([
+    ["Category", "schemas/Category.ts"],
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
+    ["Tag", "schemas/Tag.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -589,7 +591,7 @@ describe("Given real Apical output for Petstore and Library", () => {
     const validRequest = await app.request("http://hexkit.test/pet", {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },
-      body: JSON.stringify({ id: 1, name: "Milo" }),
+      body: JSON.stringify({ id: 1, name: "Milo", photoUrls: [] }),
     });
     const invalidDatabaseRead = await app.request("http://hexkit.test/pet/1");
 
@@ -617,7 +619,7 @@ describe("Given real Apical output for Petstore and Library", () => {
       },
       validRequest: {
         status: 201,
-        body: { id: 1, name: "Milo" },
+        body: { id: 1, name: "Milo", photoUrls: [] },
         addCalls: 1,
       },
       invalidDatabaseRead: {

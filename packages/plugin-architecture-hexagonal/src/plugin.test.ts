@@ -27,8 +27,10 @@ const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml"
 
 const petstoreModules = {
   schemas: new Map([
+    ["Category", "schemas/Category.ts"],
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
+    ["Tag", "schemas/Tag.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -110,8 +112,10 @@ describe("Given a ContractArtifact for Petstore", () => {
     const { files, artifact } = await collectGeneratedFiles(petstoreContract);
 
     expect(files.map((file) => ({ path: file.path, ownership: file.ownership }))).toEqual([
+      { path: "src/core/domain/category.ts", ownership: "generated" },
       { path: "src/core/domain/order.ts", ownership: "generated" },
       { path: "src/core/domain/pet.ts", ownership: "generated" },
+      { path: "src/core/domain/tag.ts", ownership: "generated" },
       { path: "src/core/ports/order-repository.ts", ownership: "generated" },
       { path: "src/core/ports/pet-repository.ts", ownership: "generated" },
       { path: "src/core/application/add-pet.ts", ownership: "protected" },
@@ -125,12 +129,18 @@ describe("Given a ContractArtifact for Petstore", () => {
 
     expect(files.find((file) => file.path === "src/core/domain/pet.ts")?.contents)
       .toMatchInlineSnapshot(`
-        "export type PetStatus = "available" | "pending" | "sold";
+        "import type { Category } from "./category.ts";
+        import type { Tag } from "./tag.ts";
+
+        export type PetStatus = "available" | "pending" | "sold";
 
         export type Pet = {
           id: number;
           name: string;
           status?: PetStatus;
+          category?: Category;
+          photoUrls: Array<string>;
+          tags?: Array<Tag>;
         };
         "
       `);
@@ -164,8 +174,10 @@ describe("Given a ContractArtifact for Petstore", () => {
     expect(artifact).toMatchObject({
       artifactVersion: 1,
       entities: [
+        { name: "Category", filePath: "src/core/domain/category.ts" },
         { name: "Order", filePath: "src/core/domain/order.ts" },
         { name: "Pet", filePath: "src/core/domain/pet.ts" },
+        { name: "Tag", filePath: "src/core/domain/tag.ts" },
       ],
       repositories: [
         {
