@@ -48,6 +48,9 @@ function collectColumnHelpers(tables: readonly PersistenceTableModel[]): string[
         case "text":
           helpers.add("text");
           break;
+        case "jsonb":
+          helpers.add("jsonb");
+          break;
         case "enum":
           break;
       }
@@ -100,6 +103,8 @@ function renderColumnConstructor(column: PersistenceTableModel["columns"][number
       return `integer(${sqlName})`;
     case "text":
       return `text(${sqlName})`;
+    case "jsonb":
+      return `jsonb(${sqlName})`;
     case "enum":
       if (column.enumExportName === undefined) {
         throw new Error(`Enum column "${column.propertyName}" is missing an export name.`);

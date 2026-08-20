@@ -60,6 +60,8 @@ function renderSqlType(column: PersistenceColumnModel): string {
       return "integer";
     case "text":
       return "text";
+    case "jsonb":
+      return "jsonb";
     case "enum":
       if (column.enumSqlName === undefined) {
         throw new Error(`Enum column "${column.propertyName}" is missing an SQL type name.`);

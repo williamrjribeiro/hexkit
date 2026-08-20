@@ -18,7 +18,7 @@ import type {
   PersistenceTableExport,
 } from "../artifact.ts";
 
-export type PersistenceColumnSqlType = "boolean" | "integer" | "text" | "enum";
+export type PersistenceColumnSqlType = "boolean" | "enum" | "integer" | "jsonb" | "text";
 
 export type PersistenceEnumModel = {
   exportName: string;
@@ -197,6 +197,19 @@ function deriveColumn(
   schemasByName: ReadonlyMap<string, ContractSchema>,
 ): PersistenceColumnModel {
   const sqlName = toSnakeCase(property.name);
+
+  if (property.reference !== undefined) {
+    if (
+      property.type.kind === "reference" ||
+      property.type.kind === "object" ||
+      property.type.kind === "array"
+    ) {
+      throw new Error(
+        `Schema "${schemaName}" property "${property.name}" cannot combine $ref with x-hexkit.reference. Use a scalar FK property, or omit x-hexkit.reference to store JSONB.`,
+      );
+    }
+  }
+
   const columnType = resolveColumnType(schemaName, property);
 
   const column: PersistenceColumnModel = {
@@ -274,9 +287,7 @@ function resolveColumnType(
     case "reference":
     case "array":
     case "object":
-      throw new Error(
-        `Schema "${schemaName}" property "${property.name}" type "${type.kind}" is not supported for Drizzle persistence columns.`,
-      );
+      return { sqlType: "jsonb" };
   }
 }
 
