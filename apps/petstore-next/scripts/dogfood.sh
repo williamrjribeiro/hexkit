@@ -146,7 +146,12 @@ const url = process.env.DOGFOOD_URL;
 fetch(url, {
   method: "POST",
   headers: { "content-type": "application/json" },
-  body: JSON.stringify({ id: 2147483646, name: "Dogfood", status: "available" }),
+  body: JSON.stringify({
+    id: 2147483646,
+    name: "Dogfood",
+    status: "available",
+    photoUrls: [],
+  }),
 })
   .then((response) => process.exit(response.ok ? 0 : 1))
   .catch(() => process.exit(1));

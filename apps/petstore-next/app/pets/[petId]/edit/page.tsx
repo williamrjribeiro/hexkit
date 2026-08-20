@@ -64,6 +64,15 @@ export default async function EditPetPage(props: { params: Promise<{ petId: stri
             <option value="sold">sold</option>
           </select>
         </label>
+        <label className="grid gap-2 text-sm font-medium text-stone-700">
+          Photo URLs (one per line)
+          <textarea
+            name="photoUrls"
+            rows={3}
+            defaultValue={pet.photoUrls.join("\n")}
+            className="rounded-xl border border-stone-300 px-3 py-2"
+          />
+        </label>
         <button className="rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-700">
           Update pet
         </button>
