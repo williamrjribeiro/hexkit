@@ -588,10 +588,37 @@ describe("Given real Apical output for Petstore and Library", () => {
       body: JSON.stringify({ id: 1 }),
     });
     const addCallsAfterInvalidRequest = addCalls;
+    const invalidCategory = await app.request("http://hexkit.test/pet", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: 1, name: "Milo", photoUrls: [], category: "Dogs" }),
+    });
+    const invalidTags = await app.request("http://hexkit.test/pet", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: 1,
+        name: "Milo",
+        photoUrls: [],
+        tags: { id: 1, name: "friendly" },
+      }),
+    });
     const validRequest = await app.request("http://hexkit.test/pet", {
       method: "POST",
       headers: { "content-type": "application/json; charset=utf-8" },
       body: JSON.stringify({ id: 1, name: "Milo", photoUrls: [] }),
+    });
+    const nestedPet = {
+      id: 2,
+      name: "Nested",
+      photoUrls: ["https://example.test/n.jpg"],
+      category: { id: 1, name: "Dogs" },
+      tags: [{ id: 10, name: "friendly" }],
+    };
+    const validNestedRequest = await app.request("http://hexkit.test/pet", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(nestedPet),
     });
     const invalidDatabaseRead = await app.request("http://hexkit.test/pet/1");
 
@@ -601,11 +628,23 @@ describe("Given real Apical output for Petstore and Library", () => {
         body: await invalidRequest.json(),
         addCallsAfterInvalidRequest,
       },
+      invalidCategory: {
+        status: invalidCategory.status,
+        body: await invalidCategory.json(),
+      },
+      invalidTags: {
+        status: invalidTags.status,
+        body: await invalidTags.json(),
+      },
       validRequest: {
         status: validRequest.status,
         body: await validRequest.json(),
-        addCalls,
       },
+      validNestedRequest: {
+        status: validNestedRequest.status,
+        body: await validNestedRequest.json(),
+      },
+      addCalls,
       invalidDatabaseRead: {
         status: invalidDatabaseRead.status,
         body: await invalidDatabaseRead.json(),
@@ -617,11 +656,23 @@ describe("Given real Apical output for Petstore and Library", () => {
         body: { error: "Bad Request" },
         addCallsAfterInvalidRequest: 0,
       },
+      invalidCategory: {
+        status: 400,
+        body: { error: "Bad Request" },
+      },
+      invalidTags: {
+        status: 400,
+        body: { error: "Bad Request" },
+      },
       validRequest: {
         status: 201,
         body: { id: 1, name: "Milo", photoUrls: [] },
-        addCalls: 1,
       },
+      validNestedRequest: {
+        status: 201,
+        body: nestedPet,
+      },
+      addCalls: 2,
       invalidDatabaseRead: {
         status: 500,
         body: { error: "Internal Server Error" },
@@ -635,7 +686,7 @@ describe("Given Hono production sources", () => {
   it("then they contain no Petstore-only literals", () => {
     const source = readProductionSources();
     expect(source).not.toMatch(
-      /\bPet\b|\bOrder\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|\/pet|\/store\/order/,
+      /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|\/pet|\/store\/order/,
     );
   });
 });

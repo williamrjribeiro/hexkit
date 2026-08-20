@@ -1,0 +1,58 @@
+openapi: 3.1.0
+info:
+  title: Bad Ref YAML API
+  version: 1.0.0
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      x-hexkit:
+        operation:
+          aggregate: Widget
+          action: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+      responses:
+        "201":
+          description: Widget created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+components:
+  schemas:
+    Owner:
+      type: object
+      x-hexkit:
+        persistence:
+          table: owners
+          identity: id
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int32
+    Widget:
+      type: object
+      x-hexkit:
+        persistence:
+          table: widgets
+          identity: id
+      required:
+        - id
+        - owner
+      properties:
+        id:
+          type: integer
+          format: int32
+        owner:
+          $ref: "#/components/schemas/Owner"
+          x-hexkit:
+            reference:
+              schema: Owner
+              property: id

@@ -8,7 +8,7 @@ const packageRoot = join(import.meta.dirname, "..");
 const productionSourceRoot = join(packageRoot, "src");
 
 const bannedPattern =
-  /\bPet\b|\bOrder\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|available|pending|sold|placed|approved|delivered|\/pet|\/store\/order/;
+  /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|available|pending|sold|placed|approved|delivered|\/pet|\/store\/order/;
 
 function listProductionTypeScriptFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

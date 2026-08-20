@@ -106,8 +106,9 @@ export type PersistenceModel = {
  * Only schemas that declare persistence become tables. Nested object, array,
  * and `$ref` properties on those tables are stored as JSONB. A `$ref` property
  * cannot also declare `x-hexkit.reference`; use a scalar foreign-key property
- * instead. Schemas without persistence still appear in the contract and domain
- * layers, but they do not get tables.
+ * instead, because nested objects, arrays, and `$ref` values cannot be both an
+ * embed and a relation. Schemas without persistence still appear in the contract
+ * and domain layers, but they do not get tables.
  */
 export function derivePersistenceModel(
   contract: ContractArtifact,
@@ -227,8 +228,9 @@ function deriveColumn(
       property.type.kind === "object" ||
       property.type.kind === "array"
     ) {
+      const structuredType = property.type.kind === "reference" ? "$ref" : property.type.kind;
       throw new Error(
-        `Schema "${schemaName}" property "${property.name}" cannot combine $ref with x-hexkit.reference. Use a scalar FK property, or omit x-hexkit.reference to store JSONB.`,
+        `Schema "${schemaName}" property "${property.name}" cannot combine ${structuredType} with x-hexkit.reference. Use a scalar FK property, or omit x-hexkit.reference to store JSONB.`,
       );
     }
   }

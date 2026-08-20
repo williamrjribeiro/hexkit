@@ -11,5 +11,5 @@ fixtures under `apps/petstore-sample/` and `apps/fixtures/`, never as hardcoded
 types or operation lists in this package (see PRD §5.0).
 
 Every component schema used by the contract gets a domain file, including nested
-types that are not persisted as tables (for example Category and Tag in the
-Petstore PoC). Persistence is owned by `@hexkit/plugin-drizzle`.
+types that are not persisted as tables. Persistence is owned by
+`@hexkit/plugin-drizzle`.

@@ -407,7 +407,7 @@ describe("Given hexagonal production sources", () => {
     const productionSources = listTypeScriptFiles(root).filter(
       (path) => !path.endsWith(".test.ts"),
     );
-    const banned = /\bPet\b|\bOrder\b|petstore|addPet|placeOrder|getPetById/;
+    const banned = /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|placeOrder|getPetById/;
 
     for (const path of productionSources) {
       const contents = readFileSync(path, "utf8");

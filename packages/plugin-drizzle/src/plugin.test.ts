@@ -547,6 +547,103 @@ describe("Given a persisted schema with nested object, array, and $ref propertie
     expect(artifact.tables).toEqual([
       expect.objectContaining({ schemaName: "Widget", tableName: "widgets" }),
     ]);
+
+    const mapper = files.find((file) => file.path === "src/adapters/db/mappers.ts")?.contents ?? "";
+    const repository =
+      files.find((file) => file.path === "src/adapters/db/widget-repository.ts")?.contents ?? "";
+    expect(mapper).toContain("row.meta ?? undefined");
+    expect(mapper).toContain("row.label ?? undefined");
+    expect(repository).toContain(".values(widget)");
+  });
+});
+
+describe("Given a nested $ref whose target schema is itself persisted", () => {
+  it("when the Drizzle plugin runs, then the embed stays jsonb and the target table has no FK from the parent", async () => {
+    const contract = widgetCreateContract("persisted-embed-api", "Persisted Embed API", [
+      {
+        name: "Label",
+        modulePath: "schemas/Label.ts",
+        persistence: { table: "labels", identity: "id" },
+        properties: [
+          {
+            name: "id",
+            required: true,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+          {
+            name: "name",
+            required: true,
+            type: { kind: "string", nullable: false },
+          },
+        ],
+      },
+      {
+        name: "Widget",
+        modulePath: "schemas/Widget.ts",
+        persistence: { table: "widgets", identity: "id" },
+        properties: [
+          {
+            name: "id",
+            required: true,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+          {
+            name: "label",
+            required: false,
+            type: { kind: "reference", nullable: false, schema: "Label" },
+          },
+        ],
+      },
+    ]);
+
+    const { files, artifact } = await collectGeneratedFiles(
+      contract,
+      applicationFromContract(contract),
+    );
+    const schema = files.find((file) => file.path === "src/adapters/db/schema.ts")?.contents ?? "";
+    const migration =
+      files.find((file) => file.path === "drizzle/0000_persisted-embed-api.sql")?.contents ?? "";
+
+    expect(schema).toContain('export const labels = pgTable("labels"');
+    expect(schema).toContain('label: jsonb("label")');
+    expect(schema).not.toContain(".references(");
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS "labels"');
+    expect(migration).toContain('"label" jsonb');
+    expect(migration).not.toContain("FOREIGN KEY");
+    expect(artifact.tables).toEqual([
+      expect.objectContaining({ schemaName: "Label", tableName: "labels" }),
+      expect.objectContaining({ schemaName: "Widget", tableName: "widgets" }),
+    ]);
+  });
+});
+
+describe("Given a persisted number property", () => {
+  it("when persistence is derived, then generation still rejects number columns", async () => {
+    const contract = widgetCreateContract("number-column-api", "Number Column API", [
+      {
+        name: "Widget",
+        modulePath: "schemas/Widget.ts",
+        persistence: { table: "widgets", identity: "id" },
+        properties: [
+          {
+            name: "id",
+            required: true,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+          {
+            name: "amount",
+            required: true,
+            type: { kind: "number", nullable: false },
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      collectGeneratedFiles(contract, applicationFromContract(contract)),
+    ).rejects.toThrow(
+      'Schema "Widget" property "amount" uses number, which is not supported for Drizzle persistence yet.',
+    );
   });
 });
 
@@ -639,6 +736,171 @@ describe("Given a property that combines $ref with x-hexkit.reference", () => {
   });
 });
 
+describe("Given a property that combines an inline object with x-hexkit.reference", () => {
+  it("when persistence is derived, then generation fails naming the object type", async () => {
+    const contract: ContractArtifact = {
+      artifactVersion: 1,
+      openapiVersion: "3.1.0",
+      application: {
+        title: "Bad Object Ref API",
+        version: "1.0.0",
+        slug: "bad-object-ref-api",
+      },
+      schemas: [
+        {
+          name: "Owner",
+          modulePath: "schemas/Owner.ts",
+          persistence: { table: "owners", identity: "id" },
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+          ],
+        },
+        {
+          name: "Widget",
+          modulePath: "schemas/Widget.ts",
+          persistence: { table: "widgets", identity: "id" },
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+            {
+              name: "owner",
+              required: true,
+              type: {
+                kind: "object",
+                nullable: false,
+                properties: [
+                  {
+                    name: "id",
+                    required: true,
+                    type: { kind: "integer", nullable: false, format: "int32" },
+                  },
+                ],
+              },
+              reference: { schema: "Owner", property: "id" },
+            },
+          ],
+        },
+      ],
+      securitySchemes: [],
+      globalSecurity: [],
+      operations: [
+        {
+          operationId: "createWidget",
+          method: "post",
+          path: "/widgets",
+          modulePath: "routes/createWidget.ts",
+          parameters: [],
+          responses: [
+            {
+              status: "201",
+              description: "created",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: { kind: "reference", nullable: false, schema: "Widget" },
+                },
+              ],
+            },
+          ],
+          security: {
+            overridesGlobal: false,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "reference", nullable: false, schema: "Widget" },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    await expect(
+      collectGeneratedFiles(contract, applicationFromContract(contract)),
+    ).rejects.toThrow(
+      /Schema "Widget" property "owner" cannot combine object with x-hexkit\.reference/i,
+    );
+  });
+});
+
+describe("Given a property that combines an inline array with x-hexkit.reference", () => {
+  it("when persistence is derived, then generation fails naming the array type", async () => {
+    const contract = widgetCreateContract("bad-array-ref-api", "Bad Array Ref API", [
+      {
+        name: "Owner",
+        modulePath: "schemas/Owner.ts",
+        persistence: { table: "owners", identity: "id" },
+        properties: [
+          {
+            name: "id",
+            required: true,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+        ],
+      },
+      {
+        name: "Widget",
+        modulePath: "schemas/Widget.ts",
+        persistence: { table: "widgets", identity: "id" },
+        properties: [
+          {
+            name: "id",
+            required: true,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+          {
+            name: "owners",
+            required: true,
+            type: {
+              kind: "array",
+              nullable: false,
+              items: { kind: "integer", nullable: false, format: "int32" },
+            },
+            reference: { schema: "Owner", property: "id" },
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      collectGeneratedFiles(contract, applicationFromContract(contract)),
+    ).rejects.toThrow(
+      /Schema "Widget" property "owners" cannot combine array with x-hexkit\.reference/i,
+    );
+  });
+});
+
+describe("Given OpenAPI YAML that combines $ref with x-hexkit.reference", () => {
+  it("when the document is normalized and persisted, then generation fails with the same error", async () => {
+    const yamlPath = new URL("./__fixtures__/ref-plus-fk.yaml", import.meta.url).pathname;
+    const contract = await loadContract(yamlPath, {
+      schemas: new Map([
+        ["Owner", "schemas/Owner.ts"],
+        ["Widget", "schemas/Widget.ts"],
+      ]),
+      operations: new Map([["createWidget", "routes/createWidget.ts"]]),
+    });
+
+    await expect(
+      collectGeneratedFiles(contract, applicationFromContract(contract)),
+    ).rejects.toThrow(
+      /Schema "Widget" property "owner" cannot combine \$ref with x-hexkit\.reference/i,
+    );
+  });
+});
+
 describe("Given drizzle production sources", () => {
   it("does not embed Petstore fixture literals outside tests", () => {
     const root = join(import.meta.dirname);
@@ -646,7 +908,7 @@ describe("Given drizzle production sources", () => {
       (path) => !path.endsWith(".test.ts"),
     );
     const banned =
-      /\bPet\b|\bOrder\b|petstore|addPet|placeOrder|getPetById|available|pending|sold|placed|approved|delivered/;
+      /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|placeOrder|getPetById|available|pending|sold|placed|approved|delivered/;
 
     for (const path of productionSources) {
       const contents = readFileSync(path, "utf8");
@@ -664,4 +926,54 @@ function listTypeScriptFiles(directory: string): string[] {
     if (entry.isDirectory()) return listTypeScriptFiles(path);
     return entry.isFile() && entry.name.endsWith(".ts") ? [path] : [];
   });
+}
+
+function widgetCreateContract(
+  slug: string,
+  title: string,
+  schemas: ContractArtifact["schemas"],
+): ContractArtifact {
+  return {
+    artifactVersion: 1,
+    openapiVersion: "3.1.0",
+    application: { title, version: "1.0.0", slug },
+    schemas,
+    securitySchemes: [],
+    globalSecurity: [],
+    operations: [
+      {
+        operationId: "createWidget",
+        method: "post",
+        path: "/widgets",
+        modulePath: "routes/createWidget.ts",
+        parameters: [],
+        responses: [
+          {
+            status: "201",
+            description: "created",
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "reference", nullable: false, schema: "Widget" },
+              },
+            ],
+          },
+        ],
+        security: {
+          overridesGlobal: false,
+          requirements: [],
+          apicalServerHeaderNames: [],
+        },
+        requestBody: {
+          required: true,
+          media: [
+            {
+              mediaType: "application/json",
+              type: { kind: "reference", nullable: false, schema: "Widget" },
+            },
+          ],
+        },
+      },
+    ],
+  };
 }

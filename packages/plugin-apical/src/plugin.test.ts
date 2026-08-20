@@ -97,7 +97,7 @@ describe("Given the Petstore PoC contract", () => {
     `);
   });
 
-  it("when media types and components are inspected, then only JSON Pet and Order contracts remain", () => {
+  it("when media types and components are inspected, then JSON-only Pet, Order, Category, and Tag contracts remain", () => {
     const contract = readContract();
 
     expect(contract).toContain("application/json:");
