@@ -409,6 +409,229 @@ describe("Given a schema with an *Id property and no x-hexkit.reference", () => 
   });
 });
 
+describe("Given a persisted schema with nested object, array, and $ref properties", () => {
+  it("when the Drizzle plugin runs, then those columns are jsonb and no child tables are emitted", async () => {
+    const contract: ContractArtifact = {
+      artifactVersion: 1,
+      openapiVersion: "3.1.0",
+      application: {
+        title: "Nested Embed API",
+        version: "1.0.0",
+        slug: "nested-embed-api",
+      },
+      schemas: [
+        {
+          name: "Label",
+          modulePath: "schemas/Label.ts",
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+            {
+              name: "name",
+              required: true,
+              type: { kind: "string", nullable: false },
+            },
+          ],
+        },
+        {
+          name: "Widget",
+          modulePath: "schemas/Widget.ts",
+          persistence: { table: "widgets", identity: "id" },
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+            {
+              name: "name",
+              required: true,
+              type: { kind: "string", nullable: false },
+            },
+            {
+              name: "meta",
+              required: false,
+              type: {
+                kind: "object",
+                nullable: false,
+                properties: [
+                  {
+                    name: "color",
+                    required: true,
+                    type: { kind: "string", nullable: false },
+                  },
+                ],
+              },
+            },
+            {
+              name: "aliases",
+              required: true,
+              type: {
+                kind: "array",
+                nullable: false,
+                items: { kind: "string", nullable: false },
+              },
+            },
+            {
+              name: "label",
+              required: false,
+              type: { kind: "reference", nullable: false, schema: "Label" },
+            },
+          ],
+        },
+      ],
+      securitySchemes: [],
+      globalSecurity: [],
+      operations: [
+        {
+          operationId: "createWidget",
+          method: "post",
+          path: "/widgets",
+          modulePath: "routes/createWidget.ts",
+          parameters: [],
+          responses: [
+            {
+              status: "201",
+              description: "created",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: { kind: "reference", nullable: false, schema: "Widget" },
+                },
+              ],
+            },
+          ],
+          security: {
+            overridesGlobal: false,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "reference", nullable: false, schema: "Widget" },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const { files, artifact } = await collectGeneratedFiles(
+      contract,
+      applicationFromContract(contract),
+    );
+    const schema = files.find((file) => file.path === "src/adapters/db/schema.ts")?.contents ?? "";
+    const migration =
+      files.find((file) => file.path === "drizzle/0000_nested-embed-api.sql")?.contents ?? "";
+
+    expect(schema).toContain('import { integer, jsonb, pgTable, text } from "drizzle-orm/pg-core"');
+    expect(schema).toContain('meta: jsonb("meta")');
+    expect(schema).toContain('aliases: jsonb("aliases").notNull()');
+    expect(schema).toContain('label: jsonb("label")');
+    expect(schema).not.toContain('pgTable("labels"');
+    expect(migration).toContain('"meta" jsonb');
+    expect(migration).toContain('"aliases" jsonb NOT NULL');
+    expect(migration).toContain('"label" jsonb');
+    expect(migration).not.toContain('CREATE TABLE IF NOT EXISTS "labels"');
+    expect(artifact.tables).toEqual([
+      expect.objectContaining({ schemaName: "Widget", tableName: "widgets" }),
+    ]);
+  });
+});
+
+describe("Given a property that combines $ref with x-hexkit.reference", () => {
+  it("when persistence is derived, then generation fails with a clear error", async () => {
+    const contract: ContractArtifact = {
+      artifactVersion: 1,
+      openapiVersion: "3.1.0",
+      application: {
+        title: "Bad Ref API",
+        version: "1.0.0",
+        slug: "bad-ref-api",
+      },
+      schemas: [
+        {
+          name: "Owner",
+          modulePath: "schemas/Owner.ts",
+          persistence: { table: "owners", identity: "id" },
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+          ],
+        },
+        {
+          name: "Widget",
+          modulePath: "schemas/Widget.ts",
+          persistence: { table: "widgets", identity: "id" },
+          properties: [
+            {
+              name: "id",
+              required: true,
+              type: { kind: "integer", nullable: false, format: "int32" },
+            },
+            {
+              name: "owner",
+              required: true,
+              type: { kind: "reference", nullable: false, schema: "Owner" },
+              reference: { schema: "Owner", property: "id" },
+            },
+          ],
+        },
+      ],
+      securitySchemes: [],
+      globalSecurity: [],
+      operations: [
+        {
+          operationId: "createWidget",
+          method: "post",
+          path: "/widgets",
+          modulePath: "routes/createWidget.ts",
+          parameters: [],
+          responses: [
+            {
+              status: "201",
+              description: "created",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: { kind: "reference", nullable: false, schema: "Widget" },
+                },
+              ],
+            },
+          ],
+          security: {
+            overridesGlobal: false,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "reference", nullable: false, schema: "Widget" },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    await expect(collectGeneratedFiles(contract, applicationFromContract(contract))).rejects.toThrow(
+      /Schema "Widget" property "owner".*cannot combine \$ref with x-hexkit\.reference/i,
+    );
+  });
+});
+
 describe("Given drizzle production sources", () => {
   it("does not embed Petstore fixture literals outside tests", () => {
     const root = join(import.meta.dirname);
