@@ -18,7 +18,14 @@ import type {
   PersistenceTableExport,
 } from "../artifact.ts";
 
-export type PersistenceColumnSqlType = "boolean" | "integer" | "text" | "enum";
+/**
+ * Postgres column type for one persisted OpenAPI property.
+ *
+ * Nested objects, arrays, and `$ref` values use `jsonb` (Postgres JSONB, not
+ * `json`). Scalar foreign keys keep a matching scalar type such as `integer`
+ * or `text`.
+ */
+export type PersistenceColumnSqlType = "boolean" | "enum" | "integer" | "jsonb" | "text";
 
 export type PersistenceEnumModel = {
   exportName: string;
@@ -33,6 +40,12 @@ export type PersistenceForeignKeyModel = {
   targetColumnSqlName: string;
 };
 
+/**
+ * One column on a generated persistence table.
+ *
+ * `sqlType` is `jsonb` when the OpenAPI property is a nested object, array, or
+ * `$ref`. `foreignKey` is set only for scalar `x-hexkit.reference` properties.
+ */
 export type PersistenceColumnModel = {
   propertyName: string;
   sqlName: string;
@@ -86,6 +99,17 @@ export type PersistenceModel = {
   repositories: readonly PersistenceRepositoryModel[];
 };
 
+/**
+ * Builds the persistence model from the OpenAPI contract and hexagonal
+ * application artifacts.
+ *
+ * Only schemas that declare persistence become tables. Nested object, array,
+ * and `$ref` properties on those tables are stored as JSONB. A `$ref` property
+ * cannot also declare `x-hexkit.reference`; use a scalar foreign-key property
+ * instead, because nested objects, arrays, and `$ref` values cannot be both an
+ * embed and a relation. Schemas without persistence still appear in the contract
+ * and domain layers, but they do not get tables.
+ */
 export function derivePersistenceModel(
   contract: ContractArtifact,
   application: ApplicationArtifact,
@@ -197,6 +221,20 @@ function deriveColumn(
   schemasByName: ReadonlyMap<string, ContractSchema>,
 ): PersistenceColumnModel {
   const sqlName = toSnakeCase(property.name);
+
+  if (property.reference !== undefined) {
+    if (
+      property.type.kind === "reference" ||
+      property.type.kind === "object" ||
+      property.type.kind === "array"
+    ) {
+      const structuredType = property.type.kind === "reference" ? "$ref" : property.type.kind;
+      throw new Error(
+        `Schema "${schemaName}" property "${property.name}" cannot combine ${structuredType} with x-hexkit.reference. Use a scalar FK property, or omit x-hexkit.reference to store JSONB.`,
+      );
+    }
+  }
+
   const columnType = resolveColumnType(schemaName, property);
 
   const column: PersistenceColumnModel = {
@@ -274,9 +312,7 @@ function resolveColumnType(
     case "reference":
     case "array":
     case "object":
-      throw new Error(
-        `Schema "${schemaName}" property "${property.name}" type "${type.kind}" is not supported for Drizzle persistence columns.`,
-      );
+      return { sqlType: "jsonb" };
   }
 }
 

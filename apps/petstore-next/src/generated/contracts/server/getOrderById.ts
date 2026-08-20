@@ -34,7 +34,7 @@ export function getOrderByIdWrapper(
   }): Promise<getOrderByIdRouteResponse> => {
   const pathParse = await validateStandardSchema(getOrderByIdRouteMetadata.params.shape.path, req.path);
   if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-  let parsedBody: undefined | undefined = undefined;
+  let parsedBody: undefined   = undefined;
   return handler({
     isValid: true,
     value: {

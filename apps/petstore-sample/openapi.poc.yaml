@@ -109,6 +109,22 @@ components:
         type: integer
         format: int32
   schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+        name:
+          type: string
     Pet:
       type: object
       x-hexkit:
@@ -118,6 +134,7 @@ components:
       required:
         - id
         - name
+        - photoUrls
       properties:
         id:
           type: integer
@@ -130,6 +147,16 @@ components:
             - available
             - pending
             - sold
+        category:
+          $ref: "#/components/schemas/Category"
+        photoUrls:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tag"
     Order:
       type: object
       x-hexkit:

@@ -24,7 +24,7 @@ export function createDrizzlePetRepository(
     async updatePet(pet: Pet): Promise<Pet> {
       const [row] = await db
         .update(pets)
-        .set({ name: pet.name, status: pet.status })
+        .set({ name: pet.name, status: pet.status, category: pet.category, photoUrls: pet.photoUrls, tags: pet.tags })
         .where(eq(pets.id, pet.id))
         .returning();
       if (!row) throw new Error(`Pet ${pet.id} was not found`);

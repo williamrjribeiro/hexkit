@@ -1,4 +1,4 @@
-import { boolean, integer, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgEnum, pgTable, text } from "drizzle-orm/pg-core";
 
 export const orderStatus = pgEnum("order_status", ["placed", "approved", "delivered"]);
 
@@ -8,6 +8,9 @@ export const pets = pgTable("pets", {
   id: integer("id").primaryKey(),
   name: text("name").notNull(),
   status: petStatus("status"),
+  category: jsonb("category"),
+  photoUrls: jsonb("photo_urls").notNull(),
+  tags: jsonb("tags"),
 });
 
 export const orders = pgTable("orders", {

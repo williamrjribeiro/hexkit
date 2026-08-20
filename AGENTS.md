@@ -32,7 +32,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp run -r test` — run tests in every package (~100+ tests; some packages use `--passWithNoTests`).
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test.
-- `vp run dogfood` — Hono Petstore generate → Docker Compose → Pactum API tests (Docker required).
+- `vp run dogfood` — Hono Rich Pet + Order generate → Docker Compose → Pactum API tests (Docker required).
 - `vp run dogfood-petstore-next` — Next.js PetShop dogfood (generate, overlay, Compose).
 - `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance.
 

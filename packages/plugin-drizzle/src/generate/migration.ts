@@ -7,6 +7,7 @@ import type {
   PersistenceTableModel,
 } from "../model/derive.ts";
 
+/** Writes the SQL migration that creates those tables, including JSONB columns. */
 export function renderMigrationFile(model: PersistenceModel): GeneratedFile {
   const sections = [
     ...model.enums.map(renderEnumMigration),
@@ -60,6 +61,8 @@ function renderSqlType(column: PersistenceColumnModel): string {
       return "integer";
     case "text":
       return "text";
+    case "jsonb":
+      return "jsonb";
     case "enum":
       if (column.enumSqlName === undefined) {
         throw new Error(`Enum column "${column.propertyName}" is missing an SQL type name.`);

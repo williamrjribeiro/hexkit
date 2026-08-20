@@ -34,6 +34,10 @@ function readPet(formData: FormData) {
     id: readRequiredInteger(formData, "id"),
     name,
     status: status as (typeof petStatuses)[number],
+    photoUrls: readText(formData, "photoUrls")
+      .split("\n")
+      .map((value) => value.trim())
+      .filter(Boolean),
   };
 }
 

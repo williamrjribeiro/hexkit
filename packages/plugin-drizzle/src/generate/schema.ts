@@ -8,6 +8,7 @@ import type {
   PersistenceTableModel,
 } from "../model/derive.ts";
 
+/** Writes the generated table definitions, storing nested OpenAPI types as JSONB. */
 export function renderSchemaFile(model: PersistenceModel): GeneratedFile {
   const columnHelpers = collectColumnHelpers(model.tables);
   const imports: ImportDeclaration[] = [
@@ -47,6 +48,9 @@ function collectColumnHelpers(tables: readonly PersistenceTableModel[]): string[
           break;
         case "text":
           helpers.add("text");
+          break;
+        case "jsonb":
+          helpers.add("jsonb");
           break;
         case "enum":
           break;
@@ -100,6 +104,8 @@ function renderColumnConstructor(column: PersistenceTableModel["columns"][number
       return `integer(${sqlName})`;
     case "text":
       return `text(${sqlName})`;
+    case "jsonb":
+      return `jsonb(${sqlName})`;
     case "enum":
       if (column.enumExportName === undefined) {
         throw new Error(`Enum column "${column.propertyName}" is missing an export name.`);

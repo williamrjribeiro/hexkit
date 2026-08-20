@@ -6,5 +6,9 @@ export {
   type PersistenceTableExport,
 } from "./artifact.ts";
 export { generatePersistenceFromArtifacts } from "./generate/files.ts";
-export { derivePersistenceModel, toPersistenceArtifact } from "./model/derive.ts";
+export {
+  derivePersistenceModel,
+  toPersistenceArtifact,
+  type PersistenceColumnSqlType,
+} from "./model/derive.ts";
 export { createDrizzlePlugin } from "./plugin.ts";

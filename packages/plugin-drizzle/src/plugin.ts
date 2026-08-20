@@ -5,6 +5,13 @@ import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
 import { PERSISTENCE_ARTIFACT } from "./artifact.ts";
 import { generatePersistenceFromArtifacts } from "./generate/files.ts";
 
+/**
+ * Hexkit plugin that emits Postgres persistence adapters from the contract and
+ * hexagonal ports.
+ *
+ * Nested object, array, and `$ref` properties become JSONB columns. Scalar
+ * `x-hexkit.reference` properties remain foreign keys.
+ */
 export function createDrizzlePlugin(): HexkitPlugin {
   return {
     name: "drizzle",

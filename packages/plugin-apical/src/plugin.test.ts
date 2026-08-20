@@ -97,7 +97,7 @@ describe("Given the Petstore PoC contract", () => {
     `);
   });
 
-  it("when media types and components are inspected, then only JSON Pet and Order contracts remain", () => {
+  it("when media types and components are inspected, then JSON-only Pet, Order, Category, and Tag contracts remain", () => {
     const contract = readContract();
 
     expect(contract).toContain("application/json:");
@@ -133,6 +133,8 @@ describe("Given the Petstore PoC contract", () => {
           "int32",
         ],
         "persistedPropertyFormats": [
+          "int32",
+          "int32",
           "int32",
           "int32",
           "int32",
@@ -204,7 +206,7 @@ describe("Given real Apical craft output", () => {
     {
       fixture: "Petstore",
       input: pocContract,
-      expectedSchemas: ["Order", "Pet"],
+      expectedSchemas: ["Category", "Order", "Pet", "Tag"],
       expectedOperations: [
         "addPet",
         "updatePet",

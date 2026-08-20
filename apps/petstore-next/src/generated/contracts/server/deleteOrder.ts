@@ -34,7 +34,7 @@ export function deleteOrderWrapper(
   }): Promise<deleteOrderRouteResponse> => {
   const pathParse = await validateStandardSchema(deleteOrderRouteMetadata.params.shape.path, req.path);
   if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-  let parsedBody: undefined | undefined = undefined;
+  let parsedBody: undefined   = undefined;
   return handler({
     isValid: true,
     value: {

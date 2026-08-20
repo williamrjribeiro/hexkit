@@ -9,11 +9,19 @@ import { renderMigrationFile } from "./migration.ts";
 import { renderRepositoryFiles } from "./repository.ts";
 import { renderSchemaFile } from "./schema.ts";
 
+/** Generated persistence files plus the artifact later plugins can consume. */
 export type GeneratedPersistence = {
   files: GeneratedFile[];
   artifact: PersistenceArtifact;
 };
 
+/**
+ * Generates Drizzle schema, migration, mapper, and repository files from the
+ * contract and hexagonal application artifacts.
+ *
+ * Nested object, array, and `$ref` columns are emitted as Postgres JSONB. Only
+ * schemas that declare persistence produce tables.
+ */
 export function generatePersistenceFromArtifacts(
   contract: ContractArtifact,
   application: ApplicationArtifact,

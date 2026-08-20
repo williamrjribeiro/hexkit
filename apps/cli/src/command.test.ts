@@ -31,8 +31,10 @@ const petstoreApicalContractPaths = [
   "routes/index.ts",
   "routes/placeOrder.ts",
   "routes/updatePet.ts",
+  "schemas/Category.ts",
   "schemas/Order.ts",
   "schemas/Pet.ts",
+  "schemas/Tag.ts",
   "schemas/addPetParameters.ts",
   "schemas/deleteOrderParameters.ts",
   "schemas/deletePetParameters.ts",
@@ -76,9 +78,11 @@ const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", impor
 const libraryContract = new URL("../../fixtures/library-api/openapi.yaml", import.meta.url);
 
 const petstoreSchemasIndex = `
+import { Category } from "./Category.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
-export { Order, Pet };
+import { Tag } from "./Tag.ts";
+export { Category, Order, Pet, Tag };
 `;
 
 const petstoreRoutesIndex = `
@@ -408,8 +412,10 @@ describe("Given the default generation pipeline", () => {
         "src/core/application/get-pet-by-id.ts",
         "src/core/application/place-order.ts",
         "src/core/application/update-pet.ts",
+        "src/core/domain/category.ts",
         "src/core/domain/order.ts",
         "src/core/domain/pet.ts",
+        "src/core/domain/tag.ts",
         "src/core/ports/order-repository.ts",
         "src/core/ports/pet-repository.ts",
         "src/generated/contracts/hexkit-contract.json",
@@ -422,8 +428,10 @@ describe("Given the default generation pipeline", () => {
         "src/generated/contracts/routes/index.ts",
         "src/generated/contracts/routes/placeOrder.ts",
         "src/generated/contracts/routes/updatePet.ts",
+        "src/generated/contracts/schemas/Category.ts",
         "src/generated/contracts/schemas/Order.ts",
         "src/generated/contracts/schemas/Pet.ts",
+        "src/generated/contracts/schemas/Tag.ts",
         "src/generated/contracts/schemas/addPetParameters.ts",
         "src/generated/contracts/schemas/deleteOrderParameters.ts",
         "src/generated/contracts/schemas/deletePetParameters.ts",

@@ -4,17 +4,81 @@ import { request, spec } from "pactum";
 import { createAcceptanceIds } from "./api-fixtures.ts";
 
 const apiBaseUrl = process.env.PETSTORE_API_URL ?? "http://127.0.0.1:3000";
-const { invalidOrderId, missingPetId, orderId, petId } = createAcceptanceIds();
+const ids = createAcceptanceIds();
+const { invalidOrderId, missingPetId, orderId, petId } = ids;
 
 const addedPet = {
   id: petId,
   name: `Hexkit dogfood pet ${String(petId)}`,
   status: "available",
+  category: { id: 1, name: "Dogs" },
+  photoUrls: [`https://example.test/pets/${String(petId)}.jpg`],
+  tags: [{ id: 10, name: "friendly" }],
 };
 const updatedPet = {
   ...addedPet,
   name: `Updated Hexkit dogfood pet ${String(petId)}`,
   status: "sold",
+  category: { id: 2, name: "Working Dogs" },
+  photoUrls: [
+    `https://example.test/pets/${String(petId)}.jpg`,
+    `https://example.test/pets/${String(petId)}-2.jpg`,
+  ],
+  tags: [
+    { id: 10, name: "friendly" },
+    { id: 11, name: "trained" },
+  ],
+};
+const minimalPet = {
+  id: ids.minimalPetId,
+  name: `Minimal Hexkit pet ${String(ids.minimalPetId)}`,
+  photoUrls: [] as string[],
+};
+const categoryOnlyPet = {
+  id: ids.categoryOnlyPetId,
+  name: `Category-only pet ${String(ids.categoryOnlyPetId)}`,
+  photoUrls: [`https://example.test/pets/${String(ids.categoryOnlyPetId)}.jpg`],
+  category: { id: 3, name: "Cats" },
+};
+const tagsOnlyPet = {
+  id: ids.tagsOnlyPetId,
+  name: `Tags-only pet ${String(ids.tagsOnlyPetId)}`,
+  photoUrls: [`https://example.test/pets/${String(ids.tagsOnlyPetId)}.jpg`],
+  tags: [{ id: 20, name: "quiet" }],
+};
+const emptyTagsPet = {
+  id: ids.emptyTagsPetId,
+  name: `Empty-tags pet ${String(ids.emptyTagsPetId)}`,
+  photoUrls: [`https://example.test/pets/${String(ids.emptyTagsPetId)}.jpg`],
+  tags: [] as Array<{ id: number; name: string }>,
+};
+const emptyCategoryPet = {
+  id: ids.emptyCategoryPetId,
+  name: `Empty-category pet ${String(ids.emptyCategoryPetId)}`,
+  photoUrls: [`https://example.test/pets/${String(ids.emptyCategoryPetId)}.jpg`],
+  category: {},
+};
+const partialCategoryPet = {
+  id: ids.partialCategoryPetId,
+  name: `Partial-category pet ${String(ids.partialCategoryPetId)}`,
+  photoUrls: [`https://example.test/pets/${String(ids.partialCategoryPetId)}.jpg`],
+  category: { name: "ユニコード犬" },
+};
+const putOmitPet = {
+  id: ids.putOmitPetId,
+  name: `Put-omit pet ${String(ids.putOmitPetId)}`,
+  status: "available" as const,
+  category: { id: 8, name: "Keep me" },
+  photoUrls: [`https://example.test/pets/${String(ids.putOmitPetId)}.jpg`],
+  tags: [{ id: 30, name: "keep" }],
+};
+const replaceUrlsPet = {
+  id: ids.replaceUrlsPetId,
+  name: `Replace-urls pet ${String(ids.replaceUrlsPetId)}`,
+  photoUrls: [
+    `https://example.test/pets/${String(ids.replaceUrlsPetId)}.jpg`,
+    `https://example.test/pets/${String(ids.replaceUrlsPetId)}-b.jpg`,
+  ],
 };
 const placedOrder = {
   id: orderId,
@@ -38,76 +102,256 @@ async function runAgainstApi(assertion: () => unknown): Promise<void> {
   }
 }
 
+async function expectPersistedPet(pet: object): Promise<void> {
+  await runAgainstApi(() => spec().post("/pet").withJson(pet).expectStatus(201).expectJson(pet));
+  await runAgainstApi(() =>
+    spec()
+      .get(`/pet/${String((pet as { id: number }).id)}`)
+      .expectStatus(200)
+      .expectJson(pet),
+  );
+}
+
 describe.sequential("Given the generated Petstore API", () => {
-  it("when a Pet is added, then it returns the persisted Pet", async () => {
-    await runAgainstApi(() =>
-      spec().post("/pet").withJson(addedPet).expectStatus(201).expectJson(addedPet),
-    );
-  });
+  describe.sequential("nested JSONB validation", () => {
+    it("when photoUrls is missing, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({ id: petId, name: "No photos" })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when the Pet is updated, then it returns the persisted changes", async () => {
-    await runAgainstApi(() =>
-      spec().put("/pet").withJson(updatedPet).expectStatus(200).expectJson(updatedPet),
-    );
-  });
+    it("when photoUrls is a string, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({ id: petId, name: "Bad photos", photoUrls: "https://example.test/a.jpg" })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when the Pet is fetched by id, then the update persisted", async () => {
-    await runAgainstApi(() =>
-      spec()
-        .get(`/pet/${String(petId)}`)
-        .expectStatus(200)
-        .expectJson(updatedPet),
-    );
-  });
+    it("when photoUrls contains a non-string item, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({ id: petId, name: "Numeric photos", photoUrls: [1] })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when an Order references the Pet, then it returns the persisted Order", async () => {
-    await runAgainstApi(() =>
-      spec().post("/store/order").withJson(placedOrder).expectStatus(201).expectJson(placedOrder),
-    );
-  });
+    it("when category is a string, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({
+            id: petId,
+            name: "String category",
+            photoUrls: [],
+            category: "Dogs",
+          })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when the Order is fetched by id, then its Pet relation persisted", async () => {
-    await runAgainstApi(() =>
-      spec()
-        .get(`/store/order/${String(orderId)}`)
-        .expectStatus(200)
-        .expectJson(placedOrder),
-    );
-  });
+    it("when category is null, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({
+            id: petId,
+            name: "Null category",
+            photoUrls: [],
+            category: null,
+          })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when an Order references a missing Pet, then the relation is rejected", async () => {
-    await runAgainstApi(() =>
-      spec()
-        .post("/store/order")
-        .withJson({
-          ...placedOrder,
-          id: invalidOrderId,
-          petId: missingPetId,
-        })
-        .expectStatus(500)
-        .expectJson({ error: "Internal Server Error" }),
-    );
-  });
+    it("when tags is an object, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({
+            id: petId,
+            name: "Object tags",
+            photoUrls: [],
+            tags: { id: 1, name: "friendly" },
+          })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
 
-  it("when the Order is deleted, then it is no longer available", async () => {
-    await runAgainstApi(async () => {
-      await spec()
-        .delete(`/store/order/${String(orderId)}`)
-        .expectStatus(204);
-      await spec()
-        .get(`/store/order/${String(orderId)}`)
-        .expectStatus(404);
+    it("when tags is null, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withJson({
+            id: petId,
+            name: "Null tags",
+            photoUrls: [],
+            tags: null,
+          })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
     });
   });
 
-  it("when the Pet is deleted, then it is no longer available", async () => {
-    await runAgainstApi(async () => {
-      await spec()
-        .delete(`/pet/${String(petId)}`)
-        .expectStatus(204);
-      await spec()
-        .get(`/pet/${String(petId)}`)
-        .expectStatus(404);
+  describe.sequential("nested JSONB round-trips", () => {
+    it("when a Pet is added with only required nested fields, then empty photoUrls round-trip and optional nests are omitted", async () => {
+      await expectPersistedPet(minimalPet);
+    });
+
+    it("when a Pet includes only category, then tags stay omitted", async () => {
+      await expectPersistedPet(categoryOnlyPet);
+    });
+
+    it("when a Pet includes only tags, then category stays omitted", async () => {
+      await expectPersistedPet(tagsOnlyPet);
+    });
+
+    it("when tags is an empty array, then the empty array round-trips as present", async () => {
+      await expectPersistedPet(emptyTagsPet);
+    });
+
+    it("when category is an empty object, then the empty object round-trips", async () => {
+      await expectPersistedPet(emptyCategoryPet);
+    });
+
+    it("when category omits optional id and uses a unicode name, then the partial object round-trips", async () => {
+      await expectPersistedPet(partialCategoryPet);
+    });
+
+    it("when a later PUT omits previously stored nested fields, then JSONB values are not cleared", async () => {
+      await expectPersistedPet(putOmitPet);
+      const withoutNests = {
+        id: putOmitPet.id,
+        name: putOmitPet.name,
+        photoUrls: putOmitPet.photoUrls,
+      };
+      await runAgainstApi(() =>
+        spec().put("/pet").withJson(withoutNests).expectStatus(200).expectJson(putOmitPet),
+      );
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(putOmitPet.id)}`)
+          .expectStatus(200)
+          .expectJson(putOmitPet),
+      );
+    });
+
+    it("when photoUrls is replaced with an empty array, then the required JSONB list clears", async () => {
+      await expectPersistedPet(replaceUrlsPet);
+      const cleared = { ...replaceUrlsPet, photoUrls: [] as string[] };
+      await runAgainstApi(() =>
+        spec().put("/pet").withJson(cleared).expectStatus(200).expectJson(cleared),
+      );
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(replaceUrlsPet.id)}`)
+          .expectStatus(200)
+          .expectJson(cleared),
+      );
+    });
+
+    it("when a previously minimal Pet is updated with nested fields, then those JSONB values persist", async () => {
+      const enriched = {
+        ...minimalPet,
+        category: { id: 9, name: "Added later" },
+        tags: [{ id: 40, name: "new" }],
+        status: "pending",
+      };
+      await runAgainstApi(() =>
+        spec().put("/pet").withJson(enriched).expectStatus(200).expectJson(enriched),
+      );
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(minimalPet.id)}`)
+          .expectStatus(200)
+          .expectJson(enriched),
+      );
+    });
+  });
+
+  describe.sequential("Pet and Order lifecycle", () => {
+    it("when a Pet is added, then it returns the persisted Pet", async () => {
+      await runAgainstApi(() =>
+        spec().post("/pet").withJson(addedPet).expectStatus(201).expectJson(addedPet),
+      );
+    });
+
+    it("when the Pet is updated, then it returns the persisted changes", async () => {
+      await runAgainstApi(() =>
+        spec().put("/pet").withJson(updatedPet).expectStatus(200).expectJson(updatedPet),
+      );
+    });
+
+    it("when the Pet is fetched by id, then the update persisted", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(petId)}`)
+          .expectStatus(200)
+          .expectJson(updatedPet),
+      );
+    });
+
+    it("when an Order references the nested Pet, then it returns the persisted Order", async () => {
+      await runAgainstApi(() =>
+        spec().post("/store/order").withJson(placedOrder).expectStatus(201).expectJson(placedOrder),
+      );
+    });
+
+    it("when the Order is fetched by id, then its Pet relation persisted", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/store/order/${String(orderId)}`)
+          .expectStatus(200)
+          .expectJson(placedOrder),
+      );
+    });
+
+    it("when an Order references a missing Pet, then the relation is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/store/order")
+          .withJson({
+            ...placedOrder,
+            id: invalidOrderId,
+            petId: missingPetId,
+          })
+          .expectStatus(500)
+          .expectJson({ error: "Internal Server Error" }),
+      );
+    });
+
+    it("when the Order is deleted, then it is no longer available", async () => {
+      await runAgainstApi(async () => {
+        await spec()
+          .delete(`/store/order/${String(orderId)}`)
+          .expectStatus(204);
+        await spec()
+          .get(`/store/order/${String(orderId)}`)
+          .expectStatus(404);
+      });
+    });
+
+    it("when the Pet is deleted, then it is no longer available", async () => {
+      await runAgainstApi(async () => {
+        await spec()
+          .delete(`/pet/${String(petId)}`)
+          .expectStatus(204);
+        await spec()
+          .get(`/pet/${String(petId)}`)
+          .expectStatus(404);
+      });
     });
   });
 });
