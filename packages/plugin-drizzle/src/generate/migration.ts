@@ -7,6 +7,7 @@ import type {
   PersistenceTableModel,
 } from "../model/derive.ts";
 
+/** Writes the SQL migration that creates those tables, including JSONB columns. */
 export function renderMigrationFile(model: PersistenceModel): GeneratedFile {
   const sections = [
     ...model.enums.map(renderEnumMigration),

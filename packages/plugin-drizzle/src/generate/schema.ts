@@ -8,6 +8,7 @@ import type {
   PersistenceTableModel,
 } from "../model/derive.ts";
 
+/** Writes the generated table definitions, storing nested OpenAPI types as JSONB. */
 export function renderSchemaFile(model: PersistenceModel): GeneratedFile {
   const columnHelpers = collectColumnHelpers(model.tables);
   const imports: ImportDeclaration[] = [

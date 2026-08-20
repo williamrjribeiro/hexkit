@@ -18,6 +18,13 @@ import type {
   PersistenceTableExport,
 } from "../artifact.ts";
 
+/**
+ * Postgres column type for one persisted OpenAPI property.
+ *
+ * Nested objects, arrays, and `$ref` values use `jsonb` (Postgres JSONB, not
+ * `json`). Scalar foreign keys keep a matching scalar type such as `integer`
+ * or `text`.
+ */
 export type PersistenceColumnSqlType = "boolean" | "enum" | "integer" | "jsonb" | "text";
 
 export type PersistenceEnumModel = {
@@ -33,6 +40,12 @@ export type PersistenceForeignKeyModel = {
   targetColumnSqlName: string;
 };
 
+/**
+ * One column on a generated persistence table.
+ *
+ * `sqlType` is `jsonb` when the OpenAPI property is a nested object, array, or
+ * `$ref`. `foreignKey` is set only for scalar `x-hexkit.reference` properties.
+ */
 export type PersistenceColumnModel = {
   propertyName: string;
   sqlName: string;
@@ -86,6 +99,16 @@ export type PersistenceModel = {
   repositories: readonly PersistenceRepositoryModel[];
 };
 
+/**
+ * Builds the persistence model from the OpenAPI contract and hexagonal
+ * application artifacts.
+ *
+ * Only schemas that declare persistence become tables. Nested object, array,
+ * and `$ref` properties on those tables are stored as JSONB. A `$ref` property
+ * cannot also declare `x-hexkit.reference`; use a scalar foreign-key property
+ * instead. Schemas without persistence still appear in the contract and domain
+ * layers, but they do not get tables.
+ */
 export function derivePersistenceModel(
   contract: ContractArtifact,
   application: ApplicationArtifact,
