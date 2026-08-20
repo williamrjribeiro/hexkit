@@ -302,4 +302,5 @@ Tracked so this plan does not silently expand:
 - [x] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted  
 - [x] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)  
 - [x] Plan review findings addressed in this document (decision tree, fixture shape, mappers, jsonb lock-in, tests)  
-- [ ] Ready for a Phase 1 implementation task plan (still no code until that lands)
+- [x] Phase 1 TDD implementation task plan written (`docs/superpowers/plans/2026-08-20-rich-pet-jsonb-phase1.md`)  
+- [ ] Phase 1 implemented on `main`

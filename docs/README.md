@@ -18,7 +18,8 @@ lists remain for historical traceability.
 | [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                          | Design reference — auth post-PoC for `openapi.poc.yaml`                  |
 | [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                    | Partial — generator support + auth fixture; PoC contract stays auth-free |
 | [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                           | Delivered (#7)                                                           |
-| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)   | Plan review addressed — JSONB (Phase 1), relational opt-in (Phase 2) |
+| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)   | Approved — Phase 1 JSONB; Phase 2 relational opt-in later                |
+| [Rich Pet JSONB Phase 1 implementation](./superpowers/plans/2026-08-20-rich-pet-jsonb-phase1.md)  | Draft — TDD task plan for JSONB nested columns + Rich Pet dogfood        |
 
 ### Specs & plans (detail)
 
@@ -30,3 +31,4 @@ lists remain for historical traceability.
 - [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md) — phased tasks for `@hexkit/plugin-next` and `apps/petstore-next`
 - [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md) — `docker compose up --build` for Next + Postgres, matching Hono dogfood
 - [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md) — nested object/array/`$ref` → JSONB by default; later `x-hexkit` opt-in for relational tables/FKs
+- [Rich Pet JSONB Phase 1 implementation](./superpowers/plans/2026-08-20-rich-pet-jsonb-phase1.md) — TDD tasks for `plugin-drizzle` jsonb columns, Rich Pet OpenAPI, Pactum, Next regen
