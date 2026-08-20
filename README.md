@@ -19,7 +19,7 @@ primary validation gate before PoC sign-off.
 | `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                   |
 | `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                |
 | `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`) |
-| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, DB-read validation          |
+| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns        |
 | `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection          |
 | Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                    |
 | `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                   |
@@ -34,7 +34,7 @@ suite by design (`@hexkit/plugin-next` and CLI tests cover the generator).
 
 | Command                        | What it proves                                                  |
 | ------------------------------ | --------------------------------------------------------------- |
-| `vp run dogfood`               | Hono Pet + Order from `openapi.poc.yaml` → Compose → Pactum     |
+| `vp run dogfood`               | Hono Rich Pet + Order from `openapi.poc.yaml` → Compose → Pactum |
 | `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only |
 | `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                  |
 

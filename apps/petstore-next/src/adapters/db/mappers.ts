@@ -12,5 +12,5 @@ export function mapOrderRow(row: OrderRow): Order {
 }
 
 export function mapPetRow(row: PetRow): Pet {
-  return PetSchema.parse({ ...row, status: row.status ?? undefined });
+  return PetSchema.parse({ ...row, status: row.status ?? undefined, category: row.category ?? undefined, tags: row.tags ?? undefined });
 }

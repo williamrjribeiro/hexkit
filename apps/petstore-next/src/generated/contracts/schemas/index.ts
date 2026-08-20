@@ -1,3 +1,4 @@
+import { Category } from "./Category.ts";
 import {
   deleteOrderPathSchema,
 } from "./deleteOrderParameters.ts";
@@ -12,10 +13,13 @@ import {
 } from "./getPetByIdParameters.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
+import { Tag } from "./Tag.ts";
 
 export {
+  Category,
   Order,
   Pet,
+  Tag,
   deleteOrderPathSchema,
   deletePetPathSchema,
   getOrderByIdPathSchema,

@@ -1,6 +1,6 @@
 # Rich Pet Nested Persistence — Phased Plan
 
-**Status:** Plan review addressed — ready for re-review / merge (no implementation yet)  
+**Status:** Phase 1 implemented (JSONB default); Phase 2 relational opt-in still open  
 **Date:** 2026-08-20  
 **Companion:** [PRD.md](../../../PRD.md) §3.1 / §11, [RFC.md](../../../RFC.md)  
 **Fixture contract:** `apps/petstore-sample/openapi.poc.yaml` (normative dogfood)  
@@ -302,4 +302,5 @@ Tracked so this plan does not silently expand:
 - [x] Rich Pet dogfood shape (Category / Tag / photoUrls) is accepted  
 - [x] Out-of-scope list is accepted (no PATCH, no query filters, no XML in this plan)  
 - [x] Plan review findings addressed in this document (decision tree, fixture shape, mappers, jsonb lock-in, tests)  
-- [ ] Ready for a Phase 1 implementation task plan (still no code until that lands)
+- [x] Phase 1 implemented (JSONB nested columns + Rich Pet dogfood)  
+- [ ] Phase 2 design spike for property-level relational opt-in

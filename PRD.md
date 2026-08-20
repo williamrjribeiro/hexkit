@@ -303,7 +303,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, auth in `openapi.poc.yaml`, f
 
 - SST / AWS Lambda generation and deploy verification.
 - Authentication (post-PoC): see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/plans/2026-08-05-openapi-auth.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`; implemented in generator plugins, but remains post-PoC for the auth-free `openapi.poc.yaml` dogfood fixture. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
-- Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.).
+- Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` persist as JSONB by default (Phase 1); property-level relational opt-in is Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`.
 - GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
 - Automated tests for `apps/petstore-next` (the vanilla PetShop Next fixture has no Vitest/Pactum/Playwright suite; `plugin-next` and CLI tests cover the generator).

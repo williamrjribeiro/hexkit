@@ -8,6 +8,52 @@
   },
   "schemas": [
     {
+      "name": "Category",
+      "modulePath": "schemas/Category.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": false,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tag",
+      "modulePath": "schemas/Tag.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": false,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "name",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ]
+    },
+    {
       "name": "Pet",
       "modulePath": "schemas/Pet.ts",
       "properties": [
@@ -39,6 +85,40 @@
               "pending",
               "sold"
             ]
+          }
+        },
+        {
+          "name": "category",
+          "required": false,
+          "type": {
+            "kind": "reference",
+            "nullable": false,
+            "schema": "Category"
+          }
+        },
+        {
+          "name": "photoUrls",
+          "required": true,
+          "type": {
+            "kind": "array",
+            "nullable": false,
+            "items": {
+              "kind": "string",
+              "nullable": false
+            }
+          }
+        },
+        {
+          "name": "tags",
+          "required": false,
+          "type": {
+            "kind": "array",
+            "nullable": false,
+            "items": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "Tag"
+            }
           }
         }
       ],
