@@ -30,7 +30,8 @@ untouched.
 Dogfood means Hexkit eats its own cooking: the real `@hexkit/cli` generates an
 app from `openapi.poc.yaml`, the generated app is installed and typechecked,
 Docker Compose brings up Hono + Postgres, and `tests/api.test.ts` hits the live
-HTTP API (including nested Pet create / get / update round-trips).
+HTTP API (including nested Pet create / get / update round-trips, optional JSONB
+omits vs empty arrays, validation failures, and PUT-does-not-clear-omitted-nests).
 
 That is the PoC success bar (generate → validate → run → accept). Package unit
 tests alone do not prove the generated app works at runtime.
