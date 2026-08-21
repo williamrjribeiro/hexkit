@@ -19,7 +19,7 @@
 1. Catalog + root `devDependency`: `@vitest/coverage-v8`.
 2. Shared `hexkitCoverage` options (include `src/**`, exclude tests/dist, reporters text + text-summary, thresholds 90).
 3. Each in-scope package adds `test.coverage` and a `coverage` script (`vp test run --coverage`, preserving `--passWithNoTests` where used).
-4. Root `coverage` script (`scripts/run-generator-coverage.sh`) runs each in-scope package’s `coverage` script; `ready` chains coverage after the existing test stage. (Vite+ `vp run -r --filter` cannot be combined; the shell runner scopes to `packages/*` + `apps/cli` only.)
+4. Root `coverage` script uses pnpm workspace filters (`vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage`) so every in-scope package’s `coverage` script runs; `ready` chains coverage after the existing test stage. `--no-bail` reports all failing packages instead of stopping at the first threshold miss.
 
 ## Baseline (pre-gate, 2026-08-21)
 
