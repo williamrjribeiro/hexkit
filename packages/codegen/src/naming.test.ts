@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   pluralizeCamelCase,
+  splitIdentifier,
   toCamelCase,
   toKebabCase,
   toPascalCase,
@@ -18,6 +19,12 @@ describe("naming helpers", () => {
     expect(toKebabCase("Pet")).toBe("pet");
     expect(toSnakeCase("petId")).toBe("pet_id");
     expect(toSnakeCase("PetStatus")).toBe("pet_status");
+  });
+
+  it("when identifiers are split, then empty and separator-only values yield no parts", () => {
+    expect(splitIdentifier("")).toEqual([]);
+    expect(splitIdentifier("---")).toEqual([]);
+    expect(splitIdentifier("getPetById")).toEqual(["get", "pet", "by", "id"]);
   });
 
   it("treats empty and separator-only values as empty identifiers", () => {
