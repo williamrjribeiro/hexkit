@@ -23,6 +23,7 @@
     "coverage": "vp test run --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@hexkit/codegen": "workspace:*",
     "@hexkit/core": "workspace:*",
     "@hexkit/plugin-api": "workspace:*",
     "@hexkit/plugin-apical": "workspace:*",

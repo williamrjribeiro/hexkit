@@ -3,14 +3,8 @@ export type { CraftRunner, GenerateContractsOptions } from "./generate-contracts
 export {
   APICAL_CONTRACT_ARTIFACT,
   inspectGeneratedIndexes,
-  inspectRoutesIndex,
-  inspectSchemaIndex,
   loadValidatedOpenApi,
   normalizeContractArtifact,
-  normalizeContractType,
-  readOperationExtension,
-  readPersistenceExtension,
-  readReferenceExtension,
 } from "./contract/index.ts";
 export type {
   ContractApplication,

@@ -53,23 +53,15 @@ describe("generateContracts default craft runner", () => {
     ).rejects.toThrow("Unable to start apical-ts craft: spawn EACCES");
   });
 
-  it("rejects with craft stderr/stdout details on non-zero exit", async () => {
+  it("rejects with formatted craft output on non-zero exit", async () => {
     mockChild({ status: 2, stderr: "boom", stdout: "hint" });
 
     await expect(generateContracts({ input: "openapi.yaml", output: "out" })).rejects.toThrow(
-      /apical-ts craft failed:\nboom\nhint/,
+      "apical-ts craft failed:\nboom\nhint",
     );
   });
 
-  it("mentions the signal when craft is terminated without output", async () => {
-    mockChild({ status: null, signal: "SIGTERM" });
-
-    await expect(generateContracts({ input: "openapi.yaml", output: "out" })).rejects.toThrow(
-      "apical-ts craft failed with signal SIGTERM",
-    );
-  });
-
-  it("resolves when craft exits successfully", async () => {
+  it("resolves when craft exits successfully and forwards generate args", async () => {
     mockChild({ status: 0, stdout: "ok" });
 
     await expect(

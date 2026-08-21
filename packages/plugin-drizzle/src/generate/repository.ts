@@ -2,12 +2,12 @@ import type { ImportDeclaration } from "@hexkit/codegen";
 import { renderSourceFile, toKebabCase } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import {
-  mapperFunctionName,
-  type PersistenceModel,
-  type PersistenceRepositoryMethodModel,
-  type PersistenceRepositoryModel,
-} from "../model/derive.ts";
+import type { PersistenceModel } from "../model/derive.ts";
+import type {
+  PersistenceRepositoryMethodModel,
+  PersistenceRepositoryModel,
+} from "../model/repository.ts";
+import { mapperFunctionName } from "../model/table.ts";
 
 export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] {
   return model.repositories.map((repository) => renderRepositoryFile(repository));
@@ -15,7 +15,6 @@ export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] 
 
 function renderRepositoryFile(repository: PersistenceRepositoryModel): GeneratedFile {
   const table = repository.table;
-  const entityParameter = entityParameterName(repository);
   const needsEq = repository.methods.some(
     (method) => method.kind === "update" || method.kind === "select" || method.kind === "delete",
   );
@@ -47,9 +46,7 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
     },
   ];
 
-  const methods = repository.methods.map((method) =>
-    renderMethod(repository, method, entityParameter),
-  );
+  const methods = repository.methods.map((method) => renderMethod(repository, method));
 
   const statements = [
     [
@@ -73,7 +70,6 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
 function renderMethod(
   repository: PersistenceRepositoryModel,
   method: PersistenceRepositoryMethodModel,
-  entityParameter: string,
 ): string {
   const table = repository.table;
   const mapper = mapperFunctionName(table.schemaName);
@@ -83,7 +79,7 @@ function renderMethod(
 
   switch (method.kind) {
     case "insert": {
-      const parameter = method.parameters[0]?.name ?? entityParameter;
+      const parameter = method.entityParameterName;
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      const [row] = await db.insert(${table.exportName}).values(${parameter}).returning();`,
@@ -93,7 +89,7 @@ function renderMethod(
       ].join("\n");
     }
     case "update": {
-      const parameter = method.parameters[0]?.name ?? entityParameter;
+      const parameter = method.entityParameterName;
       const setFields = table.columns
         .filter((column) => !column.isIdentity)
         .map((column) => `${column.propertyName}: ${parameter}.${column.propertyName}`)
@@ -111,7 +107,7 @@ function renderMethod(
       ].join("\n");
     }
     case "select": {
-      const idParameter = method.parameters[0]?.name ?? table.identityPropertyName;
+      const idParameter = method.identityParameterName;
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      const [row] = await db.select().from(${table.exportName}).where(eq(${table.exportName}.${table.identityPropertyName}, ${idParameter})).limit(1);`,
@@ -135,7 +131,7 @@ function renderMethod(
       ].join("\n");
     }
     case "delete": {
-      const idParameter = method.parameters[0]?.name ?? table.identityPropertyName;
+      const idParameter = method.identityParameterName;
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      await db.delete(${table.exportName}).where(eq(${table.exportName}.${table.identityPropertyName}, ${idParameter}));`,
@@ -143,11 +139,4 @@ function renderMethod(
       ].join("\n");
     }
   }
-}
-
-function entityParameterName(repository: PersistenceRepositoryModel): string {
-  return (
-    repository.methods.find((method) => method.kind === "insert" || method.kind === "update")
-      ?.parameters[0]?.name ?? repository.table.schemaName.toLowerCase()
-  );
 }

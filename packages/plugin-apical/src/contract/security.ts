@@ -3,7 +3,7 @@ import type {
   ContractSecurityRequirement,
   ContractSecurityScheme,
 } from "./types.ts";
-import { asRecord, optionalRecord, optionalString, requiredString } from "./values.ts";
+import { asRecord, optionalString, requiredString } from "./values.ts";
 
 function unsupportedSecurityScheme(
   name: string,
@@ -65,12 +65,8 @@ export function isFullyEnforceableRequirement(
 }
 
 export function normalizeSecuritySchemes(
-  document: Record<string, unknown>,
+  securitySchemes: Readonly<Record<string, unknown>>,
 ): readonly ContractSecurityScheme[] {
-  const components = optionalRecord(document.components, "OpenAPI components") ?? {};
-  const securitySchemes =
-    optionalRecord(components.securitySchemes, "OpenAPI components.securitySchemes") ?? {};
-
   return Object.entries(securitySchemes).map(([name, value]) => {
     const location = `OpenAPI components.securitySchemes.${name}`;
     const scheme = asRecord(value, location);
@@ -132,29 +128,32 @@ export function normalizeGlobalSecurity(
  * Resolves effective security using OpenAPI precedence:
  * operation.security → path-item.security → document.security.
  */
-export function resolveOperationSecurity(
-  document: Record<string, unknown>,
-  operation: Record<string, unknown>,
-  schemes: readonly ContractSecurityScheme[],
-  globalSecurity: readonly ContractSecurityRequirement[],
-  pathItem: Record<string, unknown> = {},
-): ContractOperationSecurity {
-  void document;
-
+export function resolveOperationSecurity(input: {
+  operationSecurity?: unknown;
+  pathItemSecurity?: unknown;
+  globalSecurity: readonly ContractSecurityRequirement[];
+  schemes: readonly ContractSecurityScheme[];
+}): ContractOperationSecurity {
   let overridesGlobal = false;
   let requirements: readonly ContractSecurityRequirement[];
 
-  if (operation.security !== undefined) {
+  if (input.operationSecurity !== undefined) {
     overridesGlobal = true;
-    requirements = normalizeSecurityRequirements(operation.security, "OpenAPI operation.security");
-  } else if (pathItem.security !== undefined) {
+    requirements = normalizeSecurityRequirements(
+      input.operationSecurity,
+      "OpenAPI operation.security",
+    );
+  } else if (input.pathItemSecurity !== undefined) {
     overridesGlobal = true;
-    requirements = normalizeSecurityRequirements(pathItem.security, "OpenAPI pathItem.security");
+    requirements = normalizeSecurityRequirements(
+      input.pathItemSecurity,
+      "OpenAPI pathItem.security",
+    );
   } else {
-    requirements = globalSecurity;
+    requirements = input.globalSecurity;
   }
 
-  const schemesByName = new Map(schemes.map((scheme) => [scheme.name, scheme]));
+  const schemesByName = new Map(input.schemes.map((scheme) => [scheme.name, scheme]));
   const headerNames = new Set<string>();
 
   for (const requirement of requirements) {

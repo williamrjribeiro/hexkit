@@ -1,5 +1,5 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile } from "@hexkit/codegen";
+import { renderSourceFile, unique } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { HttpModel } from "../model/derive.ts";
@@ -92,8 +92,4 @@ function renderApiKeyDefaults(model: HttpModel): string {
   );
 
   return `[${entries.join(", ")}]`;
-}
-
-function unique<T>(values: readonly T[]): readonly T[] {
-  return [...new Set(values)];
 }

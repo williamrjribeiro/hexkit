@@ -1,17 +1,25 @@
+import { compareText } from "./text.ts";
+
 export type ImportDeclaration = {
   from: string;
   names: readonly string[];
   typeOnly?: boolean;
 };
 
-type NormalizedImport = {
+export type NormalizedImport = {
+  from: string;
+  names: readonly string[];
+  typeOnly: boolean;
+};
+
+type MutableNormalizedImport = {
   from: string;
   names: Set<string>;
   typeOnly: boolean;
 };
 
-export function renderImports(imports: readonly ImportDeclaration[]): string {
-  const normalized = new Map<string, NormalizedImport>();
+export function mergeImports(imports: readonly ImportDeclaration[]): readonly NormalizedImport[] {
+  const normalized = new Map<string, MutableNormalizedImport>();
 
   for (const declaration of imports) {
     const typeOnly = declaration.typeOnly ?? false;
@@ -34,9 +42,15 @@ export function renderImports(imports: readonly ImportDeclaration[]): string {
 
   return [...normalized.values()]
     .filter(({ names }) => names.size > 0)
-    .sort(compareImports)
-    .map(renderImport)
-    .join("\n");
+    .map((declaration) => ({
+      from: declaration.from,
+      names: [...declaration.names].toSorted(compareText),
+      typeOnly: declaration.typeOnly,
+    }));
+}
+
+export function renderImports(imports: readonly ImportDeclaration[]): string {
+  return mergeImports(imports).toSorted(compareImports).map(renderImport).join("\n");
 }
 
 function compareImports(left: NormalizedImport, right: NormalizedImport): number {
@@ -50,10 +64,6 @@ function compareImports(left: NormalizedImport, right: NormalizedImport): number
 
 function renderImport(declaration: NormalizedImport): string {
   const keyword = declaration.typeOnly ? "import type" : "import";
-  const names = [...declaration.names].sort(compareText).join(", ");
+  const names = declaration.names.join(", ");
   return `${keyword} { ${names} } from "${declaration.from}";`;
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

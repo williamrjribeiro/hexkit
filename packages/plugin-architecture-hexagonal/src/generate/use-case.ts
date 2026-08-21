@@ -1,5 +1,5 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, toKebabCase } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { UseCaseModel } from "../model/derive.ts";
@@ -51,8 +51,4 @@ export function renderUseCaseFile(useCase: UseCaseModel): GeneratedFile {
     contents: renderSourceFile({ imports, statements }),
     ownership: "protected",
   };
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

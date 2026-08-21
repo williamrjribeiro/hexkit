@@ -9,17 +9,19 @@
 Implementation plans below are **delivered on `main`** unless noted. Checkbox
 lists remain for historical traceability.
 
-| Document                                                                                                 | Status                                                                   |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                          | Substantially complete — dogfood green is the remaining gate             |
-| [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md)    | Delivered                                                                |
-| [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)             | Delivered (#9)                                                           |
-| [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)       | Delivered                                                                |
-| [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                             | Design reference — auth post-PoC for `openapi.poc.yaml`                  |
-| [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                       | Partial — generator support + auth fixture; PoC contract stays auth-free |
-| [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                              | Delivered (#7)                                                           |
-| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)        | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
-| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) | Delivered — 90% gate green for generator packages                        |
+| Document                                                                                                     | Status                                                                   |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                              | Substantially complete — dogfood green is the remaining gate             |
+| [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md)        | Delivered                                                                |
+| [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)                 | Delivered (#9)                                                           |
+| [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)           | Delivered                                                                |
+| [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                                 | Design reference — auth post-PoC for `openapi.poc.yaml`                  |
+| [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                           | Partial — generator support + auth fixture; PoC contract stays auth-free |
+| [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                                  | Delivered (#7)                                                           |
+| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)            | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
+| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md)     | Delivered — 90% gate green for generator packages                        |
+| [Grokking Simplicity refactor design](./superpowers/specs/2026-08-21-grokking-simplicity-refactor-design.md) | In progress — TDD refactor after coverage raise                          |
+| [Grokking Simplicity refactor plan](./superpowers/plans/2026-08-21-grokking-simplicity-refactor.md)          | In progress — per-package stratification                                 |
 
 ### Specs & plans (detail)
 
@@ -32,3 +34,5 @@ lists remain for historical traceability.
 - [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md) — `docker compose up --build` for Next + Postgres, matching Hono dogfood
 - [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md) — Phase 1: nested object/array/`$ref` → JSONB by default (delivered); later `x-hexkit` opt-in for relational tables/FKs
 - [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) — Vitest v8 coverage for generator packages; 90% thresholds; dogfood excluded
+- [Grokking Simplicity refactor design](./superpowers/specs/2026-08-21-grokking-simplicity-refactor-design.md) — extract calculations from generator orchestrators after the 90% coverage raise
+- [Grokking Simplicity refactor plan](./superpowers/plans/2026-08-21-grokking-simplicity-refactor.md) — Wave 0 codegen utils, then parallel per-package splits

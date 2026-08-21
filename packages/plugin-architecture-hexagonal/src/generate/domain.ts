@@ -1,5 +1,5 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, toKebabCase } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { DomainEntityModel } from "../model/derive.ts";
@@ -33,8 +33,4 @@ export function renderDomainFile(entity: DomainEntityModel): GeneratedFile {
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { renderImports } from "./imports.ts";
+import { mergeImports, renderImports } from "./imports.ts";
 import { renderSourceFile } from "./source-file.ts";
 
 describe("Given unordered and repeated imports", () => {
@@ -33,6 +33,19 @@ describe("Given unordered and repeated imports", () => {
         { from: "./contracts.js", names: ["Pet"], typeOnly: true },
       ]),
     ).toBe('import type { Pet } from "./contracts.js";');
+  });
+
+  it("when imports are merged, then empty names are dropped and names are sorted", () => {
+    expect(
+      mergeImports([
+        { from: "zod", names: ["z", "ZodError"] },
+        { from: "zod", names: [] },
+        { from: "zod", names: ["z"], typeOnly: true },
+      ]),
+    ).toEqual([
+      { from: "zod", names: ["ZodError", "z"], typeOnly: false },
+      { from: "zod", names: ["z"], typeOnly: true },
+    ]);
   });
 });
 

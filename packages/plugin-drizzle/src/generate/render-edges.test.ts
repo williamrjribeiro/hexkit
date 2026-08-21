@@ -1,13 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type {
-  PersistenceModel,
-  PersistenceRepositoryModel,
-  PersistenceTableModel,
-} from "../model/derive.ts";
+import type { PersistenceModel, PersistenceTableModel } from "../model/derive.ts";
 import { renderMapperFile } from "./mappers.ts";
 import { renderMigrationFile } from "./migration.ts";
-import { renderRepositoryFiles } from "./repository.ts";
 import { renderSchemaFile } from "./schema.ts";
 
 const baseTable = {
@@ -42,9 +37,12 @@ function model(
   };
 }
 
-describe("renderMapperFile edge cases", () => {
-  it("covers equal schemaName compare when sorting tables", () => {
-    const twin = table({
+describe("render leftover orchestrator cases", () => {
+  it("when a complete enum and foreign-key model is rendered, then schema and migration consume the discriminated column", () => {
+    const owner = table({
+      schemaName: "Owner",
+      exportName: "owners",
+      tableName: "owners",
       columns: [
         {
           propertyName: "id",
@@ -55,140 +53,7 @@ describe("renderMapperFile edge cases", () => {
         },
       ],
     });
-    const file = renderMapperFile(
-      model({
-        tables: [
-          twin,
-          table({
-            ...twin,
-            exportName: "widgets_alt",
-            tableName: "widgets_alt",
-          }),
-        ],
-      }),
-    );
-    expect(file.contents).toContain("mapWidgetRow");
-  });
-});
-
-describe("renderMigrationFile edge cases", () => {
-  it("throws when an enum column is missing sql type name", () => {
-    expect(() =>
-      renderMigrationFile(
-        model({
-          tables: [
-            table({
-              columns: [
-                {
-                  propertyName: "id",
-                  sqlName: "id",
-                  sqlType: "integer",
-                  required: true,
-                  isIdentity: true,
-                },
-                {
-                  propertyName: "status",
-                  sqlName: "status",
-                  sqlType: "enum",
-                  required: true,
-                  isIdentity: false,
-                },
-              ],
-            }),
-          ],
-        }),
-      ),
-    ).toThrow('Enum column "status" is missing an SQL type name.');
-  });
-
-  it("throws when a filtered FK column loses foreign-key metadata", () => {
-    const fk = {
-      targetSchemaName: "Owner",
-      targetTableExportName: "owners",
-      targetColumnPropertyName: "id",
-      targetColumnSqlName: "id",
-    };
-    const column: {
-      propertyName: string;
-      sqlName: string;
-      sqlType: "integer";
-      required: boolean;
-      isIdentity: boolean;
-      foreignKey?: typeof fk;
-    } = {
-      propertyName: "ownerId",
-      sqlName: "owner_id",
-      sqlType: "integer",
-      required: true,
-      isIdentity: false,
-    };
-    // Filter reads foreignKey once (must be defined); render reads it again (undefined).
-    let reads = 0;
-    Object.defineProperty(column, "foreignKey", {
-      get() {
-        reads += 1;
-        return reads === 1 ? fk : undefined;
-      },
-      enumerable: true,
-    });
-
-    expect(() =>
-      renderMigrationFile(
-        model({
-          tables: [
-            table({
-              columns: [
-                {
-                  propertyName: "id",
-                  sqlName: "id",
-                  sqlType: "integer",
-                  required: true,
-                  isIdentity: true,
-                },
-                column,
-              ],
-            }),
-          ],
-        }),
-      ),
-    ).toThrow('Column "ownerId" is missing foreign-key metadata.');
-  });
-});
-
-describe("renderSchemaFile edge cases", () => {
-  it("throws when an enum column is missing an export name", () => {
-    expect(() =>
-      renderSchemaFile(
-        model({
-          tables: [
-            table({
-              columns: [
-                {
-                  propertyName: "id",
-                  sqlName: "id",
-                  sqlType: "integer",
-                  required: true,
-                  isIdentity: true,
-                },
-                {
-                  propertyName: "status",
-                  sqlName: "status",
-                  sqlType: "enum",
-                  required: true,
-                  isIdentity: false,
-                },
-              ],
-            }),
-          ],
-        }),
-      ),
-    ).toThrow('Enum column "status" is missing an export name.');
-  });
-});
-
-describe("renderRepositoryFiles edge cases", () => {
-  it("falls back to entity/identity names when method parameters are empty", () => {
-    const widgetTable = table({
+    const widget = table({
       columns: [
         {
           propertyName: "id",
@@ -198,114 +63,50 @@ describe("renderRepositoryFiles edge cases", () => {
           isIdentity: true,
         },
         {
-          propertyName: "name",
-          sqlName: "name",
-          sqlType: "text",
+          propertyName: "status",
+          sqlName: "status",
+          sqlType: "enum",
           required: true,
           isIdentity: false,
-        },
-      ],
-    });
-
-    const repository: PersistenceRepositoryModel = {
-      aggregate: "Widget",
-      portName: "WidgetRepository",
-      factoryName: "createDrizzleWidgetRepository",
-      filePath: "src/adapters/db/widget-repository.ts",
-      runtimeKey: "widgets",
-      table: widgetTable,
-      methods: [
-        {
-          operationId: "createWidget",
-          name: "createWidget",
-          kind: "insert",
-          parameters: [],
-          returnTypeExpression: "Widget",
+          enumExportName: "widgetStatus",
+          enumSqlName: "widget_status",
+          enumValues: ["open", "closed"],
         },
         {
-          operationId: "updateWidget",
-          name: "updateWidget",
-          kind: "update",
-          parameters: [],
-          returnTypeExpression: "Widget",
-        },
-        {
-          operationId: "getWidget",
-          name: "getWidget",
-          kind: "select",
-          parameters: [],
-          returnTypeExpression: "Widget | undefined",
-        },
-        {
-          operationId: "deleteWidget",
-          name: "deleteWidget",
-          kind: "delete",
-          parameters: [],
-          returnTypeExpression: "void",
-        },
-      ],
-    };
-
-    const [file] = renderRepositoryFiles(
-      model({ tables: [widgetTable], repositories: [repository] }),
-    );
-    expect(file?.contents).toContain(".values(widget)");
-    expect(file?.contents).toContain("eq(widgets.id, widget.id)");
-    expect(file?.contents).toContain("eq(widgets.id, id)");
-  });
-
-  it("uses schemaName lowercase when there is no insert/update method", () => {
-    const widgetTable = table({
-      columns: [
-        {
-          propertyName: "id",
-          sqlName: "id",
+          propertyName: "ownerId",
+          sqlName: "owner_id",
           sqlType: "integer",
           required: true,
-          isIdentity: true,
+          isIdentity: false,
+          foreignKey: {
+            targetSchemaName: "Owner",
+            targetTableExportName: "owners",
+            targetColumnPropertyName: "id",
+            targetColumnSqlName: "id",
+          },
         },
       ],
     });
-
-    const repository: PersistenceRepositoryModel = {
-      aggregate: "Widget",
-      portName: "WidgetRepository",
-      factoryName: "createDrizzleWidgetRepository",
-      filePath: "src/adapters/db/widget-repository.ts",
-      runtimeKey: "widgets",
-      table: widgetTable,
-      methods: [
+    const persistence = model({
+      enums: [
         {
-          operationId: "listWidgets",
-          name: "listWidgets",
-          kind: "list",
-          parameters: [],
-          returnTypeExpression: "Array<Widget>",
-        },
-        {
-          operationId: "createWidget",
-          name: "createWidget",
-          kind: "insert",
-          parameters: [],
-          returnTypeExpression: "Widget",
+          exportName: "widgetStatus",
+          sqlName: "widget_status",
+          values: ["open", "closed"],
         },
       ],
-    };
+      tables: [owner, widget],
+    });
 
-    // insert with empty params still finds insert; cover the no-insert path via list-only first.
-    const listOnly: PersistenceRepositoryModel = {
-      ...repository,
-      methods: [repository.methods[0]!],
-    };
-    const [listFile] = renderRepositoryFiles(
-      model({ tables: [widgetTable], repositories: [listOnly] }),
-    );
-    expect(listFile?.contents).toContain("rows.map(mapWidgetRow)");
-    expect(listFile?.contents).not.toContain('from "drizzle-orm"');
+    const schema = renderSchemaFile(persistence);
+    const migration = renderMigrationFile(persistence);
+    const mapper = renderMapperFile(persistence);
 
-    const [insertFile] = renderRepositoryFiles(
-      model({ tables: [widgetTable], repositories: [repository] }),
-    );
-    expect(insertFile?.contents).toContain(".values(widget)");
+    expect(schema.contents).toContain("widgetStatus");
+    expect(schema.contents).toContain(".references(() => owners.id)");
+    expect(migration.contents).toContain('"widget_status"');
+    expect(migration.contents).toContain("FOREIGN KEY");
+    expect(mapper.contents).toContain("mapOwnerRow");
+    expect(mapper.contents).toContain("mapWidgetRow");
   });
 });

@@ -4,6 +4,7 @@ import {
   asRecord,
   assertOnlyKeys,
   optionalBoolean,
+  optionalDescription,
   optionalRecord,
   optionalString,
   requiredString,
@@ -41,5 +42,12 @@ describe("values helpers", () => {
       'ext contains unsupported key "b".',
     );
     expect(() => assertOnlyKeys({ a: 1 }, ["a"], "ext")).not.toThrow();
+  });
+
+  it("spreads optionalDescription only when present", () => {
+    expect(optionalDescription({}, "doc")).toEqual({});
+    expect(optionalDescription({ description: "A book" }, "doc")).toEqual({
+      description: "A book",
+    });
   });
 });

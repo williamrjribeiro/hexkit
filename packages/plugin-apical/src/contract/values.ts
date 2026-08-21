@@ -34,6 +34,14 @@ export function optionalBoolean(value: unknown, location: string): boolean | und
   return value;
 }
 
+export function optionalDescription(
+  owner: Record<string, unknown>,
+  location: string,
+): { description?: string } {
+  const description = optionalString(owner.description, `${location}.description`);
+  return description === undefined ? {} : { description };
+}
+
 export function assertOnlyKeys(
   value: Record<string, unknown>,
   allowedKeys: readonly string[],

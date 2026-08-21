@@ -22,7 +22,7 @@ export function pluralizeCamelCase(value: string): string {
   return camel.endsWith("s") ? `${camel}es` : `${camel}s`;
 }
 
-function splitIdentifier(value: string): string[] {
+export function splitIdentifier(value: string): readonly string[] {
   return value
     .replaceAll(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replaceAll(/[^A-Za-z0-9]+/g, " ")

@@ -1,12 +1,10 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile } from "@hexkit/codegen";
+import { compareText, renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import type {
-  PersistenceEnumModel,
-  PersistenceModel,
-  PersistenceTableModel,
-} from "../model/derive.ts";
+import type { PersistenceColumnModel, PersistenceEnumModel } from "../model/column.ts";
+import type { PersistenceModel } from "../model/derive.ts";
+import type { PersistenceTableModel } from "../model/table.ts";
 
 /** Writes the generated table definitions, storing nested OpenAPI types as JSONB. */
 export function renderSchemaFile(model: PersistenceModel): GeneratedFile {
@@ -95,7 +93,7 @@ function renderTableDeclaration(table: PersistenceTableModel): string {
   ].join("\n");
 }
 
-function renderColumnConstructor(column: PersistenceTableModel["columns"][number]): string {
+function renderColumnConstructor(column: PersistenceColumnModel): string {
   const sqlName = JSON.stringify(column.sqlName);
   switch (column.sqlType) {
     case "boolean":
@@ -107,13 +105,6 @@ function renderColumnConstructor(column: PersistenceTableModel["columns"][number
     case "jsonb":
       return `jsonb(${sqlName})`;
     case "enum":
-      if (column.enumExportName === undefined) {
-        throw new Error(`Enum column "${column.propertyName}" is missing an export name.`);
-      }
       return `${column.enumExportName}(${sqlName})`;
   }
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

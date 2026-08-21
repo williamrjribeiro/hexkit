@@ -35,6 +35,21 @@ export function buildCraftGenerateArgs(options: GenerateContractsOptions): strin
   return args;
 }
 
+export function formatCraftFailure(input: {
+  status: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+}): string {
+  const details = [input.stderr, input.stdout]
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .join("\n");
+  const termination =
+    input.signal === null ? `exit code ${String(input.status)}` : `signal ${input.signal}`;
+  return `apical-ts craft failed${details ? `:\n${details}` : ` with ${termination}`}`;
+}
+
 /**
  * Action at the edge: run @apical-ts/craft with the calculated args.
  * Pass `runCraft` in tests to assert call arguments without spawning craft.
@@ -65,14 +80,9 @@ function runCraftCli(args: readonly string[]): Promise<void> {
         return;
       }
 
-      const details = [...errors, ...output]
-        .map((chunk) => chunk.toString("utf8").trim())
-        .filter(Boolean)
-        .join("\n");
-      const termination = signal === null ? `exit code ${String(status)}` : `signal ${signal}`;
-      reject(
-        new Error(`apical-ts craft failed${details ? `:\n${details}` : ` with ${termination}`}`),
-      );
+      const stdout = Buffer.concat(output).toString("utf8");
+      const stderr = Buffer.concat(errors).toString("utf8");
+      reject(new Error(formatCraftFailure({ status, signal, stdout, stderr })));
     });
   });
 }

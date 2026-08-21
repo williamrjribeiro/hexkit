@@ -95,21 +95,20 @@ export type MainOptions = {
 
 export async function main(
   arguments_: readonly string[],
-  options: MainOptions | ((text: string) => void) = {},
+  options: MainOptions = {},
 ): Promise<number> {
-  const resolvedOptions = typeof options === "function" ? { log: options } : options;
-  const log = resolvedOptions.log ?? console.log;
+  const log = options.log ?? console.log;
 
   try {
     return await runCli(arguments_, {
       async generate(inputPath: string, outputDirectory: string, generationOptions) {
         await generateApplication(inputPath, outputDirectory, {
-          actions: resolvedOptions.actions ?? createNodeFileActions(log),
-          apical: resolvedOptions.apical,
+          actions: options.actions ?? createNodeFileActions(log),
+          apical: options.apical,
           http: generationOptions.http,
-          inputExists: resolvedOptions.inputExists,
+          inputExists: options.inputExists,
           nextSurface: generationOptions.nextSurface,
-          plugins: resolvedOptions.plugins,
+          plugins: options.plugins,
         });
       },
       log,
