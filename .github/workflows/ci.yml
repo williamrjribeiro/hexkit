@@ -27,15 +27,24 @@ jobs:
           cache: true
           node-version: "24"
 
-      - name: Build, lint, typecheck, unit tests, and coverage
-        # Hexkit only (`packages/*` + `apps/cli`). Dogfood apps are out of scope.
-        # `vp run --filter` cannot be combined with `-r`.
-        # Build must precede tests because workspace packages export from dist/.
-        run: |
-          vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match build
-          vp check
-          vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match test
-          vp run coverage
+      - name: Build Hexkit packages
+        # Hexkit only (`packages/*` + `apps/cli`). `vp run --filter` cannot be
+        # combined with `-r`. Build precedes tests because packages export dist/.
+        run: vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match build
+
+      - name: Lint and typecheck Hexkit
+        run: vp check
+
+      - name: Unit tests
+        run: vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match test
+
+      - name: Coverage gate
+        run: vp run coverage
+
+      - name: Publish Vitest report
+        if: always()
+        # Per-package table (tests + coverage %) on the Quality job summary.
+        run: vp node apps/cli/src/hexkit-test-report.ts
 
   dogfood-api:
     name: Dogfood API

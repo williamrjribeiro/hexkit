@@ -30,7 +30,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp check` — format + lint + type-check for **Hexkit** (`packages/*` + `apps/cli`) via Oxlint. Dogfood fixtures are ignored (`apps/petstore-sample`, `apps/petstore-next`, `apps/fixtures`).
 - `vp run --filter './packages/*' --filter './apps/cli' build` — pack Hexkit packages (`dist/index.mjs` + `.d.mts`). **Run before tests** — workspace packages export from `dist/`. Do not combine `--filter` with `-r`.
 - `vp run --filter './packages/*' --filter './apps/cli' test` — Hexkit unit tests (~100+; some packages use `--passWithNoTests`).
-- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality.
+- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality. CI publishes a per-package Vitest job summary (`apps/cli/src/hexkit-test-report.ts`) with test counts and coverage %.
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
 - `vp run dogfood` — Hono Pet Shop: generate → Oxlint + `tsc` on the generated app → Compose build → Pactum (Docker required). CI job **Dogfood API**.

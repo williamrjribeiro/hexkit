@@ -17,7 +17,7 @@
 ## Architecture
 
 1. Catalog + root `devDependency`: `@vitest/coverage-v8`.
-2. Shared `hexkitCoverage` options (include `src/**`, exclude tests/dist, reporters text + text-summary, thresholds 90).
+2. Shared `hexkitCoverage` / `hexkitTest(dir)` options: named Vitest project per package, include `src/**`, exclude tests/dist, reporters text + text-summary + json-summary, thresholds 90. CI adds JUnit (`test-results/junit.xml`) and GitHub annotations. Quality publishes a per-package job summary table (`apps/cli/src/hexkit-test-report.ts`) with test counts and coverage %.
 3. Each in-scope package adds `test.coverage` and a `coverage` script (`vp test run --coverage`, preserving `--passWithNoTests` where used).
 4. Root `coverage` script uses pnpm workspace filters (`vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage`) so every in-scope package’s `coverage` script runs; `ready` chains coverage after the existing test stage. `--no-bail` reports all failing packages instead of stopping at the first threshold miss.
 
