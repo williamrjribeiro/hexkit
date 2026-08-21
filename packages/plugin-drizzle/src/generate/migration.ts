@@ -1,11 +1,13 @@
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import type {
-  PersistenceColumnModel,
-  PersistenceEnumModel,
-  PersistenceModel,
-  PersistenceTableModel,
-} from "../model/derive.ts";
+import {
+  columnsWithForeignKeys,
+  type PersistenceColumnModel,
+  type PersistenceColumnWithForeignKey,
+  type PersistenceEnumModel,
+} from "../model/column.ts";
+import type { PersistenceModel } from "../model/derive.ts";
+import type { PersistenceTableModel } from "../model/table.ts";
 
 /** Writes the SQL migration that creates those tables, including JSONB columns. */
 export function renderMigrationFile(model: PersistenceModel): GeneratedFile {
@@ -34,9 +36,9 @@ $$;`;
 
 function renderTableMigration(table: PersistenceTableModel): string {
   const columnLines = table.columns.map((column) => renderColumnSql(column));
-  const foreignKeys = table.columns
-    .filter((column) => column.foreignKey !== undefined)
-    .map((column) => renderForeignKeyConstraint(table, column));
+  const foreignKeys = columnsWithForeignKeys(table.columns).map((column) =>
+    renderForeignKeyConstraint(table, column),
+  );
 
   const body = [...columnLines, ...foreignKeys].map((line, index, lines) => {
     const suffix = index < lines.length - 1 ? "," : "";
@@ -64,22 +66,15 @@ function renderSqlType(column: PersistenceColumnModel): string {
     case "jsonb":
       return "jsonb";
     case "enum":
-      if (column.enumSqlName === undefined) {
-        throw new Error(`Enum column "${column.propertyName}" is missing an SQL type name.`);
-      }
       return `"${column.enumSqlName}"`;
   }
 }
 
 function renderForeignKeyConstraint(
   table: PersistenceTableModel,
-  column: PersistenceColumnModel,
+  column: PersistenceColumnWithForeignKey,
 ): string {
   const foreignKey = column.foreignKey;
-  if (foreignKey === undefined) {
-    throw new Error(`Column "${column.propertyName}" is missing foreign-key metadata.`);
-  }
-
   const constraintName = `${table.tableName}_${column.sqlName}_${foreignKey.targetTableExportName}_${foreignKey.targetColumnSqlName}_fk`;
   return `CONSTRAINT "${constraintName}"\n    FOREIGN KEY ("${column.sqlName}") REFERENCES "public"."${foreignKey.targetTableExportName}"("${foreignKey.targetColumnSqlName}")`;
 }

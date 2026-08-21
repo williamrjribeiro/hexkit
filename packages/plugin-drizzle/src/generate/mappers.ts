@@ -1,12 +1,9 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, toKebabCase } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import {
-  mapperFunctionName,
-  type PersistenceModel,
-  type PersistenceTableModel,
-} from "../model/derive.ts";
+import type { PersistenceModel } from "../model/derive.ts";
+import { mapperFunctionName, type PersistenceTableModel } from "../model/table.ts";
 
 export function renderMapperFile(model: PersistenceModel): GeneratedFile {
   const tables = model.tables.toSorted((left, right) =>
@@ -58,8 +55,4 @@ function renderMapperFunction(table: PersistenceTableModel): string {
     `  return ${table.schemaName}Schema.parse(${parseArgument});`,
     "}",
   ].join("\n");
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }
