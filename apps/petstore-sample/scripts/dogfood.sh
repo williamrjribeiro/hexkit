@@ -61,8 +61,10 @@ trap cleanup EXIT
 
 cd "$ROOT_DIR"
 
+# Workspace packages export from dist/; generation tests import the CLI → @hexkit/core.
+# Build first so a clean checkout (CI) can resolve those entries before test:generation.
+vp run -r build
 vp run @hexkit/petstore-sample#test:generation
-vp run @hexkit/cli#build
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR"
 
 (

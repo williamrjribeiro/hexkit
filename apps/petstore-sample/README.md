@@ -52,8 +52,8 @@ apps/petstore-sample/scripts/dogfood.sh
 
 **What the script does, in order:**
 
-1. Runs this package’s `test:generation` checks
-2. Builds `@hexkit/cli`
+1. Builds all workspace packages (`vp run -r build`) so `dist/` exports resolve
+2. Runs this package’s `test:generation` checks
 3. Generates into a temp dir (or `HEXKIT_DOGFOOD_OUTPUT`)
 4. Installs and typechecks the **generated** app
 5. Starts Docker Compose for that app
