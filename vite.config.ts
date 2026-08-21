@@ -7,15 +7,16 @@ export default defineConfig({
   fmt: {
     ignorePatterns: [
       "RFC.md",
-      "apps/petstore-sample/openapi.yaml",
-      // Next dogfood is create-next-app-shaped; use its eslint/tsc, not oxfmt.
+      // Dogfood fixtures are validated by their own generate loops, not `vp check`.
+      "apps/petstore-sample/**",
       "apps/petstore-next/**",
+      "apps/fixtures/**",
     ],
   },
   lint: {
-    // Oxlint covers Hexkit packages + Vite+ dogfood apps. Petstore-next is a
-    // vanilla Next fixture validated by eslint-config-next + TypeScript 5.
-    ignorePatterns: ["apps/petstore-next/**"],
+    // Oxlint covers Hexkit (`packages/*` + `apps/cli`) only. Dogfood apps use
+    // their generated-app tooling (Oxlint/`tsc` for Hono, ESLint 9 + TS 5 for Next).
+    ignorePatterns: ["apps/petstore-sample/**", "apps/petstore-next/**", "apps/fixtures/**"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
     options: { typeAware: true, typeCheck: true },

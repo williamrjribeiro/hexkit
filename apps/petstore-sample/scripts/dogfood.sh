@@ -62,14 +62,16 @@ trap cleanup EXIT
 cd "$ROOT_DIR"
 
 # Workspace packages export from dist/; generation tests import the CLI → @hexkit/core.
-# Build first so a clean checkout (CI) can resolve those entries before test:generation.
-vp run -r build
+# Build Hexkit (CLI + deps) so a clean checkout (CI) can generate before dogfood.
+vp run -F @hexkit/cli... --fail-if-no-match build
 vp run @hexkit/petstore-sample#test:generation
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR"
 
 (
   cd "$OUTPUT_DIR"
   vp install --no-frozen-lockfile
+  # Generated Hono app: Oxlint on `src` (not node_modules) + `tsc --noEmit`.
+  vp lint src
   vp run check
 )
 
