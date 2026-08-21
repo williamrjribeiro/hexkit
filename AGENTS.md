@@ -25,7 +25,7 @@ This repo is a Vite+ monorepo driven by the global `vp` CLI. The repo does not s
 
 Hexkit is a **PoC-stage** OpenAPI code generator. `@hexkit/cli` implements `hexkit generate` with pipelines for Apical contracts, hexagonal architecture, Hono (default) or Next.js (opt-in), Drizzle persistence, and Docker Compose packaging. Dogfood fixtures live under `apps/petstore-sample`, `apps/petstore-next`, and `apps/fixtures/auth-api`. `@hexkit/plugin-sst` is scaffold-only (deferred post-PoC). See [README.md](./README.md) § Project status and [PRD.md](./PRD.md) §10 for milestones.
 
-**Full Petstore tracker:** [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) is the canonical Hono/Next progress file (`missing` / `in progress` / `shipped`). Update it in the same PR whenever those plugins or the Petstore dogfood contract change OpenAPI coverage.
+**Full Petstore tracker:** [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) is the canonical Hono/Next progress file (`missing` / `in progress` / `partial` / `shipped`). Update it in the same PR whenever those plugins or the Petstore dogfood contract change OpenAPI coverage.
 
 Common commands (all standard, defined in root `package.json` / per-package scripts — see those files):
 

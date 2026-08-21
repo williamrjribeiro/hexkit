@@ -48,8 +48,8 @@ and Dogfood NextJS (generated Next Pet Shop lint/build).
 
 **Post-PoC goal — full Petstore OpenAPI:** progress for Hono and Next.js is
 tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md)
-(`missing` / `in progress` / `shipped` per feature; update that file whenever
-adapter support changes).
+(`missing` / `in progress` / `partial` / `shipped` per feature; update that
+file whenever adapter support changes).
 
 ## Workspace
 

@@ -17,13 +17,17 @@ whenever Hono/Next OpenAPI support changes (see [Keeping this tracker current](#
 
 ## Status values
 
-Use exactly these three statuses per feature and per plugin:
+Use exactly these four statuses per feature and per plugin:
 
 | Status         | Meaning                                                                                                      |
 | -------------- | ------------------------------------------------------------------------------------------------------------ |
 | `missing`      | Not generated or not usable for this feature yet                                                             |
 | `in progress`  | Work started (design, partial emit, or fixture) but not yet proven end-to-end for Petstore                   |
-| `shipped`      | Generated correctly for this HTTP adapter and validated (unit/dogfood/acceptance as appropriate for the app) |
+| `partial`      | Works for some formats or capabilities, but not the full Petstore surface for this feature                   |
+| `shipped`      | Generated correctly for the full Petstore needs of this feature and validated (unit/dogfood/acceptance)      |
+
+Examples of `partial`: JSON works but XML / form-urlencoded do not; an operation runs without
+query params / headers / media types the full contract requires.
 
 Statuses are **independent per plugin**. Hono and Next may diverge.
 
@@ -31,14 +35,14 @@ Statuses are **independent per plugin**. Hono and Next may diverge.
 
 Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
-| Plugin                    | `shipped` | `in progress` | `missing` |
-| ------------------------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono`     | 9         | 0             | 17        |
-| `@hexkit/plugin-next`     | 9         | 0             | 17        |
+| Plugin                    | `shipped` | `partial` | `in progress` | `missing` |
+| ------------------------- | --------- | --------- | ------------- | --------- |
+| `@hexkit/plugin-hono`     | 4         | 5         | 0             | 17        |
+| `@hexkit/plugin-next`     | 4         | 5         | 0             | 17        |
 
-PoC JSON Pet + Order CRUD is **shipped** on both adapters. Most of the full
-Petstore surface (Users, filters, uploads, XML, OAuth2, webhooks, …) is still
-**missing**.
+PoC JSON Pet + Order CRUD is **partial** where the full Petstore also requires
+XML or form bodies; deletes with no alternate formats are **shipped**. Most of
+the remaining surface is still **missing**.
 
 ## Operations
 
@@ -53,26 +57,26 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 
 | operationId         | Method / path                   | Hono    | Next    | Notes                                                                 |
 | ------------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
-| `addPet`            | `POST /pet`                     | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
-| `updatePet`         | `PUT /pet`                      | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
-| `getPetById`        | `GET /pet/{petId}`              | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML                   |
-| `deletePet`         | `DELETE /pet/{petId}`           | shipped | shipped | PoC slice; optional `api_key` header param in full Petstore            |
-| `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML in full Petstore)            |
-| `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML in full Petstore)      |
-| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status` form-style update                              |
-| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream` body; optional query metadata        |
+| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
+| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
+| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON works; full Petstore also requires XML                       |
+| `deletePet`         | `DELETE /pet/{petId}`           | shipped | shipped | PoC slice; optional `api_key` header param is auth cross-cutting      |
+| `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML in full Petstore)           |
+| `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML in full Petstore)     |
+| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status` form-style update                             |
+| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream` body; optional query metadata       |
 
 Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
-the PoC slice (Phase 1); that is covered by the shipped Pet rows above, not as a
+the PoC slice (Phase 1); that is covered by the Pet rows above, not as a
 separate cross-cutting HTTP capability.
 
 ### Store
 
-| operationId    | Method / path                   | Hono    | Next    | Notes                                                              |
-| -------------- | ------------------------------- | ------- | ------- | ------------------------------------------------------------------ |
-| `placeOrder`   | `POST /store/order`             | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
-| `getOrderById` | `GET /store/order/{orderId}`    | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML               |
-| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | PoC slice                                                          |
+| operationId    | Method / path                   | Hono    | Next    | Notes                                                                 |
+| -------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
+| `placeOrder`   | `POST /store/order`             | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
+| `getOrderById` | `GET /store/order/{orderId}`    | partial | partial | PoC JSON works; full Petstore also requires XML                       |
+| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | PoC slice                                                             |
 | `getInventory` | `GET /store/inventory`          | missing | missing | Map response (`additionalProperties` → int); `api_key` in full Petstore |
 
 ### User
@@ -113,8 +117,8 @@ in that operation’s Notes.
 
 Expanding dogfood toward the full surface means growing `openapi.poc.yaml` (or
 a successor full-contract fixture) and moving rows from `missing` →
-`in progress` → `shipped` — without hardcoding Petstore domain into plugins
-(PRD §5.0).
+`in progress` → `partial` → `shipped` — without hardcoding Petstore domain into
+plugins (PRD §5.0).
 
 ## Keeping this tracker current
 
@@ -133,16 +137,18 @@ Update it in the **same PR** when any of the following happen:
 
 Checklist for every such change:
 
-- [ ] Set each affected cell to exactly `missing`, `in progress`, or `shipped`
+- [ ] Set each affected cell to exactly `missing`, `in progress`, `partial`, or `shipped`
+- [ ] Use `partial` when only some formats or capabilities work (do not mark `shipped`)
 - [ ] Keep Hono and Next columns honest (do not copy status across plugins)
 - [ ] Put operation-specific needs in that row’s Notes — not in Cross-cutting
 - [ ] Refresh the [Summary](#summary) tallies
 - [ ] Set **Last updated** to the change date (`YYYY-MM-DD`)
 - [ ] Add a short Notes clarification when status is non-obvious
 
-Do **not** mark `shipped` until the HTTP adapter emits correct code for that
-feature and validation exists (package tests and/or dogfood/acceptance).
-Partial emit without proof stays `in progress`.
+Do **not** mark `shipped` until the HTTP adapter covers the **full** Petstore
+needs for that feature (all required media types, params, and related
+capabilities) and validation exists. Incomplete but working support is
+`partial`. Partial emit without runtime proof stays `in progress`.
 
 ## Related docs
 
