@@ -39,29 +39,22 @@ export function packageNameFromDirectory(packageDirectory: string): string {
 }
 
 /**
- * Per-package Vitest config: named project (so GitHub/JUnit reports show the
- * package), shared 90% coverage gate, JUnit XML, and GitHub annotations in CI.
+ * Per-package Vitest config. `name` is the package so the GitHub Actions
+ * reporter's job summary (auto-enabled when `reporters` is unset) labels
+ * results by package. See https://vitest.dev/guide/reporters.html#github-actions-reporter
+ *
+ * Do not set `reporters` on the coverage run: configuring reporters disables
+ * the automatic `github-actions` reporter. The unit-test-only CI step sets
+ * `default` so it does not duplicate that job summary.
  */
 export function hexkitTest(packageDirectory: string): TestUserConfig {
   const packageName = packageNameFromDirectory(packageDirectory);
   const github = process.env.GITHUB_ACTIONS === "true";
-  const junitReporter: [
-    "junit",
-    { suiteNameTemplate: string; classnameTemplate: string; outputFile: string },
-  ] = [
-    "junit",
-    {
-      suiteNameTemplate: packageName,
-      classnameTemplate: `${packageName} · {filename}`,
-      outputFile: "./test-results/junit.xml",
-    },
-  ];
+  const coverageRun = process.argv.includes("--coverage");
 
   return {
     name: packageName,
     coverage: hexkitCoverage,
-    reporters: github
-      ? ["default", ["github-actions", { jobSummary: { enabled: false } }], junitReporter]
-      : ["default", junitReporter],
+    ...(github && !coverageRun ? { reporters: ["default"] } : {}),
   };
 }

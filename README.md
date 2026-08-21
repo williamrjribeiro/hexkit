@@ -79,11 +79,11 @@ vp run ready
 CI (`.github/workflows/ci.yml`) runs three parallel jobs on pushes to `main`
 and on pull requests:
 
-| Job                | What it validates                                                                                                                        |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Quality**        | Hexkit only: pack, Oxlint/`tsc`, unit tests, 90% coverage (`packages/*` + `apps/cli`); Vitest job summary is per-package with coverage % |
-| **Dogfood API**    | `hexkit generate` Hono Pet Shop → Oxlint + `tsc` → Compose build → Pactum                                                                |
-| **Dogfood NextJS** | `hexkit generate --http next` Pet Shop → ESLint 9 + `next build` (no app tests)                                                          |
+| Job                | What it validates                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Quality**        | Hexkit only: pack, Oxlint/`tsc`, unit tests, 90% coverage; Vitest GitHub Actions reporter (package-named) + coverage-% table |
+| **Dogfood API**    | `hexkit generate` Hono Pet Shop → Oxlint + `tsc` → Compose build → Pactum                                                    |
+| **Dogfood NextJS** | `hexkit generate --http next` Pet Shop → ESLint 9 + `next build` (no app tests)                                              |
 
 Run Hexkit quality locally (same scope as the Quality job):
 

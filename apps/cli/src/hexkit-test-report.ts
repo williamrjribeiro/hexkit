@@ -1,6 +1,7 @@
 /**
- * Build a per-package Vitest + coverage table for CI job summaries.
- * Reads each generator package's coverage-summary.json (and optional JUnit).
+ * Append per-package coverage metrics to the GitHub Actions job summary.
+ * Test results come from Vitest's built-in github-actions reporter; this
+ * table is only the 90% coverage gate (that reporter does not print coverage).
  */
 import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -16,17 +17,10 @@ export type CoverageMetric = {
   pct: number;
 };
 
-export type JunitCounts = {
-  tests: number;
-  failures: number;
-  skipped: number;
-};
-
 export type PackageReport = {
   name: string;
   directory: string;
-  totals: Record<string, CoverageMetric> | undefined;
-  junit: JunitCounts | undefined;
+  totals: Record<string, CoverageMetric>;
 };
 
 export function listGeneratorPackages(root = ROOT): string[] {
@@ -36,45 +30,21 @@ export function listGeneratorPackages(root = ROOT): string[] {
   return [...packages, join("apps", "cli")];
 }
 
-export function parseJunitCounts(xml: string): JunitCounts | undefined {
-  const suites = /<testsuites\b([^>]*)>/i.exec(xml);
-  const suite = /<testsuite\b([^>]*)>/i.exec(xml);
-  const attrs = suites?.[1] ?? suite?.[1];
-  if (attrs === undefined) {
-    return undefined;
-  }
-  const tests = Number(/tests="(\d+)"/.exec(attrs)?.[1] ?? Number.NaN);
-  const failures = Number(/failures="(\d+)"/.exec(attrs)?.[1] ?? 0);
-  const skipped = Number(/skipped="(\d+)"/.exec(attrs)?.[1] ?? 0);
-  if (Number.isNaN(tests)) {
-    return undefined;
-  }
-  return { tests, failures, skipped };
-}
-
 export function collectPackageReport(
   packageDirectory: string,
   root = ROOT,
 ): PackageReport | undefined {
   const absolute = join(root, packageDirectory);
   const manifestPath = join(absolute, "package.json");
-  if (!existsSync(manifestPath)) {
+  const summaryPath = join(absolute, "coverage", "coverage-summary.json");
+  if (!existsSync(manifestPath) || !existsSync(summaryPath)) {
     return undefined;
   }
   const name = (JSON.parse(readFileSync(manifestPath, "utf8")) as { name: string }).name;
-  const summaryPath = join(absolute, "coverage", "coverage-summary.json");
-  const junitPath = join(absolute, "test-results", "junit.xml");
-  let totals: Record<string, CoverageMetric> | undefined;
-  if (existsSync(summaryPath)) {
-    const summary = JSON.parse(readFileSync(summaryPath, "utf8")) as {
-      total: Record<string, CoverageMetric>;
-    };
-    totals = summary.total;
-  }
-  const junit = existsSync(junitPath)
-    ? parseJunitCounts(readFileSync(junitPath, "utf8"))
-    : undefined;
-  return { name, directory: packageDirectory, totals, junit };
+  const summary = JSON.parse(readFileSync(summaryPath, "utf8")) as {
+    total: Record<string, CoverageMetric>;
+  };
+  return { name, directory: packageDirectory, totals: summary.total };
 }
 
 function formatPct(pct: number | undefined): string {
@@ -85,37 +55,22 @@ function formatPct(pct: number | undefined): string {
   return pct + 1e-9 < THRESHOLD ? `**${text}**` : text;
 }
 
-function formatTests(junit: JunitCounts | undefined): string {
-  if (junit === undefined) {
-    return "—";
-  }
-  const passed = junit.tests - junit.failures - junit.skipped;
-  if (junit.failures > 0) {
-    return `**${passed}/${junit.tests}** (${junit.failures} failed)`;
-  }
-  return `${passed}/${junit.tests}`;
-}
-
 export function renderTestReport(rows: Array<PackageReport | undefined>): string {
   const lines = [
-    "## Hexkit Vitest report",
+    "## Coverage by package",
     "",
-    "Generator packages (`packages/*` + `apps/cli`). Coverage gate is **90%** on statements, branches, functions, and lines.",
+    "Vitest's [GitHub Actions reporter](https://vitest.dev/guide/reporters.html#github-actions-reporter) prints per-package test results above. This table is the **90%** coverage gate (statements, branches, functions, lines).",
     "",
-    "| Package | Tests | Statements | Branches | Functions | Lines |",
-    "| --- | ---: | ---: | ---: | ---: | ---: |",
+    "| Package | Statements | Branches | Functions | Lines |",
+    "| --- | ---: | ---: | ---: | ---: |",
   ];
 
   for (const row of rows) {
     if (row === undefined) {
       continue;
     }
-    const stmts = formatPct(row.totals?.statements?.pct);
-    const branches = formatPct(row.totals?.branches?.pct);
-    const funcs = formatPct(row.totals?.functions?.pct);
-    const linesPct = formatPct(row.totals?.lines?.pct);
     lines.push(
-      `| \`${row.name}\` | ${formatTests(row.junit)} | ${stmts} | ${branches} | ${funcs} | ${linesPct} |`,
+      `| \`${row.name}\` | ${formatPct(row.totals.statements?.pct)} | ${formatPct(row.totals.branches?.pct)} | ${formatPct(row.totals.functions?.pct)} | ${formatPct(row.totals.lines?.pct)} |`,
     );
   }
 
@@ -126,11 +81,11 @@ export function renderTestReport(rows: Array<PackageReport | undefined>): string
 export function publishHexkitTestReport(root = ROOT): string {
   const rows = listGeneratorPackages(root)
     .map((directory) => collectPackageReport(directory, root))
-    .filter((row) => row !== undefined && (row.totals !== undefined || row.junit !== undefined));
+    .filter((row) => row !== undefined);
 
   if (rows.length === 0) {
     throw new Error(
-      "hexkit-test-report: no coverage-summary.json or junit.xml found under packages/* or apps/cli",
+      "hexkit-test-report: no coverage/coverage-summary.json found under packages/* or apps/cli",
     );
   }
 
