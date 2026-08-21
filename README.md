@@ -24,7 +24,7 @@ primary validation gate before PoC sign-off.
 | Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                    |
 | `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                   |
 | AWS Lambda / SST deploy                                 | Not in PoC scope                                                  |
-| GitHub Actions CI                                       | Not yet — local dogfood only for PoC                              |
+| GitHub Actions CI                                       | `.github/workflows/ci.yml` — quality + Hono/auth dogfood (Pactum) |
 
 **Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
 (`vp run -r build` then `vp run -r test`). Generator packages (`packages/*` +
@@ -42,7 +42,8 @@ design (`@hexkit/plugin-next` and CLI tests cover the generator).
 | `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                   |
 
 **Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
-§11.1), ongoing dogfood hardening, GitHub Actions for PR validation.
+§11.1), ongoing dogfood hardening. PR validation runs via GitHub Actions
+(quality checks plus Hono Petstore and Auth API dogfood / Pactum).
 
 ## Workspace
 
@@ -73,6 +74,11 @@ Run all checks, tests, builds, and the generator coverage gate:
 ```bash
 vp run ready
 ```
+
+CI (`.github/workflows/ci.yml`) runs build, check, and unit tests on pushes to
+`main` and on pull requests, plus Hono Petstore and Auth API dogfood (Compose +
+Pactum). The coverage gate is still local-only via `vp run ready` until the 90%
+thresholds are met.
 
 Run an individual stage:
 

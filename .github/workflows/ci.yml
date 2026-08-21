@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1.17.0
+        with:
+          # Resolves vite-plus from package.json catalog → pnpm-workspace.yaml.
+          cache: true
+          node-version: "24"
+
+      - name: Build, check, and test
+        # Build must precede tests because workspace packages export from dist/.
+        # Coverage (`vp run coverage`) is intentionally omitted until the 90%
+        # generator gate is green; use `vp run ready` locally to exercise it.
+        run: |
+          vp run -r build
+          vp check
+          vp run -r test
+
+  dogfood-petstore:
+    name: Dogfood (Hono Petstore)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1.17.0
+        with:
+          cache: true
+          node-version: "24"
+
+      - name: Generate Compose stack and run Pactum API tests
+        # Generates Rich Pet + Order from openapi.poc.yaml, brings up Docker
+        # Compose, then runs apps/petstore-sample/tests/api.test.ts.
+        run: vp run dogfood
+
+  dogfood-auth:
+    name: Dogfood (Auth API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1.17.0
+        with:
+          cache: true
+          node-version: "24"
+
+      - name: Generate Compose stack and run Pactum API tests
+        # Generates the auth fixture, Compose up, then Pactum acceptance.
+        run: vp run dogfood-auth
