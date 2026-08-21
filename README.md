@@ -46,6 +46,11 @@ CLI tests cover the generator).
 Actions jobs: Quality (Hexkit), Dogfood API (generated Hono Pet Shop + Pactum),
 and Dogfood NextJS (generated Next Pet Shop lint/build).
 
+**Post-PoC goal — full Petstore OpenAPI:** progress for Hono and Next.js is
+tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md)
+(`missing` / `in progress` / `shipped` per feature; update that file whenever
+adapter support changes).
+
 ## Workspace
 
 - [`apps/cli`](./apps/cli/README.md) — Hexkit command-line application

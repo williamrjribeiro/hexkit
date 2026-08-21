@@ -25,6 +25,8 @@ This repo is a Vite+ monorepo driven by the global `vp` CLI. The repo does not s
 
 Hexkit is a **PoC-stage** OpenAPI code generator. `@hexkit/cli` implements `hexkit generate` with pipelines for Apical contracts, hexagonal architecture, Hono (default) or Next.js (opt-in), Drizzle persistence, and Docker Compose packaging. Dogfood fixtures live under `apps/petstore-sample`, `apps/petstore-next`, and `apps/fixtures/auth-api`. `@hexkit/plugin-sst` is scaffold-only (deferred post-PoC). See [README.md](./README.md) § Project status and [PRD.md](./PRD.md) §10 for milestones.
 
+**Full Petstore tracker:** [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) is the canonical Hono/Next progress file (`missing` / `in progress` / `shipped`). Update it in the same PR whenever those plugins or the Petstore dogfood contract change OpenAPI coverage.
+
 Common commands (all standard, defined in root `package.json` / per-package scripts — see those files):
 
 - `vp check` — format + lint + type-check for **Hexkit** (`packages/*` + `apps/cli`) via Oxlint. Dogfood fixtures are ignored (`apps/petstore-sample`, `apps/petstore-next`, `apps/fixtures`).
@@ -40,6 +42,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 Gotchas:
 
 - Running `vp install` executes the `prepare` script (`vp config`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` also detects the Cursor-managed git hooks path and skips installing its own hooks.
+- Full Petstore OpenAPI coverage (beyond `openapi.poc.yaml`) is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md). Update that file whenever `@hexkit/plugin-hono` or `@hexkit/plugin-next` gains or loses Petstore-relevant OpenAPI support.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
 - GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
 - `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory.
