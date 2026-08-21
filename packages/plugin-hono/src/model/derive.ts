@@ -1,3 +1,4 @@
+import { compareText, unique } from "@hexkit/codegen";
 import type {
   ApplicationArtifact,
   ApplicationUseCase,
@@ -202,12 +203,4 @@ function toHonoPath(openApiPath: string): string {
 
 function isSuccessStatus(status: string): boolean {
   return /^2\d\d$/.test(status);
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function unique<T>(values: readonly T[]): T[] {
-  return [...new Set(values)];
 }
