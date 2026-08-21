@@ -237,7 +237,7 @@ Vitest tests for packages with real dependencies (e.g. `core` loading plugins, a
 
 ### 8.3 Coverage quality gate
 
-Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest coverage on statements, branches, functions, and lines (`coverage.config.ts`, provider `v8`). Run via `vp run coverage` (also chained from `vp run ready`). Dogfood apps and Compose acceptance suites are out of scope for this gate. Wiring the gate is independent of raising coverage; until packages meet the bar, the coverage stage fails by design.
+Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest coverage on statements, branches, functions, and lines (`coverage.config.ts`, provider `v8`). Run via `vp run coverage` (also chained from `vp run ready`). Dogfood apps and Compose acceptance suites are out of scope for this gate.
 
 ### 8.4 End-to-end generation & packaging
 

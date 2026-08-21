@@ -19,7 +19,7 @@ lists remain for historical traceability.
 | [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                       | Partial — generator support + auth fixture; PoC contract stays auth-free |
 | [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                              | Delivered (#7)                                                           |
 | [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)        | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
-| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) | Wiring delivered — 90% gate; raising coverage is follow-up               |
+| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) | Delivered — 90% gate green for generator packages                        |
 
 ### Specs & plans (detail)
 

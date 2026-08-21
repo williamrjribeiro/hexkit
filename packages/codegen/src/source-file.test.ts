@@ -22,10 +22,7 @@ describe("Given unordered and repeated imports", () => {
         { from: "zod", names: ["ZodError"], typeOnly: false },
       ]),
     ).toBe(
-      [
-        'import { ZodError, z } from "zod";',
-        'import type { ZodType } from "zod";',
-      ].join("\n"),
+      ['import { ZodError, z } from "zod";', 'import type { ZodType } from "zod";'].join("\n"),
     );
   });
 

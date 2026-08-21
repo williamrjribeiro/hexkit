@@ -3,8 +3,8 @@
  * (`packages/*` and `apps/cli`). Dogfood apps are out of scope.
  *
  * Thresholds are an intentional quality gate: `vp run coverage` / `vp run ready`
- * fail until every in-scope package meets 90% on all metrics. Raising coverage
- * is follow-up work — do not lower these floors to greenwash the gate.
+ * fail when any in-scope package is below 90% on any metric. Do not lower these
+ * floors to greenwash the gate — add tests instead.
  */
 import type { TestUserConfig } from "vite-plus";
 

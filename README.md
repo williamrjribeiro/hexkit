@@ -29,8 +29,7 @@ primary validation gate before PoC sign-off.
 **Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
 (`vp run -r build` then `vp run -r test`). Generator packages (`packages/*` +
 `apps/cli`) also enforce a **90% Vitest coverage gate** via `vp run coverage`
-(wired into `vp run ready`). Meeting that bar is follow-up work; the gate may
-fail until coverage is raised. `apps/petstore-next` has no app test suite by
+(wired into `vp run ready`). `apps/petstore-next` has no app test suite by
 design (`@hexkit/plugin-next` and CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
