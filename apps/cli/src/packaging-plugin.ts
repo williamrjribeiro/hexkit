@@ -439,7 +439,7 @@ function createNextPackageManifest(packageName: string, migrationPath: string) {
       dev: "next dev",
       build: "next build",
       start: "next start",
-      lint: "eslint . --fix --max-warnings 0",
+      lint: "eslint . --max-warnings 0",
       check: "next build",
       migrate: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f ${migrationPath}`,
     },

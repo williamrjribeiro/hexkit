@@ -12,7 +12,7 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test run tests/offline.test.ts",
-    "check": "vp check --fix"
+    "check": "vp check"
   },
   "devDependencies": {
     "@types/node": "catalog:",

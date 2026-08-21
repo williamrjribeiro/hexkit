@@ -27,7 +27,7 @@ Hexkit is a **PoC-stage** OpenAPI code generator. `@hexkit/cli` implements `hexk
 
 Common commands (all standard, defined in root `package.json` / per-package scripts — see those files):
 
-- `vp check` — format + lint + type-check across the workspace.
+- `vp check` — format + lint + type-check for Hexkit / Vite+ packages (Oxlint). Does **not** lint `apps/petstore-next` (that fixture uses ESLint 9 + TypeScript 5 via `vp run petstore-next#lint` / dogfood).
 - `vp run -r build` — build every package via `vp pack` (emits `dist/index.mjs` + `.d.mts`). **Run before tests** — workspace packages export from `dist/`.
 - `vp run -r test` — run tests in every package (~100+ tests; some packages use `--passWithNoTests`).
 - `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality.
@@ -41,3 +41,4 @@ Gotchas:
 
 - Running `vp install` executes the `prepare` script (`vp config`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` also detects the Cursor-managed git hooks path and skips installing its own hooks.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
+- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build` / `tsc`), not monorepo Oxlint/`vp check`. Root `vite.config.ts` ignores `apps/petstore-next/**` for both `fmt` and `lint`.

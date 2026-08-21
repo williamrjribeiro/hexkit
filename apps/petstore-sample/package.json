@@ -13,7 +13,7 @@
     "dev": "vp pack --watch",
     "test": "vp test run tests/generation.test.ts tests/api-fixtures.test.ts",
     "test:generation": "vp test run tests/generation.test.ts",
-    "check": "vp check --fix"
+    "check": "vp check"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

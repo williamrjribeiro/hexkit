@@ -4,11 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "vp run -r build && vp check --fix && vp run -r test && vp run coverage",
+    "ready": "vp run -r build && vp check && vp run -r test && vp run coverage",
     "dev": "vp run @hexkit/cli#dev",
     "prepare": "vp config",
-    "coverage": "vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage",
-    "lint": "vp lint --fix"
+    "coverage": "vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage"
   },
   "devDependencies": {
     "@types/node": "catalog:",

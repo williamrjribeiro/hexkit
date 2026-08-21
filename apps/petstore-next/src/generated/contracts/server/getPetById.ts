@@ -1,8 +1,12 @@
-import { type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as getPetByIdRouteMetadata } from "../routes/getPetById.ts";
 
 import type { getPetByIdRouteResponse } from "../routes/getPetById.ts";
+
+import { getPetByIdResponseMap } from "../routes/getPetById.ts";
 
 import type { getPetByIdServerParsedParamsType } from "../schemas/getPetByIdParameters.ts";
 

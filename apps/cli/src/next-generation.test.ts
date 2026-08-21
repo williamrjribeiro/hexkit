@@ -186,7 +186,7 @@ describe("Given Next.js CLI generation", () => {
       dev: "next dev",
       build: "next build",
       start: "next start",
-      lint: "eslint . --fix --max-warnings 0",
+      lint: "eslint . --max-warnings 0",
     });
     expect(manifest.dependencies).toEqual(
       expect.objectContaining({

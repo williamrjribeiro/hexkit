@@ -8,6 +8,8 @@ import type { placeOrderRouteResponse } from "../routes/placeOrder.ts";
 
 import { placeOrderRequestMap } from "../routes/placeOrder.ts";
 
+import { placeOrderResponseMap } from "../routes/placeOrder.ts";
+
 type placeOrderValidationError =
   | { kind: "query-error"; error: StandardSchemaValidationError; isValid: false }
   | { kind: "path-error"; error: StandardSchemaValidationError; isValid: false }

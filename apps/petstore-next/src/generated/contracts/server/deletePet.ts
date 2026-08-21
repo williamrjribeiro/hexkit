@@ -1,8 +1,12 @@
-import { type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+
+import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";
 
 import { serverRoute as deletePetRouteMetadata } from "../routes/deletePet.ts";
 
 import type { deletePetRouteResponse } from "../routes/deletePet.ts";
+
+import { deletePetResponseMap } from "../routes/deletePet.ts";
 
 import type { deletePetServerParsedParamsType } from "../schemas/deletePetParameters.ts";
 

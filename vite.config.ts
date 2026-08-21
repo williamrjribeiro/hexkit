@@ -8,30 +8,16 @@ export default defineConfig({
     ignorePatterns: [
       "RFC.md",
       "apps/petstore-sample/openapi.yaml",
-      // Hexkit/Apical snapshots copied by Next dogfood; craft output is not oxfmt-shaped.
-      "apps/petstore-next/src/**",
-      "apps/petstore-next/app/**/route.ts",
+      // Next dogfood is create-next-app-shaped; use its eslint/tsc, not oxfmt.
+      "apps/petstore-next/**",
     ],
   },
   lint: {
+    // Oxlint covers Hexkit packages + Vite+ dogfood apps. Petstore-next is a
+    // vanilla Next fixture validated by eslint-config-next + TypeScript 5.
+    ignorePatterns: ["apps/petstore-next/**"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: {
-      "vite-plus/prefer-vite-plus-imports": "error",
-      // Enable import auto-removal under `vp lint --fix` / `vp check --fix`
-      // (default is suggestion-only and needs --fix-suggestions).
-      "no-unused-vars": [
-        "warn",
-        {
-          // Keep Oxlint defaults: configuring `fix` clears the built-in `^_` patterns.
-          varsIgnorePattern: "^_",
-          argsIgnorePattern: "^_",
-          fix: {
-            imports: "safe-fix",
-            variables: "off",
-          },
-        },
-      ],
-    },
+    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
     options: { typeAware: true, typeCheck: true },
   },
   run: {
