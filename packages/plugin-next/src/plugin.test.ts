@@ -356,12 +356,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     });
 
     expect(model.routes.length).toBeGreaterThan(0);
-    expect(model.uiPages.map((page) => page.filePath)).toEqual(
-      expect.arrayContaining([
-        "app/ui/pet/[petId]/page.tsx",
-        "app/ui/store/order/[orderId]/page.tsx",
-      ]),
-    );
+    expect(model.uiPages.map((page) => page.filePath)).toEqual([
+      "app/ui/store/order/[orderId]/page.tsx",
+    ]);
     expect(model.uiPages.every((page) => page.operationId.startsWith("get"))).toBe(true);
     expect(files.some((file) => file.path === "src/adapters/http-next/server-access.ts")).toBe(
       true,
@@ -373,7 +370,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     const filesByPath = fileMap(files);
     const paths = files.map((file) => file.path);
     const route = filesByPath.get("app/pet/[petId]/route.ts");
-    const page = filesByPath.get("app/ui/pet/[petId]/page.tsx");
+    const page = filesByPath.get("app/ui/store/order/[orderId]/page.tsx");
     const serverAccess = filesByPath.get("src/adapters/http-next/server-access.ts");
 
     expect(paths).toEqual(
@@ -384,7 +381,6 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
         "app/pet/route.ts",
         "app/pet/[petId]/route.ts",
         "app/store/order/[orderId]/route.ts",
-        "app/ui/pet/[petId]/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",
         "src/adapters/http-next/helpers.ts",
         "src/adapters/http-next/controllers.ts",
@@ -392,6 +388,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
         "src/adapters/http-next/server-access.ts",
       ]),
     );
+    expect(paths).not.toContain("app/ui/pet/[petId]/page.tsx");
     expect(files.every((file) => file.ownership === "generated")).toBe(true);
     expectNoPageRouteCollisions(paths);
 
@@ -414,12 +411,12 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(page?.contents).toContain("const params = await props.params;");
     expect(page?.contents).not.toContain("const searchParams = await props.searchParams;");
     expect(page?.contents).toContain("const access = getServerAccess();");
-    expect(page?.contents).toContain("const result = await access.getPetById(");
-    expect(page?.contents).toContain('<h1>{"getPetById"}</h1>');
+    expect(page?.contents).toContain("const result = await access.getOrderById(");
+    expect(page?.contents).toContain('<h1>{"getOrderById"}</h1>');
     expect(page?.contents).not.toContain("fetch(");
     expect(page?.contents).not.toContain("force-static");
 
-    expect(filesByPath.get("app/page.tsx")?.contents).toContain("getPetById");
+    expect(filesByPath.get("app/page.tsx")?.contents).toContain("getOrderById");
     expect(filesByPath.get("app/page.tsx")?.contents).not.toContain("<a href");
     expect(filesByPath.get("app/page.tsx")?.contents).not.toContain('href="/ui/pet/[petId]"');
     expect(filesByPath.get("app/ui/page.tsx")?.contents).toContain("getOrderById");
@@ -483,9 +480,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     });
 
     expect(model.routes).toEqual([]);
-    expect(model.uiPages.map((page) => page.filePath)).toEqual(
-      expect.arrayContaining(["app/pet/[petId]/page.tsx", "app/store/order/[orderId]/page.tsx"]),
-    );
+    expect(model.uiPages.map((page) => page.filePath)).toEqual([
+      "app/store/order/[orderId]/page.tsx",
+    ]);
     expect(files.some((file) => file.path === "src/adapters/http-next/server-access.ts")).toBe(
       true,
     );
@@ -501,19 +498,19 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       expect.arrayContaining([
         "app/layout.tsx",
         "app/page.tsx",
-        "app/pet/[petId]/page.tsx",
         "app/store/order/[orderId]/page.tsx",
         "src/adapters/http-next/server-access.ts",
       ]),
     );
+    expect(paths).not.toContain("app/pet/[petId]/page.tsx");
     expect(paths.some((path) => path.endsWith("/route.ts"))).toBe(false);
     expect(paths).not.toContain("src/adapters/http-next/helpers.ts");
     expect(paths).not.toContain("src/adapters/http-next/controllers.ts");
     expect(paths).not.toContain("src/adapters/http-next/runtime.ts");
     expect(artifact.routes).toEqual([]);
-    expect(artifact.uiPages.map((page) => page.filePath)).toEqual(
-      expect.arrayContaining(["app/pet/[petId]/page.tsx", "app/store/order/[orderId]/page.tsx"]),
-    );
+    expect(artifact.uiPages.map((page) => page.filePath)).toEqual([
+      "app/store/order/[orderId]/page.tsx",
+    ]);
   });
 });
 
@@ -530,7 +527,7 @@ describe("Given generated Next App Router UI", () => {
 
   it("when resource pages are emitted, then they opt into request-time rendering", async () => {
     const { files } = await collectGeneratedFiles(petstoreContract, "both");
-    const page = fileMap(files).get("app/ui/pet/[petId]/page.tsx")?.contents ?? "";
+    const page = fileMap(files).get("app/ui/store/order/[orderId]/page.tsx")?.contents ?? "";
 
     expect(page).toContain('export const dynamic = "force-dynamic";');
     expect(page).not.toContain("force-static");
@@ -552,7 +549,7 @@ describe("Given generated Next App Router UI", () => {
     expect(hub).not.toContain("<a href");
     expect(hub).not.toContain('href="/ui/pet/[petId]"');
     expect(hub).not.toContain('import Link from "next/link"');
-    expect(hub).toContain("getPetById");
+    expect(hub).toContain("getOrderById");
   });
 });
 

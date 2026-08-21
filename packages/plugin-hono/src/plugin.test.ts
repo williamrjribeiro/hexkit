@@ -160,6 +160,8 @@ function typecheckRuntime(outputDirectory: string): {
       "--moduleResolution",
       "NodeNext",
       "--skipLibCheck",
+      "--types",
+      "node",
       "--allowImportingTsExtensions",
       join(outputDirectory, "src/runtime/app.ts"),
     ],
@@ -335,6 +337,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(files.map((file) => ({ path: file.path, ownership: file.ownership }))).toEqual([
       { path: "src/adapters/http/controllers.ts", ownership: "generated" },
       { path: "src/adapters/http/routes.ts", ownership: "generated" },
+      { path: "src/adapters/auth/in-memory-authenticator.ts", ownership: "generated" },
       { path: "src/runtime/app.ts", ownership: "generated" },
     ]);
 
@@ -346,7 +349,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(controllers?.contents).not.toContain("z.object");
 
     expect(routes?.contents).toContain('app.post("/pet", async (context) =>');
-    expect(routes?.contents).toContain('app.get("/pet/:petId", async (context) =>');
+    expect(routes?.contents).toContain(
+      'app.get("/pet/:petId", authenticateGetPetById, async (context) =>',
+    );
     expect(routes?.contents).toContain('app.post("/store/order", async (context) =>');
 
     expect(runtime?.contents).toContain("addPet: createAddPet(repositories.pets),");
@@ -521,7 +526,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
   });
 
   it("when contract has no security, then auth adapter and middleware are not emitted", async () => {
-    const { files, artifact } = await collectGeneratedFiles(petstoreContract);
+    const { files, artifact } = await collectGeneratedFiles(libraryContract);
     const source = files.map((file) => file.contents).join("\n");
 
     expect(files.map((file) => file.path)).not.toContain(
@@ -620,7 +625,11 @@ describe("Given real Apical output for Petstore and Library", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(nestedPet),
     });
-    const invalidDatabaseRead = await app.request("http://hexkit.test/pet/1");
+    const unauthorizedRead = await app.request("http://hexkit.test/pet/1");
+    const databaseReadsAfterUnauthorized = databaseReads;
+    const invalidDatabaseRead = await app.request("http://hexkit.test/pet/1", {
+      headers: { api_key: "test-key" },
+    });
 
     expect({
       invalidRequest: {
@@ -645,6 +654,11 @@ describe("Given real Apical output for Petstore and Library", () => {
         body: await validNestedRequest.json(),
       },
       addCalls,
+      unauthorizedRead: {
+        status: unauthorizedRead.status,
+        body: await unauthorizedRead.json(),
+        databaseReadsAfterUnauthorized,
+      },
       invalidDatabaseRead: {
         status: invalidDatabaseRead.status,
         body: await invalidDatabaseRead.json(),
@@ -673,6 +687,11 @@ describe("Given real Apical output for Petstore and Library", () => {
         body: nestedPet,
       },
       addCalls: 2,
+      unauthorizedRead: {
+        status: 401,
+        body: { error: "Unauthorized" },
+        databaseReadsAfterUnauthorized: 0,
+      },
       invalidDatabaseRead: {
         status: 500,
         body: { error: "Internal Server Error" },
