@@ -12,6 +12,7 @@ concurrency:
 permissions:
   contents: read
 
+# Three jobs, no `needs:` — they run in parallel.
 jobs:
   quality:
     name: Quality
@@ -26,17 +27,28 @@ jobs:
           cache: true
           node-version: "24"
 
-      - name: Build, check, and test
-        # Build must precede tests because workspace packages export from dist/.
-        # Coverage (`vp run coverage`) is intentionally omitted until the 90%
-        # generator gate is green; use `vp run ready` locally to exercise it.
-        run: |
-          vp run -r build
-          vp check
-          vp run -r test
+      - name: Build Hexkit packages
+        # Hexkit only (`packages/*` + `apps/cli`). `vp run --filter` cannot be
+        # combined with `-r`. Build precedes tests because packages export dist/.
+        run: vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match build
 
-  dogfood-petstore:
-    name: Dogfood (Hono Petstore)
+      - name: Lint and typecheck Hexkit
+        run: vp check
+
+      - name: Unit tests
+        run: vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match test
+
+      - name: Coverage gate
+        run: vp run coverage
+
+      - name: Publish coverage table
+        if: always()
+        # Complements Vitest's github-actions job summary (test stats + package
+        # name). That reporter does not print coverage %.
+        run: vp node apps/cli/src/hexkit-test-report.ts
+
+  dogfood-api:
+    name: Dogfood API
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -47,15 +59,15 @@ jobs:
           cache: true
           node-version: "24"
 
-      - name: Generate Compose stack and run Pactum API tests
-        # Generates Rich Pet + Order from openapi.poc.yaml, brings up Docker
-        # Compose, then runs apps/petstore-sample/tests/api.test.ts.
+      - name: Generate Hono Pet Shop, lint, typecheck, build, and Pactum
+        # hexkit generate → generated app `vp lint` + `tsc` → Compose image build
+        # → Pactum (`apps/petstore-sample/tests/api.test.ts`).
         run: vp run dogfood
 
-  dogfood-auth:
-    name: Dogfood (Auth API)
+  dogfood-nextjs:
+    name: Dogfood NextJS
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -64,6 +76,9 @@ jobs:
           cache: true
           node-version: "24"
 
-      - name: Generate Compose stack and run Pactum API tests
-        # Generates the auth fixture, Compose up, then Pactum acceptance.
-        run: vp run dogfood-auth
+      - name: Generate Next Pet Shop, lint, typecheck, and build
+        # hexkit generate --http next → eslint-config-next + `next build`.
+        # No app tests; skip Compose/runtime smoke in CI.
+        env:
+          HEXKIT_SKIP_COMPOSE: "1"
+        run: vp run dogfood-petstore-next

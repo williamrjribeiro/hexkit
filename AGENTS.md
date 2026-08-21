@@ -27,17 +27,19 @@ Hexkit is a **PoC-stage** OpenAPI code generator. `@hexkit/cli` implements `hexk
 
 Common commands (all standard, defined in root `package.json` / per-package scripts — see those files):
 
-- `vp check` — format + lint + type-check across the workspace.
-- `vp run -r build` — build every package via `vp pack` (emits `dist/index.mjs` + `.d.mts`). **Run before tests** — workspace packages export from `dist/`.
-- `vp run -r test` — run tests in every package (~100+ tests; some packages use `--passWithNoTests`).
-- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. The gate is expected to fail until follow-up tests raise coverage.
+- `vp check` — format + lint + type-check for **Hexkit** (`packages/*` + `apps/cli`) via Oxlint. Dogfood fixtures are ignored (`apps/petstore-sample`, `apps/petstore-next`, `apps/fixtures`).
+- `vp run --filter './packages/*' --filter './apps/cli' build` — pack Hexkit packages (`dist/index.mjs` + `.d.mts`). **Run before tests** — workspace packages export from `dist/`. Do not combine `--filter` with `-r`.
+- `vp run --filter './packages/*' --filter './apps/cli' test` — Hexkit unit tests (~100+; some packages use `--passWithNoTests`).
+- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality. CI uses Vitest's [GitHub Actions reporter](https://vitest.dev/guide/reporters.html#github-actions-reporter) (package-named projects + job summary) and appends a coverage-% table.
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
-- `vp run dogfood` — Hono Rich Pet + Order generate → Docker Compose → Pactum API tests (Docker required).
-- `vp run dogfood-petstore-next` — Next.js PetShop dogfood (generate, overlay, Compose).
-- `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance.
+- `vp run dogfood` — Hono Pet Shop: generate → Oxlint + `tsc` on the generated app → Compose build → Pactum (Docker required). CI job **Dogfood API**.
+- `vp run dogfood-petstore-next` — Next Pet Shop: generate → ESLint 9 + `next build`. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1` (no app tests). Locally, omit that env to also bring up Compose.
+- `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance (local; not a CI job).
 
 Gotchas:
 
 - Running `vp install` executes the `prepare` script (`vp config`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` also detects the Cursor-managed git hooks path and skips installing its own hooks.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
+- GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
+- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory.

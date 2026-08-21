@@ -52,11 +52,11 @@ apps/petstore-sample/scripts/dogfood.sh
 
 **What the script does, in order:**
 
-1. Builds all workspace packages (`vp run -r build`) so `dist/` exports resolve
+1. Builds Hexkit (`vp run -F @hexkit/cli... build`) so `dist/` exports resolve
 2. Runs this package’s `test:generation` checks
 3. Generates into a temp dir (or `HEXKIT_DOGFOOD_OUTPUT`)
-4. Installs and typechecks the **generated** app
-5. Starts Docker Compose for that app
+4. Installs, lints (`vp lint src` / Oxlint), and typechecks (`tsc --noEmit`) the **generated** app
+5. Starts Docker Compose for that app (`up --build` is the image build)
 6. Waits until the API responds
 7. Runs `tests/api.test.ts` against it
 8. Tears down Compose (and deletes the temp dir) unless you keep the stack
@@ -110,6 +110,6 @@ PETSTORE_API_URL=http://127.0.0.1:3000 vp test run tests/api.test.ts
 
 | Command                                         | Role                                                                 |
 | ----------------------------------------------- | -------------------------------------------------------------------- |
-| `vp run ready`                                  | Build + check + test the Hexkit monorepo (not the live Compose loop) |
-| `vp run dogfood`                                | Full Rich Pet + Order generate/run/accept loop described above       |
+| `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality) |
+| `vp run dogfood`                                | Full Rich Pet + Order generate/lint/typecheck/Compose/Pactum loop      |
 | `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)          |

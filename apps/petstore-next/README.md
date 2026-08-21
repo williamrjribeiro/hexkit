@@ -40,13 +40,14 @@ vp run dogfood-petstore-next
 ```
 
 That follows the Hono Petstore pattern: generate into a temp tree, overlay this
-fixture's UI, then `docker compose up --build` using the **generated**
+fixture's UI, then (locally) `docker compose up --build` using the **generated**
 `Dockerfile` + `docker-compose.yml` (Next.js app + Postgres). After generate,
 dogfood runs `eslint-config-next` (Core Web Vitals + TypeScript +
 `@next/next/no-html-link-for-pages`) on the generated tree, then again on this
-PetShop fixture after merge. Set `HEXKIT_SKIP_COMPOSE=1` to stop after
-generate/merge/lint/`next build` when Docker is unavailable. `HEXKIT_KEEP_STACK=1`
-leaves the Compose stack running.
+PetShop fixture after merge, then `next build`. CI **Dogfood NextJS** sets
+`HEXKIT_SKIP_COMPOSE=1` so the job stops after lint/`next build` (no app tests).
+Locally, omit that env (or set `HEXKIT_SKIP_COMPOSE=0`) to also bring up Compose.
+`HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
 
 Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order; nested
 Pet fields persist as JSONB).

@@ -13,6 +13,27 @@ describe("Given unordered and repeated imports", () => {
       ]),
     ).toMatchSnapshot();
   });
+
+  it("when the same module has value and type imports, then they sort by typeOnly", () => {
+    expect(
+      renderImports([
+        { from: "zod", names: ["z"] },
+        { from: "zod", names: ["ZodType"], typeOnly: true },
+        { from: "zod", names: ["ZodError"], typeOnly: false },
+      ]),
+    ).toBe(
+      ['import { ZodError, z } from "zod";', 'import type { ZodType } from "zod";'].join("\n"),
+    );
+  });
+
+  it("when an import declaration has no names, then it is omitted", () => {
+    expect(
+      renderImports([
+        { from: "zod", names: [] },
+        { from: "./contracts.js", names: ["Pet"], typeOnly: true },
+      ]),
+    ).toBe('import type { Pet } from "./contracts.js";');
+  });
 });
 
 describe("Given imports and source statements", () => {
@@ -29,5 +50,27 @@ describe("Given imports and source statements", () => {
         ],
       }),
     ).toMatchSnapshot();
+  });
+
+  it("when imports are omitted, then only non-empty statements are rendered", () => {
+    expect(
+      renderSourceFile({
+        statements: ["export const value = 1;", "", "export const other = 2;"],
+      }),
+    ).toBe("export const value = 1;\n\nexport const other = 2;\n");
+  });
+
+  it("when statements are empty and imports are empty, then the result is empty", () => {
+    expect(renderSourceFile({ statements: [] })).toBe("");
+    expect(renderSourceFile({ imports: [], statements: [""] })).toBe("");
+  });
+
+  it("when only imports are present, then statements are omitted", () => {
+    expect(
+      renderSourceFile({
+        imports: [{ from: "zod", names: ["z"] }],
+        statements: [""],
+      }),
+    ).toBe('import { z } from "zod";\n');
   });
 });

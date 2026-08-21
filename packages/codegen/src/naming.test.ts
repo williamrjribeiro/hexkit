@@ -20,10 +20,21 @@ describe("naming helpers", () => {
     expect(toSnakeCase("PetStatus")).toBe("pet_status");
   });
 
+  it("treats empty and separator-only values as empty identifiers", () => {
+    expect(toPascalCase("")).toBe("");
+    expect(toPascalCase("---")).toBe("");
+    expect(toCamelCase("")).toBe("");
+    expect(toCamelCase("___")).toBe("");
+    expect(toKebabCase("")).toBe("");
+    expect(toSnakeCase("")).toBe("");
+  });
+
   it("pluralizes camelCase aggregate names", () => {
     expect(pluralizeCamelCase("Pet")).toBe("pets");
     expect(pluralizeCamelCase("Order")).toBe("orders");
     expect(pluralizeCamelCase("Book")).toBe("books");
     expect(pluralizeCamelCase("Status")).toBe("statuses");
+    expect(pluralizeCamelCase("")).toBe("");
+    expect(pluralizeCamelCase("---")).toBe("");
   });
 });

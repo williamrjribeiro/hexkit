@@ -12,26 +12,26 @@ requirements and acceptance criteria are in [PRD.md](./PRD.md).
 **Stage:** PoC implementation is substantially complete; local dogfood is the
 primary validation gate before PoC sign-off.
 
-| Area                                                    | Status                                                            |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts             |
-| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                    |
-| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                   |
-| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                |
-| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`) |
-| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns        |
-| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection          |
-| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                    |
-| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                   |
-| AWS Lambda / SST deploy                                 | Not in PoC scope                                                  |
-| GitHub Actions CI                                       | `.github/workflows/ci.yml` — quality + Hono/auth dogfood (Pactum) |
+| Area                                                    | Status                                                                         |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts                          |
+| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                                 |
+| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                                |
+| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                             |
+| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`)              |
+| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns                     |
+| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection                       |
+| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                                 |
+| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                                |
+| AWS Lambda / SST deploy                                 | Not in PoC scope                                                               |
+| GitHub Actions CI                                       | `.github/workflows/ci.yml` — Quality + Dogfood API + Dogfood NextJS (parallel) |
 
-**Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
-(`vp run -r build` then `vp run -r test`). Generator packages (`packages/*` +
-`apps/cli`) also enforce a **90% Vitest coverage gate** via `vp run coverage`
-(wired into `vp run ready`). Meeting that bar is follow-up work; the gate may
-fail until coverage is raised. `apps/petstore-next` has no app test suite by
-design (`@hexkit/plugin-next` and CLI tests cover the generator).
+**Automated tests:** ~100+ Vitest cases across Hexkit plugins and the CLI
+(`vp run --filter './packages/*' --filter './apps/cli' build` then the matching
+`test` run). Generator packages (`packages/*` + `apps/cli`) also enforce a
+**90% Vitest coverage gate** via `vp run coverage` (wired into `vp run ready`).
+`apps/petstore-next` has no app test suite by design (`@hexkit/plugin-next` and
+CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
@@ -42,8 +42,9 @@ design (`@hexkit/plugin-next` and CLI tests cover the generator).
 | `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                   |
 
 **Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
-§11.1), ongoing dogfood hardening. PR validation runs via GitHub Actions
-(quality checks plus Hono Petstore and Auth API dogfood / Pactum).
+§11.1), ongoing dogfood hardening. PR validation runs three parallel GitHub
+Actions jobs: Quality (Hexkit), Dogfood API (generated Hono Pet Shop + Pactum),
+and Dogfood NextJS (generated Next Pet Shop lint/build).
 
 ## Workspace
 
@@ -75,17 +76,27 @@ Run all checks, tests, builds, and the generator coverage gate:
 vp run ready
 ```
 
-CI (`.github/workflows/ci.yml`) runs build, check, and unit tests on pushes to
-`main` and on pull requests, plus Hono Petstore and Auth API dogfood (Compose +
-Pactum). The coverage gate is still local-only via `vp run ready` until the 90%
-thresholds are met.
+CI (`.github/workflows/ci.yml`) runs three parallel jobs on pushes to `main`
+and on pull requests:
 
-Run an individual stage:
+| Job                | What it validates                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Quality**        | Hexkit only: pack, Oxlint/`tsc`, unit tests, 90% coverage; Vitest GitHub Actions reporter (package-named) + coverage-% table |
+| **Dogfood API**    | `hexkit generate` Hono Pet Shop → Oxlint + `tsc` → Compose build → Pactum                                                    |
+| **Dogfood NextJS** | `hexkit generate --http next` Pet Shop → ESLint 9 + `next build` (no app tests)                                              |
+
+Run Hexkit quality locally (same scope as the Quality job):
 
 ```bash
-vp run -r build
+vp run ready
+```
+
+Or an individual Hexkit stage:
+
+```bash
+vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match build
 vp check
-vp run -r test
+vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match test
 vp run coverage
 ```
 
@@ -108,7 +119,8 @@ vp run dogfood
 ```
 
 The task generates a Hono Rich Pet + Order app from `openapi.poc.yaml` (nested
-Pet fields as JSONB; Order `petId` FK), then Compose + Pactum. It passes through
+Pet fields as JSONB; Order `petId` FK), then lints and typechecks **that
+generated tree**, Compose-builds it, and runs Pactum. It passes through
 `PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. Docker is
 required for the live Compose and API phases.
 `apps/petstore-sample/scripts/prove-api-url.sh` verifies task-level environment
@@ -123,7 +135,8 @@ vp run dogfood-auth
 ```
 
 Uses `apps/fixtures/auth-api/openapi.yaml`. Passes through `AUTH_API_URL`,
-`HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`.
+`HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. This loop is local-only (not a
+CI job).
 
 ## Next.js PetShop dogfood
 

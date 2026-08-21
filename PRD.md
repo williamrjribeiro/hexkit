@@ -237,7 +237,7 @@ Vitest tests for packages with real dependencies (e.g. `core` loading plugins, a
 
 ### 8.3 Coverage quality gate
 
-Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest coverage on statements, branches, functions, and lines (`coverage.config.ts`, provider `v8`). Run via `vp run coverage` (also chained from `vp run ready`). Dogfood apps and Compose acceptance suites are out of scope for this gate. Wiring the gate is independent of raising coverage; until packages meet the bar, the coverage stage fails by design.
+Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest coverage on statements, branches, functions, and lines (`coverage.config.ts`, provider `v8`). Run via `vp run coverage` (also chained from `vp run ready` and GitHub Actions **Quality**). Dogfood apps and Compose acceptance suites are out of scope for this gate; they run as parallel **Dogfood API** / **Dogfood NextJS** jobs.
 
 ### 8.4 End-to-end generation & packaging
 
@@ -253,13 +253,13 @@ Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest covera
 
 ### 8.6 Failure behavior
 
-| Condition                       | Behavior                                   |
-| ------------------------------- | ------------------------------------------ |
-| Invalid or missing OpenAPI path | Non-zero CLI exit + clear message          |
-| Apical craft failure            | Surface craft stderr/stdout; fail pipeline |
-| Protected-zone collision        | Skip write + log; continue                 |
-| Coverage below 90% (generators) | Fail `vp run coverage` / `vp run ready`    |
-| Any dogfood / E2E stage failure | Fail the overall local verification script |
+| Condition                       | Behavior                                                |
+| ------------------------------- | ------------------------------------------------------- |
+| Invalid or missing OpenAPI path | Non-zero CLI exit + clear message                       |
+| Apical craft failure            | Surface craft stderr/stdout; fail pipeline              |
+| Protected-zone collision        | Skip write + log; continue                              |
+| Coverage below 90% (generators) | Fail `vp run coverage` / `vp run ready` / CI Quality    |
+| Any dogfood / E2E stage failure | Fail the matching CI dogfood job / local dogfood script |
 
 ## 9. Acceptance criteria
 

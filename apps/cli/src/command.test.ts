@@ -1,7 +1,9 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vite-plus/test";
+import { describe, expect, it, vi } from "vite-plus/test";
 
 import type { FileWriterActions } from "@hexkit/core";
 import {
@@ -12,10 +14,13 @@ import {
 import { createArtifactRegistry, type GeneratedFile } from "@hexkit/plugin-api";
 import { PERSISTENCE_ARTIFACT, type PersistenceArtifact } from "@hexkit/plugin-drizzle";
 import { HTTP_ARTIFACT, type HttpArtifact } from "@hexkit/plugin-hono";
+import { NEXT_HTTP_ARTIFACT, type NextHttpArtifact } from "@hexkit/plugin-next";
 
 import {
   createDefaultPlugins,
   createPackagingPlugin,
+  generateApplication,
+  generateNextPackagingFiles,
   main,
   parseArguments,
   runCli,
@@ -285,6 +290,53 @@ describe("Given a Hexkit CLI invocation", () => {
     expect(messages[0]).toBe("Error: --next-surface can only be used with --http next.");
   });
 
+  it("when --http is missing a value, then parsing reports a clear error", () => {
+    expect(parseArguments(["generate", "petstore.yaml", "out", "--http"])).toEqual({
+      kind: "error",
+      message: "--http requires a value.",
+    });
+  });
+
+  it("when --http receives an unsupported adapter, then parsing reports a clear error", () => {
+    expect(parseArguments(["generate", "petstore.yaml", "out", "--http", "express"])).toEqual({
+      kind: "error",
+      message: "Unsupported HTTP adapter: express",
+    });
+  });
+
+  it("when --next-surface is missing a value, then parsing reports a clear error", () => {
+    expect(
+      parseArguments(["generate", "petstore.yaml", "out", "--http", "next", "--next-surface"]),
+    ).toEqual({
+      kind: "error",
+      message: "--next-surface requires a value.",
+    });
+  });
+
+  it("when --next-surface receives an unsupported mode, then parsing reports a clear error", () => {
+    expect(
+      parseArguments([
+        "generate",
+        "petstore.yaml",
+        "out",
+        "--http",
+        "next",
+        "--next-surface",
+        "pages",
+      ]),
+    ).toEqual({
+      kind: "error",
+      message: "Unsupported Next surface: pages",
+    });
+  });
+
+  it("when generate receives an unexpected flag, then parsing reports a clear error", () => {
+    expect(parseArguments(["generate", "petstore.yaml", "out", "--verbose"])).toEqual({
+      kind: "error",
+      message: "Unexpected argument: --verbose",
+    });
+  });
+
   it("when --http next is passed, then generation receives the Next surface selection", async () => {
     const calls: Array<{ http: string; nextSurface: string }> = [];
 
@@ -342,6 +394,35 @@ describe("Given a Hexkit CLI invocation", () => {
     expect(exitCode).toBe(1);
     expect(messages).toEqual(["Error: async generation failed"]);
   });
+
+  it("when main receives a log function, then it treats the function as the logger", async () => {
+    const messages: string[] = [];
+
+    const exitCode = await main(["--help"], (text) => {
+      messages.push(text);
+    });
+
+    expect(exitCode).toBe(0);
+    expect(messages[0]).toContain("hexkit generate");
+  });
+
+  it("when the package entry is executed as the main module, then it assigns process.exitCode from main", async () => {
+    const indexPath = fileURLToPath(new URL("./index.ts", import.meta.url));
+    const previousArgv = process.argv;
+    const previousExitCode = process.exitCode;
+    process.argv = [process.execPath, indexPath, "--help"];
+    process.exitCode = undefined;
+
+    try {
+      vi.resetModules();
+      await import("./index.ts");
+      expect(process.exitCode).toBe(0);
+    } finally {
+      process.argv = previousArgv;
+      process.exitCode = previousExitCode;
+      vi.resetModules();
+    }
+  });
 });
 
 describe("Given the default generation pipeline", () => {
@@ -365,6 +446,39 @@ describe("Given the default generation pipeline", () => {
         nextSurface: "routes";
       }).map((plugin) => plugin.name),
     ).toEqual(["apical", "architecture-hexagonal", "next", "drizzle", "packaging"]);
+  });
+
+  it("when nextSurface is set without the Next adapter, then createDefaultPlugins fails clearly", () => {
+    expect(() => createDefaultPlugins({ nextSurface: "routes" })).toThrow(
+      "--next-surface can only be used with --http next.",
+    );
+  });
+
+  it("when generateApplication uses default filesystem actions, then it writes nested files to disk", async () => {
+    const root = mkdtempSync(join(tmpdir(), "hexkit-cli-actions-"));
+    const outputDirectory = join(root, "out");
+
+    try {
+      await generateApplication("virtual.yaml", outputDirectory, {
+        inputExists: () => true,
+        plugins: [
+          {
+            name: "emit",
+            generate(context) {
+              context.writeFile({
+                path: "nested/hello.txt",
+                contents: "hello",
+                ownership: "generated",
+              });
+            },
+          },
+        ],
+      });
+
+      expect(readFileSync(join(outputDirectory, "nested/hello.txt"), "utf8")).toBe("hello");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("when the assembled CLI generates Petstore, then injected Craft and filesystem edges receive the complete application", async () => {
@@ -886,6 +1000,129 @@ describe("Given compose-ready generated packaging", () => {
 
     await expect(runPackaging(artifacts)).rejects.toThrow(
       'PersistenceArtifact repository runtime key "animals" is missing from HttpArtifact repositories.',
+    );
+  });
+
+  it("when HTTP declares a repository without a persistence factory, then packaging fails clearly", async () => {
+    const artifacts = petstorePackagingArtifacts();
+    artifacts.persistence = {
+      ...artifacts.persistence,
+      repositories: artifacts.persistence.repositories.filter(
+        (repository) => repository.runtimeKey === "pets",
+      ),
+    };
+
+    await expect(runPackaging(artifacts)).rejects.toThrow(
+      'HttpArtifact repository parameter "orders" has no PersistenceArtifact factory binding.',
+    );
+  });
+
+  function nextPackagingArtifacts(): {
+    contract: ContractArtifact;
+    nextHttp: NextHttpArtifact;
+    persistence: PersistenceArtifact;
+  } {
+    const { contract, persistence } = petstorePackagingArtifacts();
+    return {
+      contract,
+      nextHttp: {
+        artifactVersion: 1,
+        surface: "routes",
+        serverAccessFilePath: "src/adapters/http-next/server-access.ts",
+        routes: [],
+        uiPages: [],
+        repositories: [
+          {
+            aggregate: "Order",
+            name: "OrderRepository",
+            filePath: "src/core/ports/order-repository.ts",
+            parameterName: "orders",
+            methods: [],
+          },
+          {
+            aggregate: "Pet",
+            name: "PetRepository",
+            filePath: "src/core/ports/pet-repository.ts",
+            parameterName: "pets",
+            methods: [],
+          },
+        ],
+      },
+      persistence,
+    };
+  }
+
+  async function runNextPackaging(
+    artifacts: ReturnType<typeof nextPackagingArtifacts>,
+  ): Promise<GeneratedFile[]> {
+    const files: GeneratedFile[] = [];
+    const registry = createArtifactRegistry();
+    registry.publish(APICAL_CONTRACT_ARTIFACT, artifacts.contract);
+    registry.publish(NEXT_HTTP_ARTIFACT, artifacts.nextHttp);
+    registry.publish(PERSISTENCE_ARTIFACT, artifacts.persistence);
+
+    await createPackagingPlugin({ http: "next" }).generate({
+      inputPath: "openapi.yaml",
+      outputDirectory: "generated/app",
+      artifacts: registry,
+      writeFile(file: GeneratedFile) {
+        files.push(file);
+      },
+      log() {},
+    });
+
+    return files;
+  }
+
+  it("when Next packaging runs with matching repositories, then it emits Next compose files", async () => {
+    const files = await runNextPackaging(nextPackagingArtifacts());
+    expect(files.map((file) => file.path)).toEqual(
+      expect.arrayContaining([
+        "package.json",
+        "src/adapters/db/database.ts",
+        "docker-compose.yml",
+        "scripts/start.sh",
+      ]),
+    );
+  });
+
+  it("when Next persistence keys diverge from NextHttpArtifact, then packaging fails clearly", async () => {
+    const artifacts = nextPackagingArtifacts();
+    artifacts.persistence = {
+      ...artifacts.persistence,
+      repositories: [
+        {
+          aggregate: "Pet",
+          portName: "PetRepository",
+          factoryName: "createDrizzlePetRepository",
+          filePath: "src/adapters/db/pet-repository.ts",
+          runtimeKey: "animals",
+        },
+      ],
+    };
+
+    await expect(runNextPackaging(artifacts)).rejects.toThrow(
+      'PersistenceArtifact repository runtime key "animals" is missing from NextHttpArtifact repositories.',
+    );
+  });
+
+  it("when NextHttpArtifact declares a repository without a persistence factory, then packaging fails clearly", async () => {
+    const artifacts = nextPackagingArtifacts();
+    artifacts.persistence = {
+      ...artifacts.persistence,
+      repositories: artifacts.persistence.repositories.filter(
+        (repository) => repository.runtimeKey === "pets",
+      ),
+    };
+
+    expect(() =>
+      generateNextPackagingFiles({
+        contract: artifacts.contract,
+        nextHttp: artifacts.nextHttp,
+        persistence: artifacts.persistence,
+      }),
+    ).toThrow(
+      'NextHttpArtifact repository parameter "orders" has no PersistenceArtifact factory binding.',
     );
   });
 });

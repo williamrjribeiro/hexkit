@@ -1,5 +1,5 @@
 import { defineConfig } from "vite-plus";
-import { hexkitCoverage } from "../../coverage.config.ts";
+import { hexkitTest } from "../../coverage.config.ts";
 
 export default defineConfig({
   pack: {
@@ -15,7 +15,5 @@ export default defineConfig({
     },
   },
   fmt: {},
-  test: {
-    coverage: hexkitCoverage,
-  },
+  test: hexkitTest(import.meta.dirname),
 });

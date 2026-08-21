@@ -249,6 +249,68 @@ describe("OpenAPI security normalization", () => {
     ).not.toThrow();
   });
 
+  it("when security scopes are not an array, then normalization fails", () => {
+    expect(() =>
+      normalizeSecuritySchemes({
+        components: {
+          securitySchemes: {
+            bearerAuth: { type: "http", scheme: "bearer" },
+          },
+        },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      normalizeGlobalSecurity({
+        security: [{ bearerAuth: "read" }],
+      }),
+    ).toThrow("OpenAPI security[0].bearerAuth must be an array of scope names.");
+  });
+
+  it("when document.security is not an array, then normalization fails", () => {
+    expect(() => normalizeGlobalSecurity({ security: { bearerAuth: [] } })).toThrow(
+      "OpenAPI security must be an array.",
+    );
+  });
+
+  it("when apiKey is not in header, then the scheme is unsupported", () => {
+    const schemes = normalizeSecuritySchemes({
+      components: {
+        securitySchemes: {
+          cookieKey: { type: "apiKey", in: "cookie", name: "session" },
+        },
+      },
+    });
+
+    expect(schemes).toEqual([
+      {
+        name: "cookieKey",
+        type: "unsupported",
+        openApiType: "apiKey",
+        reason: expect.stringContaining('location "cookie"'),
+      },
+    ]);
+  });
+
+  it("when http scheme is not bearer, then the scheme is unsupported", () => {
+    const schemes = normalizeSecuritySchemes({
+      components: {
+        securitySchemes: {
+          basicAuth: { type: "http", scheme: "basic" },
+        },
+      },
+    });
+
+    expect(schemes).toEqual([
+      {
+        name: "basicAuth",
+        type: "unsupported",
+        openApiType: "http",
+        reason: expect.stringContaining('"basic"'),
+      },
+    ]);
+  });
+
   it("when one requirement ANDs a supported scheme with oauth2, then normalization fails", () => {
     const document = {
       openapi: "3.1.0",
