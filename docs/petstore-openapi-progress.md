@@ -24,10 +24,19 @@ Use exactly these four statuses per feature and per plugin:
 | `missing`      | Not generated or not usable for this feature yet                                                             |
 | `in progress`  | Work started (design, partial emit, or fixture) but not yet proven end-to-end for Petstore                   |
 | `partial`      | Works for some formats or capabilities, but not the full Petstore surface for this feature                   |
-| `shipped`      | Generated correctly for the full Petstore needs of this feature and validated (unit/dogfood/acceptance)      |
+| `shipped`      | Full Petstore needs for this feature are met and validated (media types, params, **and** security)           |
 
-Examples of `partial`: JSON works but XML / form-urlencoded do not; an operation runs without
-query params / headers / media types the full contract requires.
+**Strict bar:** `shipped` means the feature completes the full Petstore contract —
+not the PoC slice. Missing required security (e.g. `api_key`, OAuth2 scopes),
+alternate media types, query/header params, or other contract requirements →
+`partial` (or `missing` / `in progress` if nothing usable yet).
+
+Generator support proven only on a non-Petstore fixture (e.g. auth-api) does
+**not** make a Petstore cross-cutting row `shipped`.
+
+Examples of `partial`: JSON works but XML / form-urlencoded do not; CRUD works
+but the full contract’s `petstore_auth` / `api_key` is not enforced; apiKey
+works in the auth fixture but is not applied on Petstore dogfood.
 
 Statuses are **independent per plugin**. Hono and Next may diverge.
 
@@ -37,12 +46,13 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                    | `shipped` | `partial` | `in progress` | `missing` |
 | ------------------------- | --------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono`     | 4         | 5         | 0             | 17        |
-| `@hexkit/plugin-next`     | 4         | 5         | 0             | 17        |
+| `@hexkit/plugin-hono`     | 2         | 7         | 0             | 17        |
+| `@hexkit/plugin-next`     | 2         | 7         | 0             | 17        |
 
-PoC JSON Pet + Order CRUD is **partial** where the full Petstore also requires
-XML or form bodies; deletes with no alternate formats are **shipped**. Most of
-the remaining surface is still **missing**.
+Almost all PoC Pet / Order routes are **partial** (JSON-only and/or missing
+Petstore security). Only capabilities that already meet the full contract bar
+are **shipped** (`deleteOrder`, JSON media type). Most of the remaining surface
+is still **missing**.
 
 ## Operations
 
@@ -57,14 +67,14 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 
 | operationId         | Method / path                   | Hono    | Next    | Notes                                                                 |
 | ------------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
-| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
-| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
-| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON works; full Petstore also requires XML                       |
-| `deletePet`         | `DELETE /pet/{petId}`           | shipped | shipped | PoC slice; optional `api_key` header param is auth cross-cutting      |
-| `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML in full Petstore)           |
-| `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML in full Petstore)     |
-| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status` form-style update                             |
-| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream` body; optional query metadata       |
+| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`  |
+| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`  |
+| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON works; still need XML and `api_key` / `petstore_auth`        |
+| `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header) |
+| `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML); `petstore_auth`           |
+| `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML); `petstore_auth`     |
+| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status`; `petstore_auth`                              |
+| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream`; optional query metadata; `petstore_auth` |
 
 Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
 the PoC slice (Phase 1); that is covered by the Pet rows above, not as a
@@ -74,10 +84,10 @@ separate cross-cutting HTTP capability.
 
 | operationId    | Method / path                   | Hono    | Next    | Notes                                                                 |
 | -------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
-| `placeOrder`   | `POST /store/order`             | partial | partial | PoC JSON works; full Petstore also requires XML + form-urlencoded     |
-| `getOrderById` | `GET /store/order/{orderId}`    | partial | partial | PoC JSON works; full Petstore also requires XML                       |
-| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | PoC slice                                                             |
-| `getInventory` | `GET /store/inventory`          | missing | missing | Map response (`additionalProperties` → int); `api_key` in full Petstore |
+| `placeOrder`   | `POST /store/order`             | partial | partial | PoC JSON works; still need XML + form-urlencoded (no security in full Petstore) |
+| `getOrderById` | `GET /store/order/{orderId}`    | partial | partial | PoC JSON works; still need XML (no security in full Petstore)         |
+| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | Full Petstore: no alternate media types and no security scheme        |
+| `getInventory` | `GET /store/inventory`          | missing | missing | Map response (`additionalProperties` → int); requires `api_key`       |
 
 ### User
 
@@ -99,11 +109,11 @@ in that operation’s Notes.
 
 | Capability                          | Hono    | Next    | Notes                                                              |
 | ----------------------------------- | ------- | ------- | ------------------------------------------------------------------ |
-| JSON request/response               | shipped | shipped | Default media type; PoC dogfood                                    |
+| JSON request/response               | shipped | shipped | Default media type; proven on Petstore PoC dogfood                 |
 | XML request/response                | missing | missing | Alternate media type on many Pet / Store / User ops                |
 | `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes  |
-| Header `apiKey` security            | shipped | shipped | Scheme used by multiple ops; proven via auth fixture               |
-| OAuth2 `petstore_auth` + scopes     | missing | missing | Scheme on most Pet ops; Apical marks oauth2 unenforceable today    |
+| Header `apiKey` security            | partial | partial | Generator support via auth fixture; not applied on Petstore dogfood |
+| OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today  |
 | mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference              |
 | Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)           |
 
@@ -138,7 +148,9 @@ Update it in the **same PR** when any of the following happen:
 Checklist for every such change:
 
 - [ ] Set each affected cell to exactly `missing`, `in progress`, `partial`, or `shipped`
-- [ ] Use `partial` when only some formats or capabilities work (do not mark `shipped`)
+- [ ] Use `partial` when only some formats or capabilities work — including when
+      required **security** is absent (do not mark `shipped`)
+- [ ] Do not mark a Petstore cross-cutting row `shipped` from a non-Petstore fixture alone
 - [ ] Keep Hono and Next columns honest (do not copy status across plugins)
 - [ ] Put operation-specific needs in that row’s Notes — not in Cross-cutting
 - [ ] Refresh the [Summary](#summary) tallies
@@ -146,8 +158,8 @@ Checklist for every such change:
 - [ ] Add a short Notes clarification when status is non-obvious
 
 Do **not** mark `shipped` until the HTTP adapter covers the **full** Petstore
-needs for that feature (all required media types, params, and related
-capabilities) and validation exists. Incomplete but working support is
+needs for that feature (all required media types, params, **and** security) and
+Petstore-relevant validation exists. Incomplete but working support is
 `partial`. Partial emit without runtime proof stays `in progress`.
 
 ## Related docs
