@@ -29,12 +29,12 @@ Statuses are **independent per plugin**. Hono and Next may diverge.
 
 ## Summary
 
-Counts treat each (feature × plugin) cell above. Update the tallies when rows change.
+Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                    | `shipped` | `in progress` | `missing` |
 | ------------------------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono`     | 10        | 0             | 22        |
-| `@hexkit/plugin-next`     | 10        | 0             | 22        |
+| `@hexkit/plugin-hono`     | 9         | 0             | 17        |
+| `@hexkit/plugin-next`     | 9         | 0             | 17        |
 
 PoC JSON Pet + Order CRUD is **shipped** on both adapters. Most of the full
 Petstore surface (Users, filters, uploads, XML, OAuth2, webhooks, …) is still
@@ -45,60 +45,63 @@ Petstore surface (Users, filters, uploads, XML, OAuth2, webhooks, …) is still
 Target operations match the classic full Swagger Petstore. Rows marked
 “PoC slice” are present in `openapi.poc.yaml` and proven by dogfood today.
 
+Operation-specific needs (query params, array bodies, map responses, response
+headers, binary upload, nested Pet JSONB, and so on) live in **Notes** on the
+row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
+
 ### Pet
 
-| operationId         | Method / path                 | Hono      | Next      | Notes                                              |
-| ------------------- | ----------------------------- | --------- | --------- | -------------------------------------------------- |
-| `addPet`            | `POST /pet`                   | shipped   | shipped   | PoC slice — JSON only                              |
-| `updatePet`         | `PUT /pet`                    | shipped   | shipped   | PoC slice — JSON only                              |
-| `getPetById`        | `GET /pet/{petId}`            | shipped   | shipped   | PoC slice — JSON only                              |
-| `deletePet`         | `DELETE /pet/{petId}`         | shipped   | shipped   | PoC slice                                          |
-| `findPetsByStatus`  | `GET /pet/findByStatus`       | missing   | missing   | Query filter + array response                      |
-| `findPetsByTags`    | `GET /pet/findByTags`         | missing   | missing   | Query filter (array) + array response              |
-| `updatePetWithForm` | `POST /pet/{petId}`           | missing   | missing   | Form / query-style update                          |
-| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing   | Binary / octet-stream body                         |
+| operationId         | Method / path                   | Hono    | Next    | Notes                                                                 |
+| ------------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------- |
+| `addPet`            | `POST /pet`                     | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
+| `updatePet`         | `PUT /pet`                      | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
+| `getPetById`        | `GET /pet/{petId}`              | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML                   |
+| `deletePet`         | `DELETE /pet/{petId}`           | shipped | shipped | PoC slice; optional `api_key` header param in full Petstore            |
+| `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML in full Petstore)            |
+| `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML in full Petstore)      |
+| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status` form-style update                              |
+| `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream` body; optional query metadata        |
+
+Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
+the PoC slice (Phase 1); that is covered by the shipped Pet rows above, not as a
+separate cross-cutting HTTP capability.
 
 ### Store
 
-| operationId    | Method / path                    | Hono    | Next    | Notes                         |
-| -------------- | -------------------------------- | ------- | ------- | ----------------------------- |
-| `placeOrder`   | `POST /store/order`              | shipped | shipped | PoC slice — JSON only         |
-| `getOrderById` | `GET /store/order/{orderId}`     | shipped | shipped | PoC slice — JSON only         |
-| `deleteOrder`  | `DELETE /store/order/{orderId}`  | shipped | shipped | PoC slice                     |
-| `getInventory` | `GET /store/inventory`           | missing | missing | Map / `additionalProperties`  |
+| operationId    | Method / path                   | Hono    | Next    | Notes                                                              |
+| -------------- | ------------------------------- | ------- | ------- | ------------------------------------------------------------------ |
+| `placeOrder`   | `POST /store/order`             | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML + form-urlencoded |
+| `getOrderById` | `GET /store/order/{orderId}`    | shipped | shipped | PoC slice — JSON only; full Petstore also offers XML               |
+| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | PoC slice                                                          |
+| `getInventory` | `GET /store/inventory`          | missing | missing | Map response (`additionalProperties` → int); `api_key` in full Petstore |
 
 ### User
 
-| operationId               | Method / path              | Hono    | Next    | Notes                              |
-| ------------------------- | -------------------------- | ------- | ------- | ---------------------------------- |
-| `createUser`              | `POST /user`               | missing | missing | User schema + persistence          |
-| `createUsersWithListInput`| `POST /user/createWithList`| missing | missing | Array request body                 |
-| `loginUser`               | `GET /user/login`          | missing | missing | Query creds + response headers     |
-| `logoutUser`              | `GET /user/logout`         | missing | missing | Session-style no-body success      |
-| `getUserByName`           | `GET /user/{username}`     | missing | missing | String path identity               |
-| `updateUser`              | `PUT /user/{username}`     | missing | missing |                                    |
-| `deleteUser`              | `DELETE /user/{username}`  | missing | missing |                                    |
+| operationId                | Method / path               | Hono    | Next    | Notes                                                                 |
+| -------------------------- | --------------------------- | ------- | ------- | --------------------------------------------------------------------- |
+| `createUser`               | `POST /user`                | missing | missing | User schema + persistence; JSON (+ XML / form-urlencoded in full)     |
+| `createUsersWithListInput` | `POST /user/createWithList` | missing | missing | Array request body (`User[]`)                                         |
+| `loginUser`                | `GET /user/login`           | missing | missing | Query `username` / `password`; response headers `X-Rate-Limit`, `X-Expires-After` |
+| `logoutUser`               | `GET /user/logout`          | missing | missing | Session-style no-body success                                         |
+| `getUserByName`            | `GET /user/{username}`      | missing | missing | String path identity; JSON (+ XML in full Petstore)                   |
+| `updateUser`               | `PUT /user/{username}`      | missing | missing | JSON (+ XML / form-urlencoded in full Petstore)                       |
+| `deleteUser`               | `DELETE /user/{username}`   | missing | missing |                                                                       |
 
 ## Cross-cutting capabilities
 
-These are required to claim full Petstore fidelity even when an operation row
-is already `shipped` for JSON.
+Only capabilities that apply **across many operations** or at the **document /
+adapter** level. Anything that is unique to one (or a couple of) routes belongs
+in that operation’s Notes.
 
-| Capability                         | Hono      | Next      | Notes                                                                 |
-| ---------------------------------- | --------- | --------- | --------------------------------------------------------------------- |
-| JSON request/response              | shipped   | shipped   | PoC dogfood                                                           |
-| XML request/response               | missing   | missing   | Explicit PoC non-goal; required for full Petstore                     |
-| `application/x-www-form-urlencoded`| missing   | missing   | Used on Pet / Order / User bodies in full Petstore                    |
-| Binary upload (`application/octet-stream`) | missing   | missing   | `uploadFile`                                                          |
-| Header `apiKey` security           | shipped   | shipped   | Proven via auth fixture; not yet on Petstore dogfood contract         |
-| OAuth2 `petstore_auth` + scopes    | missing   | missing   | Apical marks oauth2 unenforceable today                               |
-| mutualTLS                          | missing   | missing   | Present on checked-in OAS 3.1 reference                               |
-| Query parameters (filters)         | missing   | missing   | Needed for find-by-status/tags, login                                 |
-| Array request bodies               | missing   | missing   | `createUsersWithListInput`                                            |
-| Map / `additionalProperties`       | missing   | missing   | `getInventory`                                                        |
-| Response headers                   | missing   | missing   | `loginUser` (`X-Rate-Limit`, `X-Expires-After`)                       |
-| Webhooks (`newPet`)                | missing   | missing   | OAS 3.1 checked-in reference                                          |
-| Nested Pet JSONB persistence       | shipped   | shipped   | PoC Rich Pet `category` / `tags` / `photoUrls` (Phase 1)              |
+| Capability                          | Hono    | Next    | Notes                                                              |
+| ----------------------------------- | ------- | ------- | ------------------------------------------------------------------ |
+| JSON request/response               | shipped | shipped | Default media type; PoC dogfood                                    |
+| XML request/response                | missing | missing | Alternate media type on many Pet / Store / User ops                |
+| `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes  |
+| Header `apiKey` security            | shipped | shipped | Scheme used by multiple ops; proven via auth fixture               |
+| OAuth2 `petstore_auth` + scopes     | missing | missing | Scheme on most Pet ops; Apical marks oauth2 unenforceable today    |
+| mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference              |
+| Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)           |
 
 ## Contract map
 
@@ -132,6 +135,7 @@ Checklist for every such change:
 
 - [ ] Set each affected cell to exactly `missing`, `in progress`, or `shipped`
 - [ ] Keep Hono and Next columns honest (do not copy status across plugins)
+- [ ] Put operation-specific needs in that row’s Notes — not in Cross-cutting
 - [ ] Refresh the [Summary](#summary) tallies
 - [ ] Set **Last updated** to the change date (`YYYY-MM-DD`)
 - [ ] Add a short Notes clarification when status is non-obvious
