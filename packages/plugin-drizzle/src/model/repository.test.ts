@@ -148,7 +148,9 @@ describe("deriveRepository", () => {
   });
 
   it("when hexagonal publishes persistenceKind, then drizzle uses it instead of re-parsing action", () => {
-    const operationsById = new Map([["searchWidgets", operation("searchWidgets", "post")]] as const);
+    const operationsById = new Map([
+      ["searchWidgets", operation("searchWidgets", "post")],
+    ] as const);
 
     const repository = deriveRepository(
       applicationRepository([

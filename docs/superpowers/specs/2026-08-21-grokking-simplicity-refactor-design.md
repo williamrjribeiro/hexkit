@@ -7,20 +7,20 @@
 
 The 90% coverage raise (#17) proved generator behavior with **fixture-heavy branch tests**, not with small calculations:
 
-| Package | Coverage-raise test smell |
-|---|---|
-| `@hexkit/plugin-next` | `branch-coverage.test.ts` (434 lines) drives renderers with full artifacts |
-| `@hexkit/plugin-drizzle` | `derive-edges.test.ts` (423) + `render-edges.test.ts` (311) |
-| `@hexkit/plugin-apical` | `normalize.test.ts` +463 lines of sequential mutate/`toThrow` |
-| `@hexkit/plugin-architecture-hexagonal` | `derive.test.ts` (301) rebuilds full contracts per aggregate strategy |
-| `@hexkit/cli` | `command.test.ts` +241 lines of packaging dual-path fixtures |
-| `@hexkit/codegen` | empty-identifier / typeOnly sort edges through fat `renderImports` |
+| Package                                 | Coverage-raise test smell                                                  |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| `@hexkit/plugin-next`                   | `branch-coverage.test.ts` (434 lines) drives renderers with full artifacts |
+| `@hexkit/plugin-drizzle`                | `derive-edges.test.ts` (423) + `render-edges.test.ts` (311)                |
+| `@hexkit/plugin-apical`                 | `normalize.test.ts` +463 lines of sequential mutate/`toThrow`              |
+| `@hexkit/plugin-architecture-hexagonal` | `derive.test.ts` (301) rebuilds full contracts per aggregate strategy      |
+| `@hexkit/cli`                           | `command.test.ts` +241 lines of packaging dual-path fixtures               |
+| `@hexkit/codegen`                       | empty-identifier / typeOnly sort edges through fat `renderImports`         |
 
 Those tests are a TDD **refactor signal**: calculations are buried inside orchestrators, invalid Data is representable, and renderers re-derive instead of consuming complete models.
 
 ## Grokking Simplicity rules (binding)
 
-From Eric Normand, *Grokking Simplicity*, already required by the PoC plan:
+From Eric Normand, _Grokking Simplicity_, already required by the PoC plan:
 
 1. **Actions** — I/O, order-dependent, implicit inputs/outputs. Keep them thin and injected (`CraftRunner`, `FileWriterActions`, plugin `generate`).
 2. **Calculations** — pure, same input → same output. These are the unit-test surface.
@@ -31,10 +31,10 @@ From Eric Normand, *Grokking Simplicity*, already required by the PoC plan:
 
 ## Approaches considered
 
-| Approach | What | Trade-off |
-|---|---|---|
-| A. New `@hexkit/http-adapter-model` package | Share Hono/Next controller bindings | Highest DRY; new package + sequential coupling; YAGNI for PoC |
-| B. Extract-in-place only (no new files) | Pull helpers to the bottom of the same 600-line files | Parallel-safe; files stay uncomposable |
+| Approach                                                 | What                                                                                                         | Trade-off                                                                        |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| A. New `@hexkit/http-adapter-model` package              | Share Hono/Next controller bindings                                                                          | Highest DRY; new package + sequential coupling; YAGNI for PoC                    |
+| B. Extract-in-place only (no new files)                  | Pull helpers to the bottom of the same 600-line files                                                        | Parallel-safe; files stay uncomposable                                           |
 | **C. Codegen shared utils + per-package stratification** | Tiny shared calcs in `@hexkit/codegen`; each package splits giant modules; complete models; breaking APIs OK | **Chosen** — max parallelism, no new package, directly addresses coverage smells |
 
 Rejected A because HTTP plugins can complete their own models without a new workspace package. Rejected B because `normalize.ts` (615), `packaging-plugin.ts` (633), and `plugin-drizzle` `derive.ts` (522) are already past a size where one-purpose modules fit in working memory.
@@ -203,7 +203,7 @@ All work lands on **one branch / one PR**.
 ## Non-goals
 
 - New workspace packages
-- Changing generated Petstore/auth dogfood *behavior* (output may differ only where APIs of generators change in equivalent ways)
+- Changing generated Petstore/auth dogfood _behavior_ (output may differ only where APIs of generators change in equivalent ways)
 - `plugin-sst` implementation
 - Lowering the 90% coverage floor
 - Result/`ValidationIssue[]` instead of throw (defer; throws stay at calculation edges this PR)

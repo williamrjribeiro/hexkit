@@ -78,12 +78,14 @@
 ### Task 1: Shared calculations in `@hexkit/codegen`
 
 **Files:**
+
 - Create: `packages/codegen/src/text.ts`, `packages/codegen/src/text.test.ts`
 - Create: `packages/codegen/src/paths.ts`, `packages/codegen/src/paths.test.ts`
 - Modify: `packages/codegen/src/imports.ts`, `naming.ts`, `index.ts`
 - Test: `packages/codegen/src/naming.test.ts`, `source-file.test.ts`
 
 **Interfaces:**
+
 - Produces (consumed by Tasks 2–7):
 
 ```ts
@@ -196,11 +198,13 @@ git commit -m "refactor(codegen): export compareText, unique, paths, and mergeIm
 ### Task 2: Stratify `@hexkit/plugin-apical`
 
 **Files:**
+
 - Create under `packages/plugin-apical/src/contract/`: `json-pointer.ts`, `type-normalize.ts`, `operation-normalize.ts`, `validate-artifact.ts`, `application.ts` (+ matching `*.test.ts`)
 - Modify: `normalize.ts` (orchestrator only), `security.ts`, `generate-contracts.ts`, `plugin.ts`, `contract/index.ts`, `src/index.ts`
 - Test: shrink `normalize.test.ts`; add `formatCraftFailure` tests; keep `plugin.test.ts`
 
 **Interfaces:**
+
 - Consumes: codegen `toKebabCase` / `splitIdentifier` only if slugify is simplified; otherwise keep local NFKD slugify in `application.ts`.
 - Produces:
 
@@ -243,11 +247,13 @@ Stop re-exporting from package `index.ts`: `normalizeContractType`, `inspectSche
 ### Task 3: Stratify `@hexkit/plugin-architecture-hexagonal`
 
 **Files:**
+
 - Create: `packages/plugin-architecture-hexagonal/src/model/aggregate.ts`, `parameters.ts`, `entity.ts`, `repository.ts`, `use-case.ts` (+ tests)
 - Modify: `model/derive.ts`, `artifact.ts`, `src/index.ts`
 - Test: `model/derive.test.ts` shrinks to orchestrator cases
 
 **Interfaces:**
+
 - Consumes: `compareText`, `unique` from `@hexkit/codegen`.
 - Produces:
 
@@ -309,11 +315,13 @@ Replace local `compareText`/`unique` with codegen.
 ### Task 4: Stratify `@hexkit/plugin-drizzle`
 
 **Files:**
+
 - Create: `packages/plugin-drizzle/src/model/column.ts`, `table.ts`, `method-kind.ts`, `repository.ts` (+ tests)
 - Modify: `model/derive.ts`, generate `schema.ts`, `migration.ts`, `repository.ts`, `src/index.ts`
 - Test: replace most of `derive-edges.test.ts` / `render-edges.test.ts`
 
 **Interfaces:**
+
 - Consumes: codegen `compareText`, `toSnakeCase`, `toCamelCase`, `toPascalCase`, `toKebabCase`. Hexagonal artifact still has `action`/`returnTypeExpression` (Wave 1). Optionally read `persistenceKind` if present; **do not fail** if you still compute kind locally this task.
 - Produces:
 
@@ -374,11 +382,13 @@ export function refineMethodKind(
 ### Task 5: Stratify `@hexkit/plugin-hono`
 
 **Files:**
+
 - Create: `packages/plugin-hono/src/generate/routes/static-runtime.ts`, `registrations.ts`
 - Modify: `generate/routes.ts`, `model/derive.ts`, `model/paths.ts`, `src/index.ts` if needed
 - Test: `generate/routes/registrations.test.ts`; keep `plugin.test.ts`
 
 **Interfaces:**
+
 - Consumes: `compareText`, `relativeImportPath` from `@hexkit/codegen`.
 - Produces:
 
@@ -410,11 +420,13 @@ Do **not** change `HttpOperationBinding` shape unless a field is currently impli
 ### Task 6: Complete Next HTTP model and split renderers
 
 **Files:**
+
 - Modify: `packages/plugin-next/src/artifact.ts`, `model/derive.ts`, `generate/controllers.ts`, `generate/pages.ts`, `generate/files.ts`, `model/paths.ts`, `src/index.ts`
 - Create: `packages/plugin-next/src/model/page-plan.ts` (+ test)
 - Test: replace `branch-coverage.test.ts`
 
 **Interfaces:**
+
 - Consumes: codegen `compareText`, `relativeImportPath`, `unique`.
 - Produces — **breaking:**
 
@@ -461,12 +473,14 @@ Move TRACE rejection to **one** `toNextMethod` calculation used only from `deriv
 ### Task 7: Stratify CLI packaging
 
 **Files:**
+
 - Create: `apps/cli/src/packaging/data/hono-static.ts`, `data/next-static.ts`, `model/resolve-repositories.ts`, `model/manifests.ts`, `model/plan.ts`, `render/compose.ts`, `render/server.ts`, `render/database.ts`, `render/files.ts`, `plugin.ts`
 - Delete or thin: `apps/cli/src/packaging-plugin.ts` (re-export from `packaging/plugin.ts` for a short deprecation, or update `index.ts` / `main.ts` imports)
 - Modify: `apps/cli/src/main.ts`, `index.ts`
 - Test: `apps/cli/src/packaging/model/resolve-repositories.test.ts`, `render/compose.test.ts`
 
 **Interfaces:**
+
 - Consumes: codegen `relativeImportPath`, `compareText`. HTTP/persistence artifacts unchanged.
 - Produces:
 
@@ -522,12 +536,14 @@ Update tests that passed a log function as the second argument.
 ### Task 8: Integrate and verify
 
 **Files:**
+
 - Modify: `packages/plugin-drizzle/src/model/method-kind.ts` (or `repository.ts`) to prefer `method.persistenceKind` / `resultCardinality` from hexagonal when present
 - Modify: any leftover cross-package imports broken by public API shrinks
 - Modify: `docs/README.md` to list this spec/plan
 - Test: full workspace
 
 **Interfaces:**
+
 - Consumes: Task 3 `ApplicationRepositoryMethod.persistenceKind` and `resultCardinality`.
 - Produces: drizzle `resolveMethodKind` becomes a fallback only, or deleted if all paths set hexagonal fields.
 
