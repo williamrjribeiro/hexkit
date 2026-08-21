@@ -15,7 +15,23 @@ export default defineConfig({
   },
   lint: {
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    rules: {
+      "vite-plus/prefer-vite-plus-imports": "error",
+      // Enable import auto-removal under `vp lint --fix` / `vp check --fix`
+      // (default is suggestion-only and needs --fix-suggestions).
+      "no-unused-vars": [
+        "warn",
+        {
+          // Keep Oxlint defaults: configuring `fix` clears the built-in `^_` patterns.
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          fix: {
+            imports: "safe-fix",
+            variables: "off",
+          },
+        },
+      ],
+    },
     options: { typeAware: true, typeCheck: true },
   },
   run: {

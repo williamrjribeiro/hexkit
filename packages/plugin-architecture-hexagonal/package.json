@@ -31,7 +31,7 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test run",
-    "check": "vp check",
+    "check": "vp check --fix",
     "prepublishOnly": "vp run build",
     "coverage": "vp test run --coverage"
   },

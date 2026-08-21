@@ -8,8 +8,6 @@ import type { addPetRouteResponse } from "../routes/addPet.ts";
 
 import { addPetRequestMap } from "../routes/addPet.ts";
 
-import { addPetResponseMap } from "../routes/addPet.ts";
-
 type addPetValidationError =
   | { kind: "query-error"; error: StandardSchemaValidationError; isValid: false }
   | { kind: "path-error"; error: StandardSchemaValidationError; isValid: false }
