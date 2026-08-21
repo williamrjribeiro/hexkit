@@ -20,26 +20,39 @@ export type NextAuthSchemeBinding =
       headerName: "Authorization";
     };
 
+export type NextUiPageParameter = {
+  name: string;
+  typeExpression: string;
+};
+
 export type NextUiPage = {
   filePath: string;
   openApiPath: string;
   operationId: string;
   useCaseAccessorName: string;
   paramNames: readonly string[];
+  parameters: readonly NextUiPageParameter[];
 };
 
 export type NextMethodBinding = {
   method: "get" | "post" | "put" | "patch" | "delete" | "head" | "options";
   operationId: string;
   useCaseTypeName: string;
+  useCaseFactoryName: string;
   useCaseFilePath: string;
+  repositoryParameterName: string;
   wrapperName: string;
   wrapperImportPath: string;
   responseMapName?: string;
   responseMapImportPath?: string;
   hasJsonBody: boolean;
+  hasJsonSuccessBody: boolean;
+  successStatus: string;
+  notFoundStatus?: string;
+  successMediaType?: string;
   requiresPrincipal: boolean;
   authSchemes: readonly NextAuthSchemeBinding[];
+  useCaseArgumentExpressions: readonly string[];
 };
 
 export type NextSurface = "routes" | "rsc" | "both";

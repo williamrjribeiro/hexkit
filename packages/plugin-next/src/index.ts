@@ -20,7 +20,10 @@ export {
   type NextRouteFile,
   type NextSurface,
   type NextUiPage,
+  type NextUiPageParameter,
 } from "./artifact.ts";
 export { generateNextDalFromArtifacts } from "./generate/files.ts";
+export { planPageFiles, coercePageArgument } from "./model/page-plan.ts";
+export type { PagePlan } from "./model/page-plan.ts";
 export { createNextPlugin } from "./plugin.ts";
 export type { NextPluginOptions } from "./plugin.ts";

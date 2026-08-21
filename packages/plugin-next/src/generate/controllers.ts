@@ -1,39 +1,15 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile } from "@hexkit/codegen";
+import { compareText, renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
-import type {
-  ApplicationArtifact,
-  ApplicationUseCase,
-} from "@hexkit/plugin-architecture-hexagonal";
-import type {
-  ContractArtifact,
-  ContractHttpMethod,
-  ContractMedia,
-  ContractOperation,
-  ContractResponse,
-} from "@hexkit/plugin-apical";
 
-import type { NextMethodBinding } from "../artifact.ts";
-import type { NextHttpModel } from "../artifact.ts";
+import type { NextHttpModel, NextMethodBinding } from "../artifact.ts";
 import { CONTROLLERS_FILE_PATH } from "../model/derive.ts";
 import { relativeImportPath } from "../model/paths.ts";
 
-type ControllerOperation = NextMethodBinding & {
-  useCaseFactoryName: string;
-  repositoryParameterName: string;
-  successStatus: string;
-  notFoundStatus?: string;
-  hasJsonSuccessBody: boolean;
-  successMediaType?: string;
-  useCaseArgumentExpressions: readonly string[];
-};
-
-export function renderControllersFile(
-  model: NextHttpModel,
-  contract: ContractArtifact,
-  application: ApplicationArtifact,
-): GeneratedFile {
-  const operations = deriveControllerOperations(contract, application);
+export function renderControllersFile(model: NextHttpModel): GeneratedFile {
+  const operations = model.routes
+    .flatMap((route) => route.methods)
+    .toSorted((left, right) => compareText(left.operationId, right.operationId));
   const hasAuth = model.authenticator !== undefined;
   const imports: ImportDeclaration[] = [
     ...operations.map((operation) => ({
@@ -49,7 +25,7 @@ export function renderControllersFile(
       .filter(
         (
           operation,
-        ): operation is ControllerOperation & {
+        ): operation is NextMethodBinding & {
           responseMapName: string;
           responseMapImportPath: string;
         } =>
@@ -129,87 +105,7 @@ export function renderControllersFile(
   };
 }
 
-function deriveControllerOperations(
-  contract: ContractArtifact,
-  application: ApplicationArtifact,
-): ControllerOperation[] {
-  const useCasesByOperationId = new Map(
-    application.useCases.map((useCase) => [useCase.operationId, useCase] as const),
-  );
-
-  return contract.operations
-    .toSorted((left, right) => compareText(left.operationId, right.operationId))
-    .map((operation) => {
-      const useCase = useCasesByOperationId.get(operation.operationId);
-      if (useCase === undefined) {
-        throw new Error(
-          `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
-        );
-      }
-      return deriveControllerOperation(operation, useCase);
-    });
-}
-
-function deriveControllerOperation(
-  operation: ContractOperation,
-  useCase: ApplicationUseCase,
-): ControllerOperation {
-  const successResponse = findSuccessResponse(operation);
-  if (successResponse === undefined) {
-    throw new Error(
-      `Operation "${operation.operationId}" has no 2xx response for HTTP adapter generation.`,
-    );
-  }
-
-  const jsonSuccessMedia = findJsonMedia(successResponse.media);
-  const hasJsonBody = Boolean(
-    operation.requestBody?.media.some(
-      (media) => media.mediaType === "application/json" && media.type !== undefined,
-    ),
-  );
-  const hasNotFound = operation.responses.some((response) => response.status === "404");
-  const responseMapName =
-    jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
-
-  return {
-    method: toNextMethod(operation.method),
-    operationId: operation.operationId,
-    useCaseTypeName: useCase.typeName,
-    useCaseFactoryName: useCase.factoryName,
-    useCaseFilePath: useCase.filePath,
-    repositoryParameterName: useCase.repositoryParameterName,
-    wrapperName: `${operation.operationId}Wrapper`,
-    wrapperImportPath: `src/generated/contracts/server/${operation.operationId}.ts`,
-    ...(responseMapName === undefined
-      ? {}
-      : {
-          responseMapName,
-          responseMapImportPath: `src/generated/contracts/${operation.modulePath}`,
-        }),
-    hasJsonBody,
-    requiresPrincipal: useCase.requiresAuth,
-    authSchemes: [],
-    successStatus: successResponse.status,
-    ...(hasNotFound ? { notFoundStatus: "404" } : {}),
-    hasJsonSuccessBody: jsonSuccessMedia !== undefined,
-    ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
-    useCaseArgumentExpressions: deriveUseCaseArguments(useCase, hasJsonBody),
-  };
-}
-
-function deriveUseCaseArguments(useCase: ApplicationUseCase, hasJsonBody: boolean): string[] {
-  const principalExpression = useCase.requiresAuth ? ["principal"] : [];
-  if (hasJsonBody) {
-    return [...principalExpression, "request.value.body"];
-  }
-
-  return [
-    ...principalExpression,
-    ...useCase.parameters.map((parameter) => `request.value.path.${parameter.name}`),
-  ];
-}
-
-function renderControllerEntry(operation: ControllerOperation): string {
+function renderControllerEntry(operation: NextMethodBinding): string {
   if (operation.requiresPrincipal) return renderSecuredControllerEntry(operation);
 
   const lines = [
@@ -222,7 +118,7 @@ function renderControllerEntry(operation: ControllerOperation): string {
   return lines.join("\n");
 }
 
-function renderSecuredControllerEntry(operation: ControllerOperation): string {
+function renderSecuredControllerEntry(operation: NextMethodBinding): string {
   const lines = [
     `    ${operation.operationId}: async (`,
     `      request: ControllerRequest<ReturnType<typeof ${operation.wrapperName}>>,`,
@@ -236,7 +132,7 @@ function renderSecuredControllerEntry(operation: ControllerOperation): string {
   return lines.join("\n");
 }
 
-function renderValidation(operation: ControllerOperation): string[] {
+function renderValidation(operation: NextMethodBinding): string[] {
   if (operation.hasJsonBody) {
     return [
       "      if (!request.isValid || !request.value.body) {",
@@ -258,7 +154,7 @@ function renderValidation(operation: ControllerOperation): string[] {
   ];
 }
 
-function renderAuthenticationValidation(operation: ControllerOperation): string[] {
+function renderAuthenticationValidation(operation: NextMethodBinding): string[] {
   if (!operation.requiresPrincipal) return [];
 
   return [
@@ -268,7 +164,7 @@ function renderAuthenticationValidation(operation: ControllerOperation): string[
   ];
 }
 
-function renderInvocation(operation: ControllerOperation): string[] {
+function renderInvocation(operation: NextMethodBinding): string[] {
   const args = operation.useCaseArgumentExpressions.join(", ");
   if (operation.hasJsonSuccessBody || operation.notFoundStatus !== undefined) {
     return [`      const result = await useCases.${operation.operationId}(${args});`];
@@ -277,7 +173,7 @@ function renderInvocation(operation: ControllerOperation): string[] {
   return [`      await useCases.${operation.operationId}(${args});`];
 }
 
-function renderSuccess(operation: ControllerOperation): string[] {
+function renderSuccess(operation: NextMethodBinding): string[] {
   const lines: string[] = [];
 
   if (operation.notFoundStatus !== undefined) {
@@ -298,27 +194,4 @@ function renderSuccess(operation: ControllerOperation): string[] {
   );
   lines.push("      };");
   return lines;
-}
-
-function findSuccessResponse(operation: ContractOperation): ContractResponse | undefined {
-  return operation.responses.find((response) => isSuccessStatus(response.status));
-}
-
-function findJsonMedia(media: readonly ContractMedia[]): ContractMedia | undefined {
-  return media.find((entry) => entry.mediaType === "application/json" && entry.type !== undefined);
-}
-
-function isSuccessStatus(status: string): boolean {
-  return /^2\d\d$/.test(status);
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
-function toNextMethod(method: ContractHttpMethod): NextMethodBinding["method"] {
-  if (method === "trace") {
-    throw new Error(`HTTP method "trace" is not supported by the Next.js adapter.`);
-  }
-  return method;
 }

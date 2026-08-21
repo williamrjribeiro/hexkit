@@ -1,5 +1,5 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, toKebabCase, toPascalCase } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase, toPascalCase, unique } from "@hexkit/codegen";
 import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
@@ -157,10 +157,6 @@ function routeUseCases(
     .toSorted((left, right) => compareText(left.operationId, right.operationId));
 }
 
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
 function renderApiKeyDefaults(model: NextHttpModel): string {
   const apiKeyHeaderNames = unique(
     model.routes.flatMap((route) =>
@@ -180,8 +176,4 @@ function renderApiKeyDefaults(model: NextHttpModel): string {
   );
 
   return `[${entries.join(", ")}]`;
-}
-
-function unique<T>(values: readonly T[]): readonly T[] {
-  return [...new Set(values)];
 }
