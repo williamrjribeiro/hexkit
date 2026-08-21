@@ -10,6 +10,7 @@ import {
 } from "./getOrderByIdParameters.ts";
 import {
   getPetByIdPathSchema,
+  getPetByIdHeadersSchema,
 } from "./getPetByIdParameters.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
@@ -23,5 +24,6 @@ export {
   deleteOrderPathSchema,
   deletePetPathSchema,
   getOrderByIdPathSchema,
+  getPetByIdHeadersSchema,
   getPetByIdPathSchema,
 };

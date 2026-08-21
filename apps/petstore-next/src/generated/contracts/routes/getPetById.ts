@@ -31,7 +31,7 @@ export const clientRoute = {
   responseMap: getPetByIdResponseMap,
   params: getPetByIdParsedParams,
   isQueryOptional: true,
-  isHeadersOptional: true,
+  isHeadersOptional: false,
 } as const;
 
 export const serverRoute = {
@@ -43,5 +43,5 @@ export const serverRoute = {
   responseMap: getPetByIdResponseMap,
   params: getPetByIdServerParsedParams,
   isQueryOptional: true,
-  isHeadersOptional: true,
+  isHeadersOptional: false,
 } as const;

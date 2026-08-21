@@ -5,6 +5,8 @@ import type { GetOrderById } from "../../core/application/get-order-by-id.ts";
 import type { GetPetById } from "../../core/application/get-pet-by-id.ts";
 import type { PlaceOrder } from "../../core/application/place-order.ts";
 import type { UpdatePet } from "../../core/application/update-pet.ts";
+import type { Principal } from "../../core/domain/auth-principal.ts";
+import type { Authenticator } from "../../core/ports/authenticator.ts";
 import { addPetResponseMap } from "../../generated/contracts/routes/addPet.ts";
 import { getOrderByIdResponseMap } from "../../generated/contracts/routes/getOrderById.ts";
 import { getPetByIdResponseMap } from "../../generated/contracts/routes/getPetById.ts";
@@ -35,7 +37,19 @@ export class RequestValidationError extends Error {
   }
 }
 
-export function createHttpControllers(useCases: HttpUseCases) {
+type ControllerRequest<TController> = TController extends (request: infer Request) => Promise<unknown> ? Request : never;
+
+export class AuthenticationError extends Error {
+  constructor(kind: string) {
+    super(`Authentication failed: ${kind}`);
+    this.name = "AuthenticationError";
+  }
+}
+
+export function createHttpControllers(useCases: HttpUseCases, authenticator?: Authenticator) {
+  if (authenticator === undefined) {
+    throw new AuthenticationError("authenticator-missing");
+  }
   return {
     addPet: addPetWrapper(async (request) => {
       if (!request.isValid || !request.value.body) {
@@ -68,16 +82,24 @@ export function createHttpControllers(useCases: HttpUseCases) {
         data: getOrderByIdResponseMap["200"]["application/json"].parse(result),
       };
     }),
-    getPetById: getPetByIdWrapper(async (request) => {
-      if (!request.isValid) throw new RequestValidationError(request.kind);
-      const result = await useCases.getPetById(request.value.path.petId);
+    getPetById: async (
+      request: ControllerRequest<ReturnType<typeof getPetByIdWrapper>>,
+      principal: Principal,
+    ) => getPetByIdWrapper(async (request) => {
+      if (!request.isValid) {
+        if (!request.isValid && request.kind === "headers-error") {
+          throw new AuthenticationError(request.kind);
+        }
+        throw new RequestValidationError(request.kind);
+      }
+      const result = await useCases.getPetById(principal, request.value.path.petId);
       if (!result) return { status: "404" };
       return {
         status: "200",
         contentType: "application/json",
         data: getPetByIdResponseMap["200"]["application/json"].parse(result),
       };
-    }),
+    })(request),
     placeOrder: placeOrderWrapper(async (request) => {
       if (!request.isValid || !request.value.body) {
         throw new RequestValidationError(request.isValid ? "body-error" : request.kind);

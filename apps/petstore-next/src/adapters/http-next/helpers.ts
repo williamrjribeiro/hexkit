@@ -1,4 +1,5 @@
-import { RequestValidationError } from "./controllers.ts";
+import type { AuthCredentials } from "../../core/ports/authenticator.ts";
+import { AuthenticationError, RequestValidationError } from "./controllers.ts";
 import type { NextRequest } from "next/server";
 
 type ApicalRequest = {
@@ -15,6 +16,37 @@ function toApicalHeaders(headers: Headers): Record<string, string> {
     result[key.toLowerCase()] = value;
   });
   return result;
+}
+
+type SecuritySchemeMeta =
+  | { name: string; type: "apiKey"; headerName: string }
+  | { name: string; type: "http"; scheme: "bearer"; headerName: "Authorization" };
+
+type OperationSecurityMeta = {
+  schemes: readonly SecuritySchemeMeta[];
+};
+
+export function extractCredentials(
+  headers: Headers,
+  securityMeta: OperationSecurityMeta,
+): AuthCredentials | undefined {
+  for (const scheme of securityMeta.schemes) {
+    if (scheme.type === "http" && scheme.scheme === "bearer") {
+      const value = headers.get(scheme.headerName);
+      if (value === null) continue;
+      const bearerMatch = /^Bearer\s+(.+)$/i.exec(value.trim());
+      if (bearerMatch === null) continue;
+      const token = bearerMatch[1]?.trim() ?? "";
+      if (token.length === 0) continue;
+      return { kind: "bearer", schemeName: scheme.name, token };
+    }
+
+    const apiKey = headers.get(scheme.headerName);
+    if (apiKey === null || apiKey.trim().length === 0) continue;
+    return { kind: "apiKey", schemeName: scheme.name, headerName: scheme.headerName.toLowerCase(), apiKey };
+  }
+
+  return undefined;
 }
 
 export async function toApicalRequest(
@@ -61,6 +93,9 @@ export function handleControllerResult(result: {
 }
 
 export function handleControllerError(error: unknown): Response {
+  if (error instanceof AuthenticationError) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   if (error instanceof RequestValidationError) {
     return Response.json({ error: "Bad Request" }, { status: 400 });
   }

@@ -2,9 +2,11 @@ import { AddPet, createAddPet } from "../../core/application/add-pet.ts";
 import { DeleteOrder, createDeleteOrder } from "../../core/application/delete-order.ts";
 import { DeletePet, createDeletePet } from "../../core/application/delete-pet.ts";
 import { GetOrderById, createGetOrderById } from "../../core/application/get-order-by-id.ts";
-import { GetPetById, createGetPetById } from "../../core/application/get-pet-by-id.ts";
+import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
 import { PlaceOrder, createPlaceOrder } from "../../core/application/place-order.ts";
 import { UpdatePet, createUpdatePet } from "../../core/application/update-pet.ts";
+import type { Principal } from "../../core/domain/auth-principal.ts";
+import type { Pet } from "../../core/domain/pet.ts";
 import type { OrderRepository } from "../../core/ports/order-repository.ts";
 import type { PetRepository } from "../../core/ports/pet-repository.ts";
 import { getDatabase } from "../db/database.ts";
@@ -21,7 +23,7 @@ export type ServerAccess = {
   deleteOrder: DeleteOrder;
   deletePet: DeletePet;
   getOrderById: GetOrderById;
-  getPetById: GetPetById;
+  getPetById: (petId: number) => Promise<Pet | undefined>;
   placeOrder: PlaceOrder;
   updatePet: UpdatePet;
 };
@@ -29,6 +31,8 @@ export type ServerAccess = {
 let cachedRepositories: RuntimeRepositories | undefined;
 
 let cachedAccess: ServerAccess | undefined;
+
+const rscPrincipal: Principal = { id: "rsc", scheme: "in-process", scopes: [] };
 
 function getRepositories(): RuntimeRepositories {
   if (cachedRepositories === undefined) {
@@ -47,7 +51,7 @@ function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
     deleteOrder: createDeleteOrder(repositories.orders),
     deletePet: createDeletePet(repositories.pets),
     getOrderById: createGetOrderById(repositories.orders),
-    getPetById: createGetPetById(repositories.pets),
+    getPetById: (petId) => createGetPetById(repositories.pets)(rscPrincipal, petId),
     placeOrder: createPlaceOrder(repositories.orders),
     updatePet: createUpdatePet(repositories.pets),
   };

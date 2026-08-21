@@ -34,11 +34,14 @@ export function getPetByIdWrapper(
   }): Promise<getPetByIdRouteResponse> => {
   const pathParse = await validateStandardSchema(getPetByIdRouteMetadata.params.shape.path, req.path);
   if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-  let parsedBody: undefined   = undefined;
+  const headersParse = await validateStandardSchema(getPetByIdRouteMetadata.params.shape.headers, req.headers);
+  if (!headersParse.success) return handler({ kind: "headers-error", error: headersParse.error, isValid: false });
+  let parsedBody: undefined | undefined = undefined;
   return handler({
     isValid: true,
     value: {
       path: pathParse.value,
+      headers: headersParse.value,
       body: parsedBody
     },
   });

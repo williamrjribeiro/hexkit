@@ -34,7 +34,7 @@ export function deletePetWrapper(
   }): Promise<deletePetRouteResponse> => {
   const pathParse = await validateStandardSchema(deletePetRouteMetadata.params.shape.path, req.path);
   if (!pathParse.success) return handler({ kind: "path-error", error: pathParse.error, isValid: false });
-  let parsedBody: undefined   = undefined;
+  let parsedBody: undefined | undefined = undefined;
   return handler({
     isValid: true,
     value: {
