@@ -35,6 +35,7 @@ export function renderServerAccessFile(
           },
         ]
       : []),
+    ...collectSecuredDomainTypeImports(useCases, application.entities),
     ...model.repositories.map((repository) => ({
       from: relativeImportPath(SERVER_ACCESS_FILE_PATH, repository.filePath),
       names: [repository.name],
@@ -106,6 +107,37 @@ export function renderServerAccessFile(
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
+}
+
+function collectSecuredDomainTypeImports(
+  useCases: readonly ApplicationUseCase[],
+  entities: ApplicationArtifact["entities"],
+): ImportDeclaration[] {
+  const needed = new Set<string>();
+  for (const useCase of useCases) {
+    if (!useCase.requiresAuth) continue;
+    const expressions = [
+      useCase.returnTypeExpression,
+      ...useCase.parameters.map((parameter) => parameter.typeExpression),
+    ];
+    for (const entity of entities) {
+      if (expressions.some((expression) => new RegExp(`\\b${entity.name}\\b`).test(expression))) {
+        needed.add(entity.name);
+      }
+    }
+  }
+
+  return [...needed].toSorted(compareText).flatMap((name) => {
+    const entity = entities.find((candidate) => candidate.name === name);
+    if (entity === undefined) return [];
+    return [
+      {
+        from: relativeImportPath(SERVER_ACCESS_FILE_PATH, entity.filePath),
+        names: [entity.exportName],
+        typeOnly: true,
+      },
+    ];
+  });
 }
 
 function renderAccessField(useCase: ApplicationUseCase): string {

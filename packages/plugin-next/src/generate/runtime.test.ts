@@ -223,6 +223,9 @@ describe("Given runtime apiKey defaults and stable sort ties", () => {
       'import type { Principal } from "../../core/domain/auth-principal.ts";',
     );
     expect(serverAccess.contents).toContain(
+      'import type { Item } from "../../core/domain/item.ts";',
+    );
+    expect(serverAccess.contents).toContain(
       'const rscPrincipal: Principal = { id: "rsc", scheme: "in-process", scopes: [] };',
     );
     expect(serverAccess.contents).toContain(
