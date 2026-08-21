@@ -19,6 +19,7 @@ lists remain for historical traceability.
 | [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                                 | Design reference — generator auth; Petstore `getPetById` apiKey is a follow-up spec   |
 | [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                           | Partial — generator support + auth fixture; Petstore header apiKey not yet on dogfood |
 | [Petstore header apiKey design](./superpowers/specs/2026-08-21-petstore-header-apikey-design.md)             | Design — apply `api_key` to Hono Petstore `getPetById` dogfood                        |
+| [Petstore header apiKey plan](./superpowers/plans/2026-08-21-petstore-header-apikey.md)                      | Implementation plan — Hono dogfood + Next RSC wrap                                    |
 | [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                                  | Delivered (#7)                                                                        |
 | [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)            | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later                    |
 | [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md)     | Delivered — 90% gate green for generator packages                                     |
