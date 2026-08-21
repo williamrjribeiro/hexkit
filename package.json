@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "ready": "vp run -r build && vp check && vp run -r test",
+    "ready": "vp run -r build && vp check && vp run -r test && vp run coverage",
     "dev": "vp run @hexkit/cli#dev",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "coverage": "vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

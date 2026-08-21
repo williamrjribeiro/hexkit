@@ -27,8 +27,11 @@ primary validation gate before PoC sign-off.
 | GitHub Actions CI                                       | Not yet — local dogfood only for PoC                              |
 
 **Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
-(`vp run -r build` then `vp run -r test`). `apps/petstore-next` has no app test
-suite by design (`@hexkit/plugin-next` and CLI tests cover the generator).
+(`vp run -r build` then `vp run -r test`). Generator packages (`packages/*` +
+`apps/cli`) also enforce a **90% Vitest coverage gate** via `vp run coverage`
+(wired into `vp run ready`). Meeting that bar is follow-up work; the gate may
+fail until coverage is raised. `apps/petstore-next` has no app test suite by
+design (`@hexkit/plugin-next` and CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
@@ -65,7 +68,7 @@ Install dependencies:
 vp install
 ```
 
-Run all checks, tests, and builds:
+Run all checks, tests, builds, and the generator coverage gate:
 
 ```bash
 vp run ready
@@ -77,7 +80,12 @@ Run an individual stage:
 vp run -r build
 vp check
 vp run -r test
+vp run coverage
 ```
+
+`vp run coverage` runs Vitest with `@vitest/coverage-v8` for `packages/*` and
+`apps/cli` only (shared thresholds in `coverage.config.ts`: 90% statements,
+branches, functions, and lines). Dogfood apps are excluded.
 
 Start the CLI package in watch mode:
 

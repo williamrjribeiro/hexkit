@@ -19,7 +19,8 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test run --passWithNoTests",
-    "check": "vp check"
+    "check": "vp check",
+    "coverage": "vp test run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@hexkit/core": "workspace:*",

@@ -32,7 +32,8 @@
     "dev": "vp pack --watch",
     "test": "vp test run --passWithNoTests",
     "check": "vp check",
-    "prepublishOnly": "vp run build"
+    "prepublishOnly": "vp run build",
+    "coverage": "vp test run --coverage --passWithNoTests"
   },
   "dependencies": {
     "@hexkit/codegen": "workspace:*",

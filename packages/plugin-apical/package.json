@@ -33,7 +33,8 @@
     "generate:petstore": "craft generate --server --routes -i ../../apps/petstore-sample/openapi.yaml -o ./generated/petstore",
     "test": "vp test run",
     "check": "vp check",
-    "prepublishOnly": "vp run build"
+    "prepublishOnly": "vp run build",
+    "coverage": "vp test run --coverage"
   },
   "dependencies": {
     "@apical-ts/craft": "catalog:",

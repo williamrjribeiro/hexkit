@@ -16,6 +16,7 @@ catalog:
   "@standard-schema/spec": ^1.1.0
   "@types/node": ^24
   "@types/pg": ^8.20.3
+  "@vitest/coverage-v8": 4.1.10
   drizzle-orm: ^0.45.2
   hono: ^4.12.33
   pactum: ^3.9.1
