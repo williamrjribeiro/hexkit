@@ -38,7 +38,6 @@ export type {
 } from "./column.ts";
 export { columnsWithForeignKeys, deriveColumn } from "./column.ts";
 export type { PersistenceMethodKind } from "./method-kind.ts";
-export { refineMethodKind, resolveMethodKind } from "./method-kind.ts";
 export type { PersistenceRepositoryMethodModel, PersistenceRepositoryModel } from "./repository.ts";
 export { deriveRepository } from "./repository.ts";
 export type { PersistenceTableModel } from "./table.ts";

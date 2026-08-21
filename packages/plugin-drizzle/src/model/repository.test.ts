@@ -147,6 +147,28 @@ describe("deriveRepository", () => {
     });
   });
 
+  it("when hexagonal classifies a parameterized array GET as list, then drizzle keeps list", () => {
+    const operationsById = new Map([["findWidgets", operation("findWidgets", "get")]] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "findWidgets",
+          name: "findWidgets",
+          action: "get",
+          parameters: [{ name: "status", typeExpression: "string" }],
+          returnTypeExpression: "Array<Widget>",
+          resultCardinality: "many",
+          persistenceKind: "list",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]?.kind).toBe("list");
+  });
+
   it("when hexagonal publishes persistenceKind, then drizzle uses it instead of re-parsing action", () => {
     const operationsById = new Map([
       ["searchWidgets", operation("searchWidgets", "post")],

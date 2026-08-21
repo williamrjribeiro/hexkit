@@ -89,7 +89,12 @@ function kindFromActionOrHttp(action: string, httpMethod: ContractHttpMethod): P
   if (normalized === "list" || normalized === "findall" || normalized === "index") {
     return "list";
   }
-  if (normalized === "gethealth" || normalized === "health" || normalized === "readiness") {
+  if (
+    normalized === "gethealth" ||
+    normalized === "health" ||
+    normalized === "healthcheck" ||
+    normalized === "readiness"
+  ) {
     return "stub";
   }
   if (

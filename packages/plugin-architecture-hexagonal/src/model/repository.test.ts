@@ -113,6 +113,13 @@ describe("Given a repository action", () => {
       expected: "stub",
     },
     {
+      action: "healthcheck",
+      httpMethod: "get",
+      resultCardinality: "one",
+      parameterCount: 1,
+      expected: "stub",
+    },
+    {
       action: "get",
       httpMethod: "post",
       resultCardinality: "one",

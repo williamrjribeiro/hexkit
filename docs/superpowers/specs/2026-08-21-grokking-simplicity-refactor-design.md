@@ -124,7 +124,7 @@ Split `model/` into `column.ts`, `table.ts`, `method-kind.ts`, `repository.ts`, 
 
 Renderers take complete Data: no `??` parameter fallbacks, no filter/map then throw if `foreignKey` missing. Delete getter-hack tests in `render-edges.test.ts`.
 
-Export `resolveMethodKind`, `refineMethodKind`, `orderTablesByDependency`, `deriveColumn` for table-driven tests.
+Export `orderTablesByDependency`, `deriveColumn` for table-driven tests. Persistence kind is hexagonal `persistenceKind` only — drizzle must not keep a second classifier.
 
 ### `@hexkit/plugin-hono`
 

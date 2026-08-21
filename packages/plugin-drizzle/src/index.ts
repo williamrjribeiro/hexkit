@@ -12,8 +12,6 @@ export {
   derivePersistenceModel,
   mapperFunctionName,
   orderTablesByDependency,
-  refineMethodKind,
-  resolveMethodKind,
   toPersistenceArtifact,
   type PersistenceColumnModel,
   type PersistenceColumnSqlType,
