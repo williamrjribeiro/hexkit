@@ -147,6 +147,28 @@ describe("deriveRepository", () => {
     });
   });
 
+  it("when hexagonal publishes persistenceKind, then drizzle uses it instead of re-parsing action", () => {
+    const operationsById = new Map([["searchWidgets", operation("searchWidgets", "post")]] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "searchWidgets",
+          name: "searchWidgets",
+          action: "search",
+          parameters: [],
+          returnTypeExpression: "Array<Widget>",
+          resultCardinality: "many",
+          persistenceKind: "list",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]?.kind).toBe("list");
+  });
+
   it("when the aggregate has no persisted table, then deriveRepository throws", () => {
     expect(() => deriveRepository(applicationRepository([]), new Map(), new Map())).toThrow(
       'Application repository aggregate "Widget" has no schema with x-hexkit.persistence.',

@@ -6,8 +6,8 @@ export type PersistenceMethodKind = "delete" | "insert" | "list" | "select" | "s
  * Classifies a repository method from the hexagonal action, falling back to
  * the contract HTTP method when the action is not a known synonym.
  *
- * Hexagonal `persistenceKind` is consumed in a later integration task; this
- * calculation still owns the vocabulary for Wave 1.
+ * `deriveRepository` prefers hexagonal `persistenceKind`. These calculations
+ * remain for tests and any caller that has only action + HTTP.
  */
 export function resolveMethodKind(
   operation: ContractOperation,

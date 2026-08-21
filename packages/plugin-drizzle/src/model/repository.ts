@@ -2,7 +2,7 @@ import { toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { ContractOperation } from "@hexkit/plugin-apical";
 import type { ApplicationRepository } from "@hexkit/plugin-architecture-hexagonal";
 
-import { refineMethodKind, resolveMethodKind, type PersistenceMethodKind } from "./method-kind.ts";
+import type { PersistenceMethodKind } from "./method-kind.ts";
 import type { PersistenceTableModel } from "./table.ts";
 
 export type PersistenceRepositoryMethodModel = {
@@ -49,10 +49,7 @@ export function deriveRepository(
       name: parameter.name,
       typeExpression: parameter.typeExpression,
     }));
-    const kind = refineMethodKind(resolveMethodKind(operation, method.action), {
-      parameterCount: parameters.length,
-      returnsArray: method.returnTypeExpression.startsWith("Array<"),
-    });
+    const kind = method.persistenceKind;
     const firstParameterName = parameters[0]?.name;
 
     return {
