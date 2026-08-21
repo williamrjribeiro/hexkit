@@ -1,3 +1,4 @@
+import { compareText, unique } from "@hexkit/codegen";
 import type {
   ApplicationArtifact,
   ApplicationUseCase,
@@ -7,6 +8,7 @@ import type {
   ContractHttpMethod,
   ContractMedia,
   ContractOperation,
+  ContractResponse,
 } from "@hexkit/plugin-apical";
 
 import type {
@@ -48,13 +50,17 @@ export function deriveNextHttpModel(
       return deriveMethodBinding(operation, useCase, contract.securitySchemes);
     });
 
-  const routes =
-    surface === "rsc" ? [] : groupMethodBindingsIntoRoutes(methodBindings, contract.operations);
+  const routes = surface === "rsc" ? [] : groupMethodBindingsIntoRoutes(methodBindings);
 
   const uiPages =
     surface === "routes"
       ? []
-      : deriveUiPages(contract.operations, methodBindings, surface === "both" ? "both" : "rsc");
+      : deriveUiPages(
+          contract.operations,
+          methodBindings,
+          useCasesByOperationId,
+          surface === "both" ? "both" : "rsc",
+        );
 
   const authenticator =
     application.authenticatorPort === undefined
@@ -79,14 +85,20 @@ function deriveMethodBinding(
   useCase: ApplicationUseCase,
   securitySchemes: readonly ContractSecurityScheme[],
 ): NextMethodBinding & { openApiPath: string } {
-  const jsonSuccessMedia = findJsonMedia(
-    operation.responses.find((response) => isSuccessStatus(response.status))?.media ?? [],
-  );
+  const successResponse = findSuccessResponse(operation);
+  if (successResponse === undefined) {
+    throw new Error(
+      `Operation "${operation.operationId}" has no 2xx response for HTTP adapter generation.`,
+    );
+  }
+
+  const jsonSuccessMedia = findJsonMedia(successResponse.media);
   const hasJsonBody = Boolean(
     operation.requestBody?.media.some(
       (media) => media.mediaType === "application/json" && media.type !== undefined,
     ),
   );
+  const hasNotFound = operation.responses.some((response) => response.status === "404");
   const responseMapName =
     jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
 
@@ -95,7 +107,9 @@ function deriveMethodBinding(
     method: toNextMethod(operation.method),
     operationId: operation.operationId,
     useCaseTypeName: useCase.typeName,
+    useCaseFactoryName: useCase.factoryName,
     useCaseFilePath: useCase.filePath,
+    repositoryParameterName: useCase.repositoryParameterName,
     wrapperName: `${operation.operationId}Wrapper`,
     wrapperImportPath: `src/generated/contracts/server/${operation.operationId}.ts`,
     ...(responseMapName === undefined
@@ -105,18 +119,19 @@ function deriveMethodBinding(
           responseMapImportPath: `src/generated/contracts/${operation.modulePath}`,
         }),
     hasJsonBody,
+    hasJsonSuccessBody: jsonSuccessMedia !== undefined,
+    successStatus: successResponse.status,
+    ...(hasNotFound ? { notFoundStatus: "404" } : {}),
+    ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
     requiresPrincipal: useCase.requiresAuth,
     authSchemes: useCase.requiresAuth ? deriveAuthSchemes(operation, securitySchemes) : [],
+    useCaseArgumentExpressions: deriveUseCaseArguments(useCase, hasJsonBody),
   };
 }
 
 function groupMethodBindingsIntoRoutes(
   methodBindings: readonly (NextMethodBinding & { openApiPath: string })[],
-  operations: readonly ContractOperation[],
 ): NextRouteFile[] {
-  const operationsByPath = new Map(
-    operations.map((operation) => [operation.operationId, operation] as const),
-  );
   const routesByPath = new Map<string, NextMethodBinding[]>();
 
   for (const binding of methodBindings) {
@@ -132,11 +147,9 @@ function groupMethodBindingsIntoRoutes(
       filePath: openApiPathToAppRouteFile(openApiPath),
       openApiPath,
       methods: methods.toSorted((left, right) => {
-        const leftOperation = operationsByPath.get(left.operationId);
-        const rightOperation = operationsByPath.get(right.operationId);
         const methodCompare = compareText(left.method, right.method);
         if (methodCompare !== 0) return methodCompare;
-        return compareText(leftOperation?.operationId ?? "", rightOperation?.operationId ?? "");
+        return compareText(left.operationId, right.operationId);
       }),
     }));
 }
@@ -144,6 +157,7 @@ function groupMethodBindingsIntoRoutes(
 function deriveUiPages(
   operations: readonly ContractOperation[],
   methodBindings: readonly (NextMethodBinding & { openApiPath: string })[],
+  useCasesByOperationId: ReadonlyMap<string, ApplicationUseCase>,
   surface: "both" | "rsc",
 ): NextUiPage[] {
   const bindingsByOperationId = new Map(
@@ -155,7 +169,8 @@ function deriveUiPages(
     .toSorted((left, right) => compareText(left.operationId, right.operationId))
     .flatMap((operation) => {
       const binding = bindingsByOperationId.get(operation.operationId);
-      if (binding === undefined) {
+      const useCase = useCasesByOperationId.get(operation.operationId);
+      if (binding === undefined || useCase === undefined) {
         throw new Error(
           `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
         );
@@ -171,9 +186,22 @@ function deriveUiPages(
           operationId: operation.operationId,
           useCaseAccessorName: operation.operationId,
           paramNames: extractPathParamNames(operation.path),
+          parameters: useCase.parameters,
         },
       ];
     });
+}
+
+function deriveUseCaseArguments(useCase: ApplicationUseCase, hasJsonBody: boolean): string[] {
+  const principalExpression = useCase.requiresAuth ? ["principal"] : [];
+  if (hasJsonBody) {
+    return [...principalExpression, "request.value.body"];
+  }
+
+  return [
+    ...principalExpression,
+    ...useCase.parameters.map((parameter) => `request.value.path.${parameter.name}`),
+  ];
 }
 
 function deriveAuthSchemes(
@@ -209,6 +237,10 @@ function extractPathParamNames(openApiPath: string): string[] {
   return [...matches].map((match) => match[1] ?? "").filter((name) => name.length > 0);
 }
 
+function findSuccessResponse(operation: ContractOperation): ContractResponse | undefined {
+  return operation.responses.find((response) => isSuccessStatus(response.status));
+}
+
 function findJsonMedia(media: readonly ContractMedia[]): ContractMedia | undefined {
   return media.find((entry) => entry.mediaType === "application/json" && entry.type !== undefined);
 }
@@ -217,17 +249,9 @@ function isSuccessStatus(status: string): boolean {
   return /^2\d\d$/.test(status);
 }
 
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
-}
-
 function toNextMethod(method: ContractHttpMethod): NextMethodBinding["method"] {
   if (method === "trace") {
     throw new Error(`HTTP method "trace" is not supported by the Next.js adapter.`);
   }
   return method;
-}
-
-function unique<T>(values: readonly T[]): T[] {
-  return [...new Set(values)];
 }

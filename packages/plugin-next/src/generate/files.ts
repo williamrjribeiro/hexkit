@@ -33,14 +33,12 @@ export function generateNextDalFromArtifacts(
 
   const files: GeneratedFile[] = [
     renderServerAccessFile(model, application),
-    ...(includesRoutes
-      ? [renderHelpersFile(model), renderControllersFile(model, contract, application)]
-      : []),
+    ...(includesRoutes ? [renderHelpersFile(model), renderControllersFile(model)] : []),
     ...(includesRoutes && model.authenticator !== undefined ? [renderAuthAdapterFile()] : []),
     ...(includesRoutes
       ? [renderRuntimeFile(model, application), ...renderRouteFiles(model.routes)]
       : []),
-    ...renderPageFiles(model, application),
+    ...renderPageFiles(model),
   ];
 
   return {
