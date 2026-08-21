@@ -1,6 +1,6 @@
 # Design: OpenAPI Authentication Support in Hexkit
 
-**Status:** Partially implemented (August 2026) — auth fixture + generator wiring on `main`; `openapi.poc.yaml` stays auth-free for PoC  
+**Status:** Partially implemented (August 2026) — auth fixture + generator wiring on `main`; Petstore PoC `getPetById` header `api_key` is specified in [2026-08-21-petstore-header-apikey-design.md](./2026-08-21-petstore-header-apikey-design.md)  
 **Date:** 2026-08-05  
 **Companion:** [RFC.md](../../../RFC.md), [PRD.md](../../../PRD.md)  
 **Implementation plan:** [2026-08-05-openapi-auth.md](../plans/2026-08-05-openapi-auth.md)

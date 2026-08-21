@@ -1,6 +1,6 @@
 # Design: Petstore header `apiKey` on Hono dogfood
 
-**Status:** Design approved 2026-08-21 — awaiting implementation plan  
+**Status:** Implementing 2026-08-21 (dogfood pending)  
 **Date:** 2026-08-21  
 **Tracker:** [docs/petstore-openapi-progress.md](../../petstore-openapi-progress.md) (cross-cutting: Header `apiKey` security)  
 **Companions:** [OpenAPI auth design](./2026-08-05-openapi-auth-design.md), [PRD.md](../../../PRD.md), [RFC.md](../../../RFC.md)
