@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   buildCraftGenerateArgs,
+  formatCraftFailure,
   generateContracts,
   type CraftRunner,
   type GenerateContractsOptions,
@@ -44,6 +45,41 @@ describe("buildCraftGenerateArgs", () => {
         client: true,
       }),
     ).toEqual(["generate", "-i", "openapi.yaml", "-o", "generated", "--client"]);
+  });
+});
+
+describe("formatCraftFailure", () => {
+  it("when stdout and stderr have details, then they are included after the prefix", () => {
+    expect(
+      formatCraftFailure({
+        status: 2,
+        signal: null,
+        stdout: "hint",
+        stderr: "boom",
+      }),
+    ).toBe("apical-ts craft failed:\nboom\nhint");
+  });
+
+  it("when craft exits without output, then the exit code is reported", () => {
+    expect(
+      formatCraftFailure({
+        status: 1,
+        signal: null,
+        stdout: "",
+        stderr: "  ",
+      }),
+    ).toBe("apical-ts craft failed with exit code 1");
+  });
+
+  it("when craft is terminated by a signal without output, then the signal is reported", () => {
+    expect(
+      formatCraftFailure({
+        status: null,
+        signal: "SIGTERM",
+        stdout: "",
+        stderr: "",
+      }),
+    ).toBe("apical-ts craft failed with signal SIGTERM");
   });
 });
 

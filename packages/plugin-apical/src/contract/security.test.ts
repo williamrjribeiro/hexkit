@@ -38,6 +38,24 @@ beforeAll(async () => {
   authDocument = (await loadValidatedOpenApi(authContract.pathname)) as Record<string, unknown>;
 });
 
+function securitySchemesOf(document: Record<string, unknown>): Record<string, unknown> {
+  const components = (document.components ?? {}) as Record<string, unknown>;
+  return (components.securitySchemes ?? {}) as Record<string, unknown>;
+}
+
+function resolveSecurity(
+  document: Record<string, unknown>,
+  operation: Record<string, unknown>,
+  pathItem: Record<string, unknown> = {},
+) {
+  return resolveOperationSecurity({
+    operationSecurity: operation.security,
+    pathItemSecurity: pathItem.security,
+    globalSecurity: normalizeGlobalSecurity(document),
+    schemes: normalizeSecuritySchemes(securitySchemesOf(document)),
+  });
+}
+
 function operationAt(
   document: Record<string, unknown>,
   path: "/health" | "/items",
@@ -91,50 +109,26 @@ function serverHeadersSchemaKeys(source: string, schemaName: string): readonly s
 
 describe("OpenAPI security normalization", () => {
   it("when global bearer is set, then listItems requires authorization server header", () => {
-    const schemes = normalizeSecuritySchemes(authDocument);
-    const globalSecurity = normalizeGlobalSecurity(authDocument);
-
-    const security = resolveOperationSecurity(
-      authDocument,
-      operationAt(authDocument, "/items", "get"),
-      schemes,
-      globalSecurity,
-    );
+    const security = resolveSecurity(authDocument, operationAt(authDocument, "/items", "get"));
 
     expect(security.apicalServerHeaderNames).toEqual(["authorization"]);
   });
 
   it("when security is empty, then getHealth has no auth headers", () => {
-    const schemes = normalizeSecuritySchemes(authDocument);
-    const globalSecurity = normalizeGlobalSecurity(authDocument);
-
-    const security = resolveOperationSecurity(
-      authDocument,
-      operationAt(authDocument, "/health", "get"),
-      schemes,
-      globalSecurity,
-    );
+    const security = resolveSecurity(authDocument, operationAt(authDocument, "/health", "get"));
 
     expect(security.requirements).toEqual([]);
     expect(security.apicalServerHeaderNames).toEqual([]);
   });
 
   it("when operation overrides with apiKey, then createItem requires x-api-key only", () => {
-    const schemes = normalizeSecuritySchemes(authDocument);
-    const globalSecurity = normalizeGlobalSecurity(authDocument);
-
-    const security = resolveOperationSecurity(
-      authDocument,
-      operationAt(authDocument, "/items", "post"),
-      schemes,
-      globalSecurity,
-    );
+    const security = resolveSecurity(authDocument, operationAt(authDocument, "/items", "post"));
 
     expect(security.apicalServerHeaderNames).toEqual(["x-api-key"]);
   });
 
   it("when oauth2 scheme is declared, then it is marked unsupported", () => {
-    const schemes = normalizeSecuritySchemes(authDocument);
+    const schemes = normalizeSecuritySchemes(securitySchemesOf(authDocument));
 
     expect(schemes).toContainEqual({
       name: "implicitOAuth",
@@ -163,11 +157,10 @@ describe("OpenAPI security normalization", () => {
         },
       },
     };
-    const schemes = normalizeSecuritySchemes(document);
     const pathItem = (document.paths as Record<string, Record<string, unknown>>)["/items"]!;
     const operation = pathItem.get as Record<string, unknown>;
 
-    const security = resolveOperationSecurity(document, operation, schemes, [], pathItem);
+    const security = resolveSecurity(document, operation, pathItem);
 
     expect(security.overridesGlobal).toBe(true);
     expect(security.apicalServerHeaderNames).toEqual(["x-api-key"]);
@@ -201,10 +194,14 @@ describe("OpenAPI security normalization", () => {
         },
       },
     };
-    const schemes = normalizeSecuritySchemes(document);
+    const schemes = normalizeSecuritySchemes(securitySchemesOf(document));
     const operation = operationAt(document as never, "/items", "get");
 
-    const security = resolveOperationSecurity(document, operation, schemes, []);
+    const security = resolveOperationSecurity({
+      operationSecurity: operation.security,
+      globalSecurity: [],
+      schemes,
+    });
 
     expect(security.apicalServerHeaderNames).toEqual(["authorization"]);
     expect(() =>
@@ -252,11 +249,7 @@ describe("OpenAPI security normalization", () => {
   it("when security scopes are not an array, then normalization fails", () => {
     expect(() =>
       normalizeSecuritySchemes({
-        components: {
-          securitySchemes: {
-            bearerAuth: { type: "http", scheme: "bearer" },
-          },
-        },
+        bearerAuth: { type: "http", scheme: "bearer" },
       }),
     ).not.toThrow();
 
@@ -275,11 +268,7 @@ describe("OpenAPI security normalization", () => {
 
   it("when apiKey is not in header, then the scheme is unsupported", () => {
     const schemes = normalizeSecuritySchemes({
-      components: {
-        securitySchemes: {
-          cookieKey: { type: "apiKey", in: "cookie", name: "session" },
-        },
-      },
+      cookieKey: { type: "apiKey", in: "cookie", name: "session" },
     });
 
     expect(schemes).toEqual([
@@ -294,11 +283,7 @@ describe("OpenAPI security normalization", () => {
 
   it("when http scheme is not bearer, then the scheme is unsupported", () => {
     const schemes = normalizeSecuritySchemes({
-      components: {
-        securitySchemes: {
-          basicAuth: { type: "http", scheme: "basic" },
-        },
-      },
+      basicAuth: { type: "http", scheme: "basic" },
     });
 
     expect(schemes).toEqual([
