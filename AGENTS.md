@@ -30,7 +30,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp check` — format + lint + type-check across the workspace.
 - `vp run -r build` — build every package via `vp pack` (emits `dist/index.mjs` + `.d.mts`). **Run before tests** — workspace packages export from `dist/`.
 - `vp run -r test` — run tests in every package (~100+ tests; some packages use `--passWithNoTests`).
-- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope.
+- `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality.
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
 - `vp run dogfood` — Hono Rich Pet + Order generate → Docker Compose → Pactum API tests (Docker required).

@@ -12,19 +12,19 @@ requirements and acceptance criteria are in [PRD.md](./PRD.md).
 **Stage:** PoC implementation is substantially complete; local dogfood is the
 primary validation gate before PoC sign-off.
 
-| Area                                                    | Status                                                            |
-| ------------------------------------------------------- | ----------------------------------------------------------------- |
-| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts             |
-| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                    |
-| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                   |
-| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                |
-| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`) |
-| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns        |
-| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection          |
-| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                    |
-| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                   |
-| AWS Lambda / SST deploy                                 | Not in PoC scope                                                  |
-| GitHub Actions CI                                       | `.github/workflows/ci.yml` — quality + Hono/auth dogfood (Pactum) |
+| Area                                                    | Status                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts                     |
+| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                            |
+| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                           |
+| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                        |
+| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`)         |
+| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns                |
+| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection                  |
+| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                            |
+| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                           |
+| AWS Lambda / SST deploy                                 | Not in PoC scope                                                          |
+| GitHub Actions CI                                       | `.github/workflows/ci.yml` — quality (incl. coverage) + Hono/auth dogfood |
 
 **Automated tests:** ~100+ Vitest cases across plugins, CLI, and dogfood packages
 (`vp run -r build` then `vp run -r test`). Generator packages (`packages/*` +
@@ -42,7 +42,7 @@ design (`@hexkit/plugin-next` and CLI tests cover the generator).
 
 **Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
 §11.1), ongoing dogfood hardening. PR validation runs via GitHub Actions
-(quality checks plus Hono Petstore and Auth API dogfood / Pactum).
+(quality including coverage, plus Hono Petstore and Auth API dogfood / Pactum).
 
 ## Workspace
 
@@ -74,10 +74,9 @@ Run all checks, tests, builds, and the generator coverage gate:
 vp run ready
 ```
 
-CI (`.github/workflows/ci.yml`) runs build, check, and unit tests on pushes to
-`main` and on pull requests, plus Hono Petstore and Auth API dogfood (Compose +
-Pactum). The coverage gate is still local-only via `vp run ready` until the 90%
-thresholds are met.
+CI (`.github/workflows/ci.yml`) runs build, check, unit tests, and the generator
+coverage gate on pushes to `main` and on pull requests, plus Hono Petstore and
+Auth API dogfood (Compose + Pactum).
 
 Run an individual stage:
 

@@ -28,4 +28,3 @@ Weighted aggregate for generator packages before the raise: ~90.6% statements, ~
 ## Non-goals
 
 - Coverage for dogfood / Compose acceptance suites
-- GitHub Actions CI wiring of the coverage job (separate CI PR may still omit it until merged)

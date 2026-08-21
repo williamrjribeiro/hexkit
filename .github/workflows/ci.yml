@@ -26,14 +26,14 @@ jobs:
           cache: true
           node-version: "24"
 
-      - name: Build, check, and test
+      - name: Build, check, test, and coverage
         # Build must precede tests because workspace packages export from dist/.
-        # Coverage (`vp run coverage`) is intentionally omitted until the 90%
-        # generator gate is green; use `vp run ready` locally to exercise it.
+        # Coverage is the 90% generator gate (`packages/*` + `apps/cli`).
         run: |
           vp run -r build
           vp check
           vp run -r test
+          vp run coverage
 
   dogfood-petstore:
     name: Dogfood (Hono Petstore)
