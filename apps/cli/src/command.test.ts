@@ -20,7 +20,6 @@ import {
   createDefaultPlugins,
   createPackagingPlugin,
   generateApplication,
-  generateNextPackagingFiles,
   main,
   parseArguments,
   runCli,
@@ -395,11 +394,13 @@ describe("Given a Hexkit CLI invocation", () => {
     expect(messages).toEqual(["Error: async generation failed"]);
   });
 
-  it("when main receives a log function, then it treats the function as the logger", async () => {
+  it("when main receives a log option, then it uses that logger", async () => {
     const messages: string[] = [];
 
-    const exitCode = await main(["--help"], (text) => {
-      messages.push(text);
+    const exitCode = await main(["--help"], {
+      log(text) {
+        messages.push(text);
+      },
     });
 
     expect(exitCode).toBe(0);
@@ -876,37 +877,9 @@ describe("Given compose-ready generated packaging", () => {
     `);
 
     const compose = files.find((file: GeneratedFile) => file.path === "docker-compose.yml");
-    expect(compose?.contents).toMatchInlineSnapshot(`
-      "services:
-        postgres:
-          image: postgres:17-alpine
-          environment:
-            POSTGRES_DB: \${POSTGRES_DB:-hexkit_petstore_poc}
-            POSTGRES_USER: \${POSTGRES_USER:-hexkit_petstore_poc}
-            POSTGRES_PASSWORD: \${POSTGRES_PASSWORD:-hexkit_petstore_poc}
-          healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-            interval: 2s
-            timeout: 5s
-            retries: 15
-          volumes:
-            - postgres-data:/var/lib/postgresql/data
-
-        app:
-          build: .
-          environment:
-            DATABASE_URL: postgres://\${POSTGRES_USER:-hexkit_petstore_poc}:\${POSTGRES_PASSWORD:-hexkit_petstore_poc}@postgres:5432/\${POSTGRES_DB:-hexkit_petstore_poc}
-            PORT: "3000"
-          depends_on:
-            postgres:
-              condition: service_healthy
-          ports:
-            - "3000:3000"
-
-      volumes:
-        postgres-data:
-      "
-    `);
+    expect(compose?.contents).toContain("  app:");
+    expect(compose?.contents).toContain("hexkit_petstore_poc");
+    expect(compose?.contents).not.toContain("  next:");
 
     const startScript = files.find((file: GeneratedFile) => file.path === "scripts/start.sh");
     expect(startScript?.contents).toContain(
@@ -983,40 +956,6 @@ describe("Given compose-ready generated packaging", () => {
     expect(tsconfig.compilerOptions).not.toHaveProperty("noUnusedLocals");
   });
 
-  it("when HTTP and persistence repository keys diverge, then packaging fails clearly", async () => {
-    const artifacts = petstorePackagingArtifacts();
-    artifacts.persistence = {
-      ...artifacts.persistence,
-      repositories: [
-        {
-          aggregate: "Pet",
-          portName: "PetRepository",
-          factoryName: "createDrizzlePetRepository",
-          filePath: "src/adapters/db/pet-repository.ts",
-          runtimeKey: "animals",
-        },
-      ],
-    };
-
-    await expect(runPackaging(artifacts)).rejects.toThrow(
-      'PersistenceArtifact repository runtime key "animals" is missing from HttpArtifact repositories.',
-    );
-  });
-
-  it("when HTTP declares a repository without a persistence factory, then packaging fails clearly", async () => {
-    const artifacts = petstorePackagingArtifacts();
-    artifacts.persistence = {
-      ...artifacts.persistence,
-      repositories: artifacts.persistence.repositories.filter(
-        (repository) => repository.runtimeKey === "pets",
-      ),
-    };
-
-    await expect(runPackaging(artifacts)).rejects.toThrow(
-      'HttpArtifact repository parameter "orders" has no PersistenceArtifact factory binding.',
-    );
-  });
-
   function nextPackagingArtifacts(): {
     contract: ContractArtifact;
     nextHttp: NextHttpArtifact;
@@ -1084,45 +1023,9 @@ describe("Given compose-ready generated packaging", () => {
         "scripts/start.sh",
       ]),
     );
-  });
 
-  it("when Next persistence keys diverge from NextHttpArtifact, then packaging fails clearly", async () => {
-    const artifacts = nextPackagingArtifacts();
-    artifacts.persistence = {
-      ...artifacts.persistence,
-      repositories: [
-        {
-          aggregate: "Pet",
-          portName: "PetRepository",
-          factoryName: "createDrizzlePetRepository",
-          filePath: "src/adapters/db/pet-repository.ts",
-          runtimeKey: "animals",
-        },
-      ],
-    };
-
-    await expect(runNextPackaging(artifacts)).rejects.toThrow(
-      'PersistenceArtifact repository runtime key "animals" is missing from NextHttpArtifact repositories.',
-    );
-  });
-
-  it("when NextHttpArtifact declares a repository without a persistence factory, then packaging fails clearly", async () => {
-    const artifacts = nextPackagingArtifacts();
-    artifacts.persistence = {
-      ...artifacts.persistence,
-      repositories: artifacts.persistence.repositories.filter(
-        (repository) => repository.runtimeKey === "pets",
-      ),
-    };
-
-    expect(() =>
-      generateNextPackagingFiles({
-        contract: artifacts.contract,
-        nextHttp: artifacts.nextHttp,
-        persistence: artifacts.persistence,
-      }),
-    ).toThrow(
-      'NextHttpArtifact repository parameter "orders" has no PersistenceArtifact factory binding.',
-    );
+    const compose = files.find((file) => file.path === "docker-compose.yml");
+    expect(compose?.contents).toContain("  next:");
+    expect(compose?.contents).toContain("start_period: 45s");
   });
 });

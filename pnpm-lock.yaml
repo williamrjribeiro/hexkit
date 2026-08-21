@@ -270,6 +270,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@hexkit/codegen':
+        specifier: workspace:*
+        version: link:../../packages/codegen
       '@hexkit/core':
         specifier: workspace:*
         version: link:../../packages/core
