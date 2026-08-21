@@ -235,25 +235,30 @@ Vitest (via Vite+) for individual Hexkit packages in isolation. Prefer pure calc
 
 Vitest tests for packages with real dependencies (e.g. `core` loading plugins, apical invoking craft with controlled fixtures).
 
-### 8.3 End-to-end generation & packaging
+### 8.3 Coverage quality gate
+
+Generator packages (`packages/*` and `apps/cli`) must meet **90%** Vitest coverage on statements, branches, functions, and lines (`coverage.config.ts`, provider `v8`). Run via `vp run coverage` (also chained from `vp run ready`). Dogfood apps and Compose acceptance suites are out of scope for this gate. Wiring the gate is independent of raising coverage; until packages meet the bar, the coverage stage fails by design.
+
+### 8.4 End-to-end generation & packaging
 
 1. Run Hexkit against `openapi.poc.yaml`.
 2. Validate generated source: format + lint + typecheck (same tooling/settings as Hexkit).
 3. Build and package the generated Petstore app with Docker Compose (Hono + Postgres).
 
-### 8.4 API acceptance tests
+### 8.5 API acceptance tests
 
 - Run against the Compose-running app.
 - Implemented with **Vitest + [PactumJS](https://www.npmjs.com/package/pactum)**.
 - Must cover **every operation** in the trimmed OpenAPI, including Pet↔Order relation/persistence behavior.
 
-### 8.5 Failure behavior
+### 8.6 Failure behavior
 
 | Condition                       | Behavior                                   |
 | ------------------------------- | ------------------------------------------ |
 | Invalid or missing OpenAPI path | Non-zero CLI exit + clear message          |
 | Apical craft failure            | Surface craft stderr/stdout; fail pipeline |
 | Protected-zone collision        | Skip write + log; continue                 |
+| Coverage below 90% (generators) | Fail `vp run coverage` / `vp run ready`    |
 | Any dogfood / E2E stage failure | Fail the overall local verification script |
 
 ## 9. Acceptance criteria

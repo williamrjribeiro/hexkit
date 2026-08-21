@@ -19,6 +19,7 @@ lists remain for historical traceability.
 | [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                    | Partial — generator support + auth fixture; PoC contract stays auth-free |
 | [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                           | Delivered (#7)                                                           |
 | [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)     | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later       |
+| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) | Wiring delivered — 90% gate; raising coverage is follow-up            |
 
 ### Specs & plans (detail)
 
@@ -30,3 +31,4 @@ lists remain for historical traceability.
 - [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md) — phased tasks for `@hexkit/plugin-next` and `apps/petstore-next`
 - [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md) — `docker compose up --build` for Next + Postgres, matching Hono dogfood
 - [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md) — Phase 1: nested object/array/`$ref` → JSONB by default (delivered); later `x-hexkit` opt-in for relational tables/FKs
+- [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md) — Vitest v8 coverage for generator packages; 90% thresholds; dogfood excluded
