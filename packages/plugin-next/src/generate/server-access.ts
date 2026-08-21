@@ -1,11 +1,16 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
 import { compareText, renderSourceFile, toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
-import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal";
+import type {
+  ApplicationArtifact,
+  ApplicationUseCase,
+} from "@hexkit/plugin-architecture-hexagonal";
 
 import type { NextHttpModel } from "../artifact.ts";
 import { SERVER_ACCESS_FILE_PATH } from "../model/derive.ts";
 import { relativeImportPath } from "../model/paths.ts";
+
+const RSC_PRINCIPAL = '{ id: "rsc", scheme: "in-process", scopes: [] }';
 
 export function renderServerAccessFile(
   model: NextHttpModel,
@@ -14,12 +19,22 @@ export function renderServerAccessFile(
   const useCases = [...application.useCases].toSorted((left, right) =>
     compareText(left.operationId, right.operationId),
   );
+  const hasSecuredUseCases = useCases.some((useCase) => useCase.requiresAuth);
 
   const imports: ImportDeclaration[] = [
     ...useCases.map((useCase) => ({
       from: relativeImportPath(SERVER_ACCESS_FILE_PATH, useCase.filePath),
-      names: [useCase.factoryName, useCase.typeName],
+      names: useCase.requiresAuth ? [useCase.factoryName] : [useCase.factoryName, useCase.typeName],
     })),
+    ...(hasSecuredUseCases
+      ? [
+          {
+            from: relativeImportPath(SERVER_ACCESS_FILE_PATH, "src/core/domain/auth-principal.ts"),
+            names: ["Principal"],
+            typeOnly: true,
+          },
+        ]
+      : []),
     ...model.repositories.map((repository) => ({
       from: relativeImportPath(SERVER_ACCESS_FILE_PATH, repository.filePath),
       names: [repository.name],
@@ -41,14 +56,9 @@ export function renderServerAccessFile(
   const repositoryFields = model.repositories
     .map((repository) => `  ${repository.parameterName}: ${repository.name};`)
     .join("\n");
-  const accessFields = useCases
-    .map((useCase) => `  ${useCase.operationId}: ${useCase.typeName};`)
-    .join("\n");
+  const accessFields = useCases.map((useCase) => `  ${renderAccessField(useCase)}`).join("\n");
   const repositoryBindings = useCases
-    .map(
-      (useCase) =>
-        `    ${useCase.operationId}: ${useCase.factoryName}(repositories.${useCase.repositoryParameterName}),`,
-    )
+    .map((useCase) => `    ${renderAccessBinding(useCase)},`)
     .join("\n");
   const drizzleBindings = model.repositories
     .map(
@@ -62,6 +72,7 @@ export function renderServerAccessFile(
     ["export type ServerAccess = {", accessFields, "};"].join("\n"),
     "let cachedRepositories: RuntimeRepositories | undefined;",
     "let cachedAccess: ServerAccess | undefined;",
+    ...(hasSecuredUseCases ? [`const rscPrincipal: Principal = ${RSC_PRINCIPAL};`] : []),
     [
       "function getRepositories(): RuntimeRepositories {",
       "  if (cachedRepositories === undefined) {",
@@ -95,4 +106,27 @@ export function renderServerAccessFile(
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
+}
+
+function renderAccessField(useCase: ApplicationUseCase): string {
+  if (!useCase.requiresAuth) {
+    return `${useCase.operationId}: ${useCase.typeName};`;
+  }
+
+  const parameters = useCase.parameters
+    .map((parameter) => `${parameter.name}: ${parameter.typeExpression}`)
+    .join(", ");
+  return `${useCase.operationId}: (${parameters}) => Promise<${useCase.returnTypeExpression}>;`;
+}
+
+function renderAccessBinding(useCase: ApplicationUseCase): string {
+  const factoryCall = `${useCase.factoryName}(repositories.${useCase.repositoryParameterName})`;
+  if (!useCase.requiresAuth) {
+    return `${useCase.operationId}: ${factoryCall}`;
+  }
+
+  const argNames = useCase.parameters.map((parameter) => parameter.name);
+  const wrapperArgs = argNames.join(", ");
+  const callArgs = ["rscPrincipal", ...argNames].join(", ");
+  return `${useCase.operationId}: (${wrapperArgs}) => ${factoryCall}(${callArgs})`;
 }

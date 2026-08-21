@@ -169,4 +169,117 @@ describe("Given runtime apiKey defaults and stable sort ties", () => {
     expect(() => renderRuntimeFile(model, application)).not.toThrow();
     expect(() => renderServerAccessFile(model, application)).not.toThrow();
   });
+
+  it("when a use case requires auth, then server-access wraps it with a trusted in-process principal", () => {
+    const contract = baseContract({
+      securitySchemes: [{ name: "api_key", type: "apiKey", in: "header", headerName: "api_key" }],
+      operations: [
+        {
+          operationId: "getItem",
+          method: "get",
+          path: "/items/{itemId}",
+          modulePath: "routes/getItem.ts",
+          parameters: [
+            {
+              name: "itemId",
+              location: "path",
+              required: true,
+              type: { kind: "integer", nullable: false },
+            },
+          ],
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [{ mediaType: "application/json", type: itemReference }],
+            },
+          ],
+          security: {
+            overridesGlobal: true,
+            requirements: [{ schemes: ["api_key"], scopes: { api_key: [] } }],
+            apicalServerHeaderNames: ["api_key"],
+          },
+          extension: { aggregate: "Item", action: "get" },
+        },
+      ],
+    });
+    const application = baseApplication(
+      [
+        baseUseCase({
+          operationId: "getItem",
+          typeName: "GetItem",
+          factoryName: "createGetItem",
+          requiresAuth: true,
+          parameters: [{ name: "itemId", typeExpression: "number" }],
+          returnTypeExpression: "Item | undefined",
+        }),
+      ],
+      { authenticator: true },
+    );
+    const model = deriveNextHttpModel(contract, application, { surface: "rsc" });
+    const serverAccess = renderServerAccessFile(model, application);
+
+    expect(serverAccess.contents).toContain(
+      'import type { Principal } from "../../core/domain/auth-principal.ts";',
+    );
+    expect(serverAccess.contents).toContain(
+      'const rscPrincipal: Principal = { id: "rsc", scheme: "in-process", scopes: [] };',
+    );
+    expect(serverAccess.contents).toContain(
+      "getItem: (itemId: number) => Promise<Item | undefined>;",
+    );
+    expect(serverAccess.contents).toContain(
+      "getItem: (itemId) => createGetItem(repositories.itemRepository)(rscPrincipal, itemId),",
+    );
+    expect(serverAccess.contents).not.toContain("getItem: GetItem;");
+  });
+
+  it("when a use case does not require auth, then server-access keeps the use-case type and factory bind", () => {
+    const contract = baseContract({
+      operations: [
+        {
+          operationId: "getItem",
+          method: "get",
+          path: "/items/{itemId}",
+          modulePath: "routes/getItem.ts",
+          parameters: [
+            {
+              name: "itemId",
+              location: "path",
+              required: true,
+              type: { kind: "integer", nullable: false },
+            },
+          ],
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [{ mediaType: "application/json", type: itemReference }],
+            },
+          ],
+          security: {
+            overridesGlobal: true,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
+          extension: { aggregate: "Item", action: "get" },
+        },
+      ],
+    });
+    const application = baseApplication([
+      baseUseCase({
+        operationId: "getItem",
+        typeName: "GetItem",
+        factoryName: "createGetItem",
+        parameters: [{ name: "itemId", typeExpression: "number" }],
+        returnTypeExpression: "Item | undefined",
+      }),
+    ]);
+    const model = deriveNextHttpModel(contract, application, { surface: "rsc" });
+    const serverAccess = renderServerAccessFile(model, application);
+
+    expect(serverAccess.contents).toContain("getItem: GetItem;");
+    expect(serverAccess.contents).toContain("getItem: createGetItem(repositories.itemRepository),");
+    expect(serverAccess.contents).not.toContain("rscPrincipal");
+  });
 });
