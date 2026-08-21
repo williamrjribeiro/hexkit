@@ -41,6 +41,8 @@ describe("renderRepositoryFile", () => {
             { name: "tag", typeExpression: "Tag" },
           ],
           returnTypeExpression: "Order",
+          resultCardinality: "one",
+          persistenceKind: "insert",
           referencedSchemas: ["Tag", "Pet", "Order", "Pet"],
         },
       ],

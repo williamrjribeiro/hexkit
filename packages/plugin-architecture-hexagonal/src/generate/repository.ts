@@ -1,5 +1,5 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, toKebabCase } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase, unique } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { RepositoryModel } from "../model/derive.ts";
@@ -29,12 +29,4 @@ export function renderRepositoryFile(repository: RepositoryModel): GeneratedFile
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
-}
-
-function unique(values: readonly string[]): string[] {
-  return [...new Set(values)];
-}
-
-function compareText(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

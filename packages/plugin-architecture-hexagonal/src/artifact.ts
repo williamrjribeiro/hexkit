@@ -11,12 +11,18 @@ export type ApplicationParameter = {
   typeExpression: string;
 };
 
+export type ResultCardinality = "one" | "many" | "void";
+
+export type PersistenceKind = "insert" | "update" | "delete" | "select" | "list" | "stub";
+
 export type ApplicationRepositoryMethod = {
   operationId: string;
   name: string;
   action: string;
   parameters: readonly ApplicationParameter[];
   returnTypeExpression: string;
+  resultCardinality: ResultCardinality;
+  persistenceKind: PersistenceKind;
 };
 
 export type ApplicationRepository = {
