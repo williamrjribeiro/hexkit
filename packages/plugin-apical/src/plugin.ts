@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { GenerationContext, HexkitPlugin } from "@hexkit/plugin-api";
@@ -11,6 +11,7 @@ import {
   type OpenApiLoader,
 } from "./contract/index.ts";
 import { generateContracts, type CraftRunner } from "./generate-contracts.ts";
+import { scrubUnusedCraftServerImports } from "./scrub-craft-imports.ts";
 
 export type GeneratedFileReader = (path: string) => Promise<string>;
 
@@ -38,6 +39,8 @@ export function createApicalPlugin(options: ApicalPluginOptions = {}): HexkitPlu
         options.runCraft,
       );
 
+      await scrubCraftServerWrappers(contractsDirectory);
+
       const openApi = await (options.loadOpenApi ?? loadValidatedOpenApi)(context.inputPath);
       const readIndex = options.readGeneratedFile ?? readGeneratedFile;
       const [schemasIndex, routesIndex] = await Promise.all([
@@ -57,4 +60,30 @@ export function createApicalPlugin(options: ApicalPluginOptions = {}): HexkitPlu
       });
     },
   };
+}
+
+async function scrubCraftServerWrappers(contractsDirectory: string): Promise<void> {
+  const serverDirectory = join(contractsDirectory, "server");
+  let entries: string[];
+  try {
+    entries = await readdir(serverDirectory);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+
+  await Promise.all(
+    entries
+      .filter((name) => name.endsWith(".ts") && name !== "index.ts")
+      .map(async (name) => {
+        const path = join(serverDirectory, name);
+        const before = await readFile(path, "utf8");
+        const after = scrubUnusedCraftServerImports(before);
+        if (after !== before) {
+          await writeFile(path, after, "utf8");
+        }
+      }),
+  );
 }
