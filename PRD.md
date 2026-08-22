@@ -38,7 +38,6 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 - GraphQL, gRPC, AsyncAPI.
 - Multiple languages, web frameworks, ORMs, or databases.
 - A general-purpose code-generation framework.
-- CI / GitHub Actions PR validation (local dogfood only for PoC; CI is a follow-up).
 
 ## 3. PoC scope
 
@@ -225,7 +224,10 @@ Do not silently overwrite protected files.
 
 ## 8. Testing strategy
 
-All tests run **locally** for the PoC. CI / GitHub Actions are explicitly deferred.
+Tests run locally and in GitHub Actions. `.github/workflows/ci.yml` runs three
+parallel jobs on `main` and pull requests: **Quality** (Hexkit build/lint/unit
+tests/coverage), **Dogfood API** (generated Hono Pet Shop + Pactum), and
+**Dogfood NextJS** (generated Next Pet Shop lint/build).
 
 ### 8.1 Unit tests
 
@@ -273,7 +275,7 @@ The Hexkit PoC is complete when all of the following are true:
 6. **Relation:** For the Petstore dogfood contract, Pet and Order persist in PostgreSQL with correct relational behavior (`petId` / FK-style integrity as defined by that contract and the derived schema). Nested Pet `category`, `photoUrls`, and `tags` persist as JSONB; Category and Tag are domain types only (no tables).
 7. **Extension:** Re-running generation does not overwrite existing protected use-case files; new missing protected skeletons may still be added.
 8. **Local dogfood:** Developers can locally run unit tests, package integration tests, Compose-based E2E bring-up, and Vitest+PactumJS API tests successfully.
-9. **No SST/auth/XML/Users** required for the green bar.
+9. **No SST/OAuth/XML/Users** required for the green bar (header `api_key` on `getPetById` is in-slice).
 
 ## 10. Milestones
 
@@ -283,7 +285,7 @@ August 2026 main-branch state.
 | #   | Milestone                                                                                                | Status                                       |
 | --- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring | Done                                         |
-| 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, no auth)           | Done                                         |
+| 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, header `api_key` on `getPetById`) | Done                                         |
 | 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                           | Done                                         |
 | 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)       | Done                                         |
 | 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation              | Done                                         |
@@ -294,7 +296,7 @@ August 2026 main-branch state.
 Detail (normative requirements unchanged):
 
 1. **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring.
-2. **Contracts** — `plugin-apical` end-to-end; author `openapi.poc.yaml` (Pet↔Order dogfood fixture, JSON only, no auth).
+2. **Contracts** — `plugin-apical` end-to-end; author `openapi.poc.yaml` (Pet↔Order dogfood fixture, JSON only, header `api_key` on `getPetById`).
 3. **Hexagonal skeleton** — `plugin-architecture-hexagonal` derives domain/ports/use-case skeletons + protected zones **from Apical contracts** (prove with Petstore fixture; no hardcoded Pet/Order in the plugin).
 4. **HTTP adapter** — `plugin-hono` derives JSON routes/controllers from Apical operations (default; fixture-driven tests only). Opt-in `plugin-next` emits OpenAPI Route Handlers and/or RSC pages (`--http next`, `--next-surface both|routes|rsc`).
 5. **Persistence** — `plugin-drizzle` derives Postgres schema, repos, and Zod DB-read validation from contracts/ports (Pet↔Order appears in the dogfood contract, not in plugin literals). Nested object / array / `$ref` properties on persisted schemas store as JSONB; scalar `x-hexkit.reference` remains the FK path.
@@ -309,7 +311,6 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore sur
 - SST / AWS Lambda generation and deploy verification.
 - Authentication: see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/specs/2026-08-21-petstore-header-apikey-design.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`. Petstore PoC dogfood requires header `api_key` on `getPetById` (`AUTH_API_KEYS` / `test-key`). Bearer remains on `apps/fixtures/auth-api/`. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
 - Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` already persist as JSONB (Phase 1 delivered). Property-level relational opt-in remains Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`. Per-feature Hono/Next status lives in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) and must stay current.
-- GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
 - Automated tests for `apps/petstore-next` (the vanilla PetShop Next fixture has no Vitest/Pactum/Playwright suite; `plugin-next` and CLI tests cover the generator).
 
@@ -335,7 +336,7 @@ Delivered as an extension to the Hono-first PoC (see `docs/superpowers/specs/202
 | Contract               | Trimmed `openapi.poc.yaml` (Petstore 3.1 Pet+Order subset); original YAML untouched        |
 | Baseline operations    | add/update/get/delete Pet; place/get/delete Order (**sample fixture**, not plugin IR)      |
 | Media types            | JSON only                                                                                  |
-| Auth                   | None                                                                                       |
+| Auth                   | Header `api_key` on `getPetById` only (`AUTH_API_KEYS` / default `test-key`)               |
 | Extension model        | Generated skeletons + protected user zones                                                 |
 | Generator domain       | Plugins are domain-agnostic; derive all sample domain from OpenAPI/Apical (§5.0)           |
 | PRD shape              | Single master `PRD.md` at repo root                                                        |
@@ -344,4 +345,4 @@ Delivered as an extension to the Hono-first PoC (see `docs/superpowers/specs/202
 | HTTP adapter (opt-in)  | Next.js App Router via `plugin-next` (`--http next`, `--next-surface both / routes / rsc`) |
 | Packaging              | Hexkit emits Docker Compose (Hono + Postgres)                                              |
 | API test stack         | Vitest + PactumJS against Docker Compose                                                   |
-| CI                     | Local only for PoC                                                                         |
+| CI                     | GitHub Actions: Quality + Dogfood API + Dogfood NextJS (parallel)                          |
