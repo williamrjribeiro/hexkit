@@ -3,6 +3,10 @@ import { hexkitTest } from "../../coverage.config.ts";
 
 export default defineConfig({
   pack: {
+    entry: {
+      index: "src/index.ts",
+      testing: "src/testing.ts",
+    },
     dts: {
       tsgo: true,
     },
