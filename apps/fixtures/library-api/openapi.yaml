@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: Hexkit Library API
   version: 1.0.0
+# Follow-up (not required for PoC sign-off): add a nested object or array on
+# Book (e.g. metadata or tags[]) so Library proves JSONB without Petstore.
+# A Compose + Pactum library dogfood loop is a further optional E2E.
 paths:
   /books:
     post:

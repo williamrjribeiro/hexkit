@@ -9,8 +9,8 @@ requirements and acceptance criteria are in [PRD.md](./PRD.md).
 
 ## Project status
 
-**Stage:** PoC implementation is substantially complete; local dogfood is the
-primary validation gate before PoC sign-off.
+**Stage:** PoC complete (2026-08-22). Remaining work is post-PoC (full Petstore
+OpenAPI, SST/AWS, OAuth).
 
 | Area                                                    | Status                                                                         |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -41,15 +41,11 @@ CLI tests cover the generator).
 | `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only  |
 | `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                   |
 
-**Remaining PoC work:** domain-agnostic invariant audit across generators (PRD
-§11.1), ongoing dogfood hardening. PR validation runs three parallel GitHub
-Actions jobs: Quality (Hexkit), Dogfood API (generated Hono Pet Shop + Pactum),
-and Dogfood NextJS (generated Next Pet Shop lint/build).
-
-**Post-PoC goal — full Petstore OpenAPI:** progress for Hono and Next.js is
-tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md)
-(`missing` / `in progress` / `partial` / `shipped` per feature; update that
-file whenever adapter support changes).
+**After PoC:** expand toward the full Petstore OpenAPI (Hono and Next.js
+progress is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md);
+update that file whenever adapter support changes). PR validation runs three
+parallel GitHub Actions jobs: Quality (Hexkit), Dogfood API (generated Hono Pet
+Shop + Pactum), and Dogfood NextJS (generated Next Pet Shop lint/build).
 
 ## Workspace
 
