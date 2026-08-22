@@ -282,16 +282,16 @@ The Hexkit PoC is complete when all of the following are true:
 Ordered delivery milestones for implementation planning. **Tracker** reflects
 August 2026 main-branch state.
 
-| #   | Milestone                                                                                                | Status                                       |
-| --- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring | Done                                         |
+| #   | Milestone                                                                                                               | Status                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring                | Done                                         |
 | 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, header `api_key` on `getPetById`) | Done                                         |
-| 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                           | Done                                         |
-| 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)       | Done                                         |
-| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation              | Done                                         |
-| 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)              | Done                                         |
-| 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                    | Done                                         |
-| 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive         | In validation (`vp run dogfood` is the gate) |
+| 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                                          | Done                                         |
+| 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)                      | Done                                         |
+| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation                             | Done                                         |
+| 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)                             | Done                                         |
+| 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                                   | Done                                         |
+| 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive                        | In validation (`vp run dogfood` is the gate) |
 
 Detail (normative requirements unchanged):
 
