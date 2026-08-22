@@ -137,13 +137,13 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 
 **Assurance matrix** (how §5.0 is proven; Petstore remains a fixture, not plugin IR):
 
-| Capability | Proof |
-| ---------- | ----- |
-| Scalar FK | Library `Book.authorId` → `Author` (`apps/cli/src/library-generation.test.ts`) and Petstore `Order.petId` |
-| Nested JSONB | Petstore dogfood + generic `@hexkit/plugin-drizzle` nested unit tests |
-| Header `apiKey` | Petstore Hono `getPetById` dogfood; bearer / `X-API-Key` on `apps/fixtures/auth-api` |
-| Rename without plugin edits | Library contract rename case in `library-generation.test.ts` |
-| Banned fixture literals | Workspace scanner `apps/cli/src/domain-agnostic.test.ts` (includes nested schema names `Category` and `Tag`) |
+| Capability                  | Proof                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Scalar FK                   | Library `Book.authorId` → `Author` (`apps/cli/src/library-generation.test.ts`) and Petstore `Order.petId`    |
+| Nested JSONB                | Petstore dogfood + generic `@hexkit/plugin-drizzle` nested unit tests                                        |
+| Header `apiKey`             | Petstore Hono `getPetById` dogfood; bearer / `X-API-Key` on `apps/fixtures/auth-api`                         |
+| Rename without plugin edits | Library contract rename case in `library-generation.test.ts`                                                 |
+| Banned fixture literals     | Workspace scanner `apps/cli/src/domain-agnostic.test.ts` (includes nested schema names `Category` and `Tag`) |
 
 Library does not yet carry a nested embed. Adding one (and/or a Library Compose + Pactum loop) would prove JSONB without Petstore; that is a post-PoC improvement, not required for this sign-off.
 
@@ -292,16 +292,16 @@ The Hexkit PoC is complete when all of the following are true:
 Ordered delivery milestones for implementation planning. **Tracker** reflects
 PoC complete on 2026-08-22.
 
-| #   | Milestone                                                                                                | Status                                       |
-| --- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring | Done                                         |
-| 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, header `api_key` on `getPetById`) | Done                                         |
-| 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                           | Done                                         |
-| 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)       | Done                                         |
-| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation              | Done                                         |
-| 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)              | Done                                         |
-| 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                    | Done                                         |
-| 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive         | Done (`vp run dogfood` / CI Dogfood API)     |
+| #   | Milestone                                                                                                               | Status                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 1   | **Foundation** — `plugin-api`, `codegen`, `core` lifecycle, protected-zone policy, CLI `generate` wiring                | Done                                     |
+| 2   | **Contracts** — `plugin-apical` end-to-end; `openapi.poc.yaml` (Pet↔Order, JSON only, header `api_key` on `getPetById`) | Done                                     |
+| 3   | **Hexagonal skeleton** — `plugin-architecture-hexagonal` from Apical contracts                                          | Done                                     |
+| 4   | **HTTP adapter** — `plugin-hono` (default); opt-in `plugin-next` (`--http next`, `--next-surface`)                      | Done                                     |
+| 5   | **Persistence** — `plugin-drizzle` Postgres schema, repos, nested JSONB, DB-read validation                             | Done                                     |
+| 6   | **Packaging** — Docker Compose for Hono + Postgres (and Next + Postgres when `--http next`)                             | Done                                     |
+| 7   | **Test suite** — package unit tests, integration tests, Vitest+Pactum against Compose                                   | Done                                     |
+| 8   | **Dogfood green** — regenerate → validate → Compose up → API tests pass; protected zones survive                        | Done (`vp run dogfood` / CI Dogfood API) |
 
 Detail (normative requirements unchanged):
 
