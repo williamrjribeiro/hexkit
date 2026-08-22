@@ -87,6 +87,12 @@ function typecheckGeneratedApp(outputDirectory: string): {
 }
 
 describe("Given the Library fixture contract", () => {
+  // Follow-up (not required for PoC sign-off): extend this fixture with a nested
+  // Book field (JSONB) and/or a Compose + Pactum library dogfood loop so §5.0
+  // nested persistence is proven without Petstore. Nested JSONB is covered today
+  // by Petstore dogfood + generic Drizzle nested unit tests.
+  // Separate follow-up: seeded random-noun OpenAPI (unknown domain at test time)
+  // so generate/typecheck cannot depend on Petstore or Library names.
   it("when the real generator runs, then it emits author/book artifacts without Petstore output", async () => {
     const outputDirectory = createOutputDirectory("hexkit-library-gen-");
     await generateInto(outputDirectory);

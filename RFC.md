@@ -1,7 +1,7 @@
 RFC: Hexkit — Contract-Driven REST API Application Generator
 Status
 
-Draft (PoC implementation substantially complete — see [README.md](./README.md) § Project status)
+PoC complete (2026-08-22) — see [README.md](./README.md) § Project status
 
 Implementation snapshot (August 2026)
 

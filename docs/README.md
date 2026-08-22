@@ -12,7 +12,7 @@ lists remain for historical traceability.
 
 | Document                                                                                                     | Status                                                                         |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                              | Substantially complete — dogfood green is the remaining gate                   |
+| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                              | Delivered — PoC complete (2026-08-22)                                          |
 | [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md)        | Delivered                                                                      |
 | [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)                 | Delivered (#9)                                                                 |
 | [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)           | Delivered                                                                      |
