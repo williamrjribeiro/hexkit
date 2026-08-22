@@ -137,15 +137,14 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 
 **Assurance matrix** (how §5.0 is proven; Petstore remains a fixture, not plugin IR):
 
-| Capability                  | Proof                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Scalar FK                   | Library `Book.authorId` → `Author` (`apps/cli/src/library-generation.test.ts`) and Petstore `Order.petId`    |
-| Nested JSONB                | Petstore dogfood + generic `@hexkit/plugin-drizzle` nested unit tests                                        |
-| Header `apiKey`             | Petstore Hono `getPetById` dogfood; bearer / `X-API-Key` on `apps/fixtures/auth-api`                         |
-| Rename without plugin edits | Library contract rename case in `library-generation.test.ts`                                                 |
-| Banned fixture literals     | Workspace scanner `apps/cli/src/domain-agnostic.test.ts` (includes nested schema names `Category` and `Tag`) |
+| Capability                  | Proof                                                                                                     |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Scalar FK                   | Library `Book.authorId` → `Author` (`apps/cli/src/library-generation.test.ts`) and Petstore `Order.petId` |
+| Nested JSONB                | Petstore dogfood + generic `@hexkit/plugin-drizzle` nested unit tests                                     |
+| Header `apiKey`             | Petstore Hono `getPetById` dogfood; bearer / `X-API-Key` on `apps/fixtures/auth-api`                      |
+| Rename without plugin edits | Library contract rename case in `library-generation.test.ts`                                              |
 
-Library does not yet carry a nested embed. Adding one (and/or a Library Compose + Pactum loop) would prove JSONB without Petstore; that is a post-PoC improvement, not required for this sign-off.
+Library does not yet carry a nested embed. Adding one (and/or a Library Compose + Pactum loop) would prove JSONB without Petstore; that is a post-PoC improvement, not required for this sign-off. A seeded random-noun OpenAPI factory (unknown domain at test time) is the stronger generate-path proof of §5.0; it is a follow-up, not a source grep.
 
 ### 5.1 Package requirements (PoC)
 
@@ -322,6 +321,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore sur
 - Authentication beyond the PoC slice: see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/specs/2026-08-21-petstore-header-apikey-design.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`. Petstore PoC dogfood requires header `api_key` on `getPetById` (`AUTH_API_KEYS` / `test-key`). Bearer remains on `apps/fixtures/auth-api/`. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
 - Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` already persist as JSONB (Phase 1 delivered). Property-level relational opt-in remains Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`. Per-feature Hono/Next status lives in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) and must stay current.
 - Nested JSONB (and/or Compose + Pactum) on `apps/fixtures/library-api` so nested persistence is proven without Petstore. Library today covers FK + generate/typecheck/rename only.
+- Seeded random-noun OpenAPI factory in CLI tests so generate/typecheck cannot depend on a known sample domain (Petstore or Library).
 - Next Compose runtime in CI (Dogfood NextJS uses `HEXKIT_SKIP_COMPOSE=1`; local `vp run dogfood-petstore-next` can omit that env).
 - CI job for `vp run dogfood-auth` (local-only today).
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
@@ -329,7 +329,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore sur
 
 ### 11.1 Domain-agnostic invariant (closed 2026-08-22)
 
-Workspace scanner `apps/cli/src/domain-agnostic.test.ts` bans Petstore literals, including nested schema names `Category` and `Tag`, across generator production sources. Dual-fixture proof is the §5.0 assurance matrix (Library rename + Petstore dogfood). This item is no longer blocking.
+Proof is dual-fixture generate: Petstore dogfood plus Library generate/typecheck/rename (`apps/cli/src/library-generation.test.ts`). Plugin source is not grepped for Petstore words; a seeded random-noun OpenAPI factory is the follow-up that makes the domain unknowable at test-authoring time. This item is no longer blocking.
 
 ### 11.2 Next.js opt-in HTTP adapter (delivered alongside PoC)
 

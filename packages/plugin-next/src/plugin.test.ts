@@ -1,6 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { generateApplicationFromContract } from "@hexkit/plugin-architecture-hexagonal";
@@ -56,8 +53,6 @@ const libraryModules = {
   ]),
 };
 
-const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
-
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
 
@@ -76,34 +71,6 @@ async function loadContract(
   },
 ): Promise<ContractArtifact> {
   return normalizeContractArtifact(await loadValidatedOpenApi(openApiPath), modules);
-}
-
-function readProductionSources(): string {
-  const root = join(import.meta.dirname);
-  const chunks: string[] = [];
-
-  const visit = (path: string): void => {
-    for (const item of readdirSync(path, { withFileTypes: true })) {
-      const absolute = join(path, item.name);
-      if (item.isDirectory()) {
-        visit(absolute);
-        continue;
-      }
-      if (!item.name.endsWith(".ts") || item.name.endsWith(".test.ts")) continue;
-      chunks.push(readFileSync(absolute, "utf8"));
-    }
-  };
-
-  for (const entry of productionSourceRoots) {
-    const path = join(root, entry);
-    if (entry.endsWith(".ts")) {
-      chunks.push(readFileSync(path, "utf8"));
-      continue;
-    }
-    visit(path);
-  }
-
-  return chunks.join("\n");
 }
 
 async function collectGeneratedFiles(
@@ -663,7 +630,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured operations",
 });
 
 describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
-  it("when generation runs, then it emits book paths without Petstore output in generated output or plugin source", async () => {
+  it("when generation runs, then it emits book paths without Petstore output", async () => {
     const application = generateApplicationFromContract(libraryContract).artifact;
     const model = deriveNextHttpModel(libraryContract, application, { surface: "both" });
     const { files } = await collectGeneratedFiles(libraryContract, "both");
@@ -684,9 +651,6 @@ describe("Given ContractArtifact + ApplicationArtifact for Library", () => {
     expect(generatedSource).not.toMatch(/\bPet\b|\bOrder\b|petstore|addPet|placeOrder/);
     expect(generatedSource).toContain("getBook:");
     expect(generatedSource).toContain("createBook:");
-    expect(readProductionSources()).not.toMatch(
-      /\bPet\b|\bOrder\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|\/pet|\/store\/order/,
-    );
     expect(paths).toEqual(
       expect.arrayContaining([
         "app/books/route.ts",

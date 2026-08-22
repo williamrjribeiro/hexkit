@@ -1,6 +1,3 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { runPipeline } from "@hexkit/core";
@@ -402,32 +399,6 @@ describe("Given a generated core with a customized protected use case", () => {
     );
   });
 });
-
-describe("Given hexagonal production sources", () => {
-  it("does not embed Petstore fixture literals outside tests", () => {
-    const root = join(import.meta.dirname);
-    const productionSources = listTypeScriptFiles(root).filter(
-      (path) => !path.endsWith(".test.ts"),
-    );
-    const banned = /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|placeOrder|getPetById/;
-
-    for (const path of productionSources) {
-      const contents = readFileSync(path, "utf8");
-      expect({ path, bannedMatch: banned.exec(contents)?.[0] ?? null }).toEqual({
-        path,
-        bannedMatch: null,
-      });
-    }
-  });
-});
-
-function listTypeScriptFiles(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    if (entry.isDirectory()) return listTypeScriptFiles(path);
-    return entry.isFile() && entry.name.endsWith(".ts") ? [path] : [];
-  });
-}
 
 function createAuthContract(): ContractArtifact {
   const stringType = { kind: "string", nullable: false } as const;

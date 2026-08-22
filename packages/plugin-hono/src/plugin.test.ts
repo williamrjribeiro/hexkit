@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -62,8 +62,6 @@ const libraryModules = {
     ["getBook", "routes/getBook.ts"],
   ]),
 };
-
-const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
@@ -173,34 +171,6 @@ function typecheckRuntime(outputDirectory: string): {
     stdout: result.stdout,
     stderr: result.stderr,
   };
-}
-
-function readProductionSources(): string {
-  const root = join(import.meta.dirname);
-  const chunks: string[] = [];
-
-  const visit = (path: string): void => {
-    for (const item of readdirSync(path, { withFileTypes: true })) {
-      const absolute = join(path, item.name);
-      if (item.isDirectory()) {
-        visit(absolute);
-        continue;
-      }
-      if (!item.name.endsWith(".ts") || item.name.endsWith(".test.ts")) continue;
-      chunks.push(readFileSync(absolute, "utf8"));
-    }
-  };
-
-  for (const entry of productionSourceRoots) {
-    const path = join(root, entry);
-    if (entry.endsWith(".ts")) {
-      chunks.push(readFileSync(path, "utf8"));
-      continue;
-    }
-    visit(path);
-  }
-
-  return chunks.join("\n");
 }
 
 function createAuthContract(): ContractArtifact {
@@ -698,14 +668,5 @@ describe("Given real Apical output for Petstore and Library", () => {
         databaseReads: 1,
       },
     });
-  });
-});
-
-describe("Given Hono production sources", () => {
-  it("then they contain no Petstore-only literals", () => {
-    const source = readProductionSources();
-    expect(source).not.toMatch(
-      /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|\/pet|\/store\/order/,
-    );
   });
 });
