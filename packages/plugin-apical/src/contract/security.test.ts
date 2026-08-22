@@ -127,6 +127,40 @@ describe("OpenAPI security normalization", () => {
     expect(security.apicalServerHeaderNames).toEqual(["x-api-key"]);
   });
 
+  it("when operation uses Petstore-shaped api_key header, then getPetById requires api_key", () => {
+    const document: Record<string, unknown> = {
+      openapi: "3.1.0",
+      info: { title: "Petstore api_key", version: "1.0.0" },
+      components: {
+        securitySchemes: {
+          api_key: { type: "apiKey", in: "header", name: "api_key" },
+        },
+      },
+      paths: {
+        "/pet/{petId}": {
+          get: {
+            operationId: "getPetById",
+            security: [{ api_key: [] }],
+            responses: { "200": { description: "ok" } },
+          },
+        },
+      },
+    };
+    const pathItem = (document.paths as Record<string, Record<string, unknown>>)["/pet/{petId}"]!;
+    const operation = pathItem.get as Record<string, unknown>;
+
+    const security = resolveSecurity(document, operation, pathItem);
+    const schemes = normalizeSecuritySchemes(securitySchemesOf(document));
+
+    expect(schemes).toContainEqual({
+      name: "api_key",
+      type: "apiKey",
+      in: "header",
+      headerName: "api_key",
+    });
+    expect(security.apicalServerHeaderNames).toEqual(["api_key"]);
+  });
+
   it("when oauth2 scheme is declared, then it is marked unsupported", () => {
     const schemes = normalizeSecuritySchemes(securitySchemesOf(authDocument));
 

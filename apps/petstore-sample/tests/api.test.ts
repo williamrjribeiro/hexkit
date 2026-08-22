@@ -4,6 +4,8 @@ import { request, spec } from "pactum";
 import { createAcceptanceIds } from "./api-fixtures.ts";
 
 const apiBaseUrl = process.env.PETSTORE_API_URL ?? "http://127.0.0.1:3000";
+const goodApiKey = process.env.AUTH_API_KEYS?.split(",")[0] ?? "test-key";
+const rejectedApiKey = "not-a-valid-key";
 const ids = createAcceptanceIds();
 const { invalidOrderId, missingPetId, orderId, petId } = ids;
 
@@ -107,12 +109,34 @@ async function expectPersistedPet(pet: object): Promise<void> {
   await runAgainstApi(() =>
     spec()
       .get(`/pet/${String((pet as { id: number }).id)}`)
+      .withHeaders("api_key", goodApiKey)
       .expectStatus(200)
       .expectJson(pet),
   );
 }
 
 describe.sequential("Given the generated Petstore API", () => {
+  describe.sequential("api_key header", () => {
+    it("when GET /pet/{petId} has no api_key, then it returns 401", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(petId)}`)
+          .expectStatus(401)
+          .expectJson({ error: "Unauthorized" }),
+      );
+    });
+
+    it("when GET /pet/{petId} has a rejected api_key, then it returns 401", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(petId)}`)
+          .withHeaders("api_key", rejectedApiKey)
+          .expectStatus(401)
+          .expectJson({ error: "Unauthorized" }),
+      );
+    });
+  });
+
   describe.sequential("nested JSONB validation", () => {
     it("when photoUrls is missing, then the request is rejected", async () => {
       await runAgainstApi(() =>
@@ -243,6 +267,7 @@ describe.sequential("Given the generated Petstore API", () => {
       await runAgainstApi(() =>
         spec()
           .get(`/pet/${String(putOmitPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
           .expectStatus(200)
           .expectJson(putOmitPet),
       );
@@ -257,6 +282,7 @@ describe.sequential("Given the generated Petstore API", () => {
       await runAgainstApi(() =>
         spec()
           .get(`/pet/${String(replaceUrlsPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
           .expectStatus(200)
           .expectJson(cleared),
       );
@@ -275,6 +301,7 @@ describe.sequential("Given the generated Petstore API", () => {
       await runAgainstApi(() =>
         spec()
           .get(`/pet/${String(minimalPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
           .expectStatus(200)
           .expectJson(enriched),
       );
@@ -298,6 +325,7 @@ describe.sequential("Given the generated Petstore API", () => {
       await runAgainstApi(() =>
         spec()
           .get(`/pet/${String(petId)}`)
+          .withHeaders("api_key", goodApiKey)
           .expectStatus(200)
           .expectJson(updatedPet),
       );
@@ -350,6 +378,7 @@ describe.sequential("Given the generated Petstore API", () => {
           .expectStatus(204);
         await spec()
           .get(`/pet/${String(petId)}`)
+          .withHeaders("api_key", goodApiKey)
           .expectStatus(404);
       });
     });

@@ -190,7 +190,14 @@
       }
     }
   ],
-  "securitySchemes": [],
+  "securitySchemes": [
+    {
+      "name": "api_key",
+      "type": "apiKey",
+      "in": "header",
+      "headerName": "api_key"
+    }
+  ],
   "globalSecurity": [],
   "operations": [
     {
@@ -314,9 +321,20 @@
         }
       ],
       "security": {
-        "overridesGlobal": false,
-        "requirements": [],
-        "apicalServerHeaderNames": []
+        "overridesGlobal": true,
+        "requirements": [
+          {
+            "schemes": [
+              "api_key"
+            ],
+            "scopes": {
+              "api_key": []
+            }
+          }
+        ],
+        "apicalServerHeaderNames": [
+          "api_key"
+        ]
       }
     },
     {

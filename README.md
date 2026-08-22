@@ -124,10 +124,11 @@ vp run dogfood
 ```
 
 The task generates a Hono Rich Pet + Order app from `openapi.poc.yaml` (nested
-Pet fields as JSONB; Order `petId` FK), then lints and typechecks **that
-generated tree**, Compose-builds it, and runs Pactum. It passes through
-`PETSTORE_API_URL`, `HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. Docker is
-required for the live Compose and API phases.
+Pet fields as JSONB; Order `petId` FK; `GET /pet/{petId}` requires header
+`api_key`), then lints and typechecks **that generated tree**, Compose-builds
+it, and runs Pactum. It passes through `PETSTORE_API_URL`, `AUTH_API_KEYS`,
+`HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. Docker is required for the
+live Compose and API phases.
 `apps/petstore-sample/scripts/prove-api-url.sh` verifies task-level environment
 propagation without starting Compose.
 

@@ -39,6 +39,8 @@ paths:
       operationId: getPetById
       parameters:
         - $ref: "#/components/parameters/PetId"
+      security:
+        - api_key: []
       responses:
         "200":
           description: Pet found
@@ -108,6 +110,11 @@ components:
       schema:
         type: integer
         format: int32
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
   schemas:
     Category:
       type: object

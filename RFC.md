@@ -120,7 +120,7 @@ Authenticator port (adapter implements credential verification)
     ↓
 Principal (passed into secured use cases)
 
-v1 supports `apiKey` (header) and HTTP bearer only. Authorization (scopes, 403) is out of scope. The PoC dogfood contract (`openapi.poc.yaml`) stays auth-free; auth is verified via a separate fixture (`apps/fixtures/auth-api/`). See `docs/superpowers/specs/2026-08-05-openapi-auth-design.md`.
+v1 supports `apiKey` (header) and HTTP bearer only. Authorization (scopes, 403) is out of scope. The PoC dogfood contract (`openapi.poc.yaml`) requires header `api_key` on `getPetById`; other PoC operations stay unauthenticated. Bearer (and a separate `X-API-Key` scheme) is verified via `apps/fixtures/auth-api/`. See `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/specs/2026-08-21-petstore-header-apikey-design.md`.
 
 Project Structure
 Monorepo Layout

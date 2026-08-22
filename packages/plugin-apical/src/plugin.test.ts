@@ -106,7 +106,8 @@ describe("Given the Petstore PoC contract", () => {
     expect(contract).toContain("      petId:");
     expect(contract).not.toContain("application/xml");
     expect(contract).not.toMatch(/^security:/m);
-    expect(contract).not.toMatch(/^  securitySchemes:/m);
+    expect(contract).toContain("  securitySchemes:\n    api_key:");
+    expect(contract).toContain("      security:\n        - api_key: []");
   });
 
   it("when all identifier formats are inspected, then path and persisted IDs use exact int32 numbers", () => {

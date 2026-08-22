@@ -24,8 +24,9 @@ to a temporary (or caller-chosen) directory by the CLI during dogfood.
 `id`, `name`, and `photoUrls`; optional `category`, `tags`, and `status`. Nested
 `category`, `photoUrls`, and `tags` persist as JSONB on `pets`. `Category` and
 `Tag` are domain + contract types only — they have no tables. Order still
-references Pet with a scalar `petId` foreign key. Leave `openapi.yaml`
-untouched.
+references Pet with a scalar `petId` foreign key. `GET /pet/{petId}` requires
+header `api_key` (allow-list `AUTH_API_KEYS`, default `test-key`). Leave
+`openapi.yaml` untouched.
 
 Dogfood means Hexkit eats its own cooking: the real `@hexkit/cli` generates an
 app from `openapi.poc.yaml`, the generated app is installed and typechecked,
@@ -68,6 +69,7 @@ Docker is required for steps 5–7.
 | Variable                | Purpose                                                           |
 | ----------------------- | ----------------------------------------------------------------- |
 | `PETSTORE_API_URL`      | Base URL for readiness + Pactum (default `http://127.0.0.1:3000`) |
+| `AUTH_API_KEYS`         | Comma-separated allow-list for `api_key` (default `test-key`)     |
 | `HEXKIT_DOGFOOD_OUTPUT` | Fixed generation directory (handy for inspecting generated code)  |
 | `HEXKIT_KEEP_STACK=1`   | Keep Compose and the output directory after the script exits      |
 

@@ -84,9 +84,11 @@ COMPOSE_STARTED=1
 docker compose -f "$OUTPUT_DIR/docker-compose.yml" up --build -d --wait
 
 attempt=1
+# GET /pet/{petId} requires header api_key; a missing pet still returns 404 after auth.
 while ! PETSTORE_API_URL="$API_BASE_URL" vp node -e '
 const baseUrl = process.env.PETSTORE_API_URL;
-fetch(`${baseUrl}/pet/2147483647`)
+const apiKey = (process.env.AUTH_API_KEYS ?? "test-key").split(",")[0];
+fetch(`${baseUrl}/pet/2147483647`, { headers: { api_key: apiKey } })
   .then((response) => process.exit(response.status === 404 ? 0 : 1))
   .catch(() => process.exit(1));
 '; do

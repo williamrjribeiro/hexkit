@@ -5,8 +5,10 @@ import { createGetOrderById } from "../../core/application/get-order-by-id.ts";
 import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
 import { createPlaceOrder } from "../../core/application/place-order.ts";
 import { createUpdatePet } from "../../core/application/update-pet.ts";
+import type { Authenticator } from "../../core/ports/authenticator.ts";
 import type { OrderRepository } from "../../core/ports/order-repository.ts";
 import type { PetRepository } from "../../core/ports/pet-repository.ts";
+import { createInMemoryAuthenticator } from "../auth/in-memory-authenticator.ts";
 import { getDatabase } from "../db/database.ts";
 import { createDrizzleOrderRepository } from "../db/order-repository.ts";
 import { createDrizzlePetRepository } from "../db/pet-repository.ts";
@@ -21,6 +23,7 @@ export type RuntimeRepositories = {
 export type NextRuntime = {
   controllers: HttpControllers;
   repositories: RuntimeRepositories;
+  authenticator: Authenticator;
 };
 
 let cachedRepositories: RuntimeRepositories | undefined;
@@ -38,7 +41,14 @@ function getRepositories(): RuntimeRepositories {
   return cachedRepositories;
 }
 
-function composeRuntime(repositories: RuntimeRepositories): NextRuntime {
+function createDefaultAuthenticator(): Authenticator {
+  return createInMemoryAuthenticator({
+    bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),
+    apiKeys: new Map([["api_key", new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]]),
+  });
+}
+
+function composeRuntime(repositories: RuntimeRepositories, authenticator: Authenticator = createDefaultAuthenticator()): NextRuntime {
   return {
     controllers: createHttpControllers({
     addPet: createAddPet(repositories.pets),
@@ -48,8 +58,9 @@ function composeRuntime(repositories: RuntimeRepositories): NextRuntime {
     getPetById: createGetPetById(repositories.pets),
     placeOrder: createPlaceOrder(repositories.orders),
     updatePet: createUpdatePet(repositories.pets),
-    }),
+    }, authenticator),
     repositories,
+    authenticator,
   };
 }
 

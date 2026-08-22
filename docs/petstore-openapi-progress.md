@@ -46,13 +46,13 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono` | 2         | 7         | 0             | 17        |
+| `@hexkit/plugin-hono` | 3         | 6         | 0             | 17        |
 | `@hexkit/plugin-next` | 2         | 7         | 0             | 17        |
 
 Almost all PoC Pet / Order routes are **partial** (JSON-only and/or missing
-Petstore security). Only capabilities that already meet the full contract bar
-are **shipped** (`deleteOrder`, JSON media type). Most of the remaining surface
-is still **missing**.
+Petstore security). **Shipped:** `deleteOrder`, JSON media type, and Hono header
+`apiKey` (Petstore `getPetById` dogfood). Most of the remaining surface is still
+**missing**.
 
 ## Operations
 
@@ -69,7 +69,7 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 | ------------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------------- |
 | `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`        |
 | `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`        |
-| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON works; still need XML and `api_key` / `petstore_auth`              |
+| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON + Hono `api_key` dogfood; still need XML and `petstore_auth`       |
 | `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)  |
 | `findPetsByStatus`  | `GET /pet/findByStatus`         | missing | missing | Query `status`; array Pet response (+ XML); `petstore_auth`                 |
 | `findPetsByTags`    | `GET /pet/findByTags`           | missing | missing | Query `tags` (array); array Pet response (+ XML); `petstore_auth`           |
@@ -107,23 +107,23 @@ Only capabilities that apply **across many operations** or at the **document /
 adapter** level. Anything that is unique to one (or a couple of) routes belongs
 in that operation’s Notes.
 
-| Capability                          | Hono    | Next    | Notes                                                               |
-| ----------------------------------- | ------- | ------- | ------------------------------------------------------------------- |
-| JSON request/response               | shipped | shipped | Default media type; proven on Petstore PoC dogfood                  |
-| XML request/response                | missing | missing | Alternate media type on many Pet / Store / User ops                 |
-| `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes   |
-| Header `apiKey` security            | partial | partial | Generator support via auth fixture; not applied on Petstore dogfood |
-| OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today   |
-| mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference               |
-| Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)            |
+| Capability                          | Hono    | Next    | Notes                                                                                                                                                  |
+| ----------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| JSON request/response               | shipped | shipped | Default media type; proven on Petstore PoC dogfood                                                                                                     |
+| XML request/response                | missing | missing | Alternate media type on many Pet / Store / User ops                                                                                                    |
+| `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes                                                                                      |
+| Header `apiKey` security            | shipped | partial | Hono: Petstore `getPetById` dogfood (`api_key` / `test-key`). Next: shared contract emits Route Handler auth; RSC is in-process (no HTTP header proof) |
+| OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today                                                                                      |
+| mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference                                                                                                  |
+| Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)                                                                                               |
 
 ## Contract map
 
-| Contract                                | Role                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------ |
-| `apps/petstore-sample/openapi.poc.yaml` | Current generation/dogfood slice (Rich Pet + Order, JSON, no security)   |
-| `apps/petstore-sample/openapi.yaml`     | Checked-in OAS 3.1 Pet-focused reference (leave untouched for PoC edits) |
-| Full Swagger Petstore (classic 19 ops)  | Progress target for this tracker                                         |
+| Contract                                | Role                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------ |
+| `apps/petstore-sample/openapi.poc.yaml` | Current generation/dogfood slice (Rich Pet + Order, JSON; `api_key` on `getPetById`) |
+| `apps/petstore-sample/openapi.yaml`     | Checked-in OAS 3.1 Pet-focused reference (leave untouched for PoC edits)             |
+| Full Swagger Petstore (classic 19 ops)  | Progress target for this tracker                                                     |
 
 Expanding dogfood toward the full surface means growing `openapi.poc.yaml` (or
 a successor full-contract fixture) and moving rows from `missing` →

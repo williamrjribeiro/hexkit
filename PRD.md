@@ -32,7 +32,7 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 ### Non-goals (PoC)
 
 - Live AWS deploy or SST synthesis (`plugin-sst` is **out of PoC**).
-- OAuth, API keys, or any auth mechanism.
+- OAuth, scope-based 403, mutualTLS, and auth beyond header `api_key` on `getPetById`.
 - XML (or non-JSON) request/response media types.
 - Users resource and the full Swagger Petstore surface area.
 - GraphQL, gRPC, AsyncAPI.
@@ -54,7 +54,7 @@ Trimmed contract rules:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Resources    | **Pet** and **Order** only; Order references `petId`                                                                                                         |
 | Media types  | **JSON only** — no XML (or other non-JSON) content                                                                                                           |
-| Security     | **None** — no security schemes or per-operation requirements                                                                                                 |
+| Security     | Header `api_key` on `getPetById` only (`AUTH_API_KEYS` / default `test-key`). Other PoC operations stay unauthenticated. OAuth is out of this slice.         |
 | Schemas      | Only components required by selected operations (Pet, Order, and nested Category / Tag). Nested Pet fields persist as JSONB; Category and Tag have no tables |
 | Completeness | Every operation in `openapi.poc.yaml` must be generated and work with DB persistence                                                                         |
 
@@ -302,12 +302,12 @@ Detail (normative requirements unchanged):
 7. **Test suite** — package unit tests, cross-package integration tests, Vitest+PactumJS API tests against Compose.
 8. **Dogfood green** — regenerate → validate source → Compose up → API tests pass; protected use cases survive re-generation.
 
-Deferred after PoC: `plugin-sst`, live AWS deploy, auth in `openapi.poc.yaml`, full Petstore surface, GitHub Actions CI.
+Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore surface. GitHub Actions CI is in place.
 
 ## 11. Follow-ups (explicitly out of PoC)
 
 - SST / AWS Lambda generation and deploy verification.
-- Authentication (post-PoC): see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/plans/2026-08-05-openapi-auth.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`; implemented in generator plugins, but remains post-PoC for the auth-free `openapi.poc.yaml` dogfood fixture. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
+- Authentication: see `docs/superpowers/specs/2026-08-05-openapi-auth-design.md` and `docs/superpowers/specs/2026-08-21-petstore-header-apikey-design.md`. v1 = OpenAPI `apiKey` (header) + HTTP bearer → Apical header validation + hexagonal `Authenticator`/`Principal`. Petstore PoC dogfood requires header `api_key` on `getPetById` (`AUTH_API_KEYS` / `test-key`). Bearer remains on `apps/fixtures/auth-api/`. Deferred: OAuth/OIDC flows, mutualTLS, scope-based 403, `plugin-auth` extraction, SST authorizers.
 - Expanding `openapi.poc.yaml` toward full Petstore (Users, XML, uploads, etc.). Nested Pet `Category` / `Tag` / `photoUrls` already persist as JSONB (Phase 1 delivered). Property-level relational opt-in remains Phase 2 — see `docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md`. Per-feature Hono/Next status lives in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md) and must stay current.
 - GitHub Actions for PR validation of the dogfood gate.
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
