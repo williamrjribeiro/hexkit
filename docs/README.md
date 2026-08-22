@@ -10,21 +10,21 @@
 Implementation plans below are **delivered on `main`** unless noted. Checkbox
 lists remain for historical traceability.
 
-| Document                                                                                                     | Status                                                                                |
-| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                              | Substantially complete — dogfood green is the remaining gate                          |
-| [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md)        | Delivered                                                                             |
-| [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)                 | Delivered (#9)                                                                        |
-| [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)           | Delivered                                                                             |
-| [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                                 | Delivered — generator auth + Petstore Hono `getPetById` header `api_key` (#21)            |
-| [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                           | Delivered — generator + auth fixture; Petstore header apiKey on dogfood (#21)             |
-| [Petstore header apiKey design](./superpowers/specs/2026-08-21-petstore-header-apikey-design.md)             | Delivered (#21) — Hono `getPetById` `api_key`; Next RSC stays header-free                 |
-| [Petstore header apiKey plan](./superpowers/plans/2026-08-21-petstore-header-apikey.md)                      | Delivered (#21)                                                                           |
-| [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                                  | Delivered (#7)                                                                        |
-| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)            | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later                    |
-| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md)     | Delivered — 90% gate green for generator packages                                     |
-| [Grokking Simplicity refactor design](./superpowers/specs/2026-08-21-grokking-simplicity-refactor-design.md) | Delivered (#19) — TDD stratification per generator package                                |
-| [Grokking Simplicity refactor plan](./superpowers/plans/2026-08-21-grokking-simplicity-refactor.md)          | Delivered (#19)                                                                           |
+| Document                                                                                                     | Status                                                                         |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| [Hexkit PoC plan](./superpowers/plans/2026-08-03-hexkit-poc.md)                                              | Substantially complete — dogfood green is the remaining gate                   |
+| [Next.js Route Handlers + RSC design](./superpowers/specs/2026-08-11-nextjs-route-handlers-design.md)        | Delivered                                                                      |
+| [Next.js Route Handlers + RSC plan](./superpowers/plans/2026-08-11-nextjs-route-handlers.md)                 | Delivered (#9)                                                                 |
+| [PetShop Next Docker dogfood plan](./superpowers/plans/2026-08-13-petstore-next-docker-dogfood.md)           | Delivered                                                                      |
+| [OpenAPI auth design](./superpowers/specs/2026-08-05-openapi-auth-design.md)                                 | Delivered — generator auth + Petstore Hono `getPetById` header `api_key` (#21) |
+| [OpenAPI auth implementation plan](./superpowers/plans/2026-08-05-openapi-auth.md)                           | Delivered — generator + auth fixture; Petstore header apiKey on dogfood (#21)  |
+| [Petstore header apiKey design](./superpowers/specs/2026-08-21-petstore-header-apikey-design.md)             | Delivered (#21) — Hono `getPetById` `api_key`; Next RSC stays header-free      |
+| [Petstore header apiKey plan](./superpowers/plans/2026-08-21-petstore-header-apikey.md)                      | Delivered (#21)                                                                |
+| [Auth API dogfood plan](./superpowers/plans/2026-08-07-auth-api-dogfood.md)                                  | Delivered (#7)                                                                 |
+| [Rich Pet nested persistence plan](./superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)            | Phase 1 delivered (JSONB default); Phase 2 relational opt-in later             |
+| [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md)     | Delivered — 90% gate green for generator packages                              |
+| [Grokking Simplicity refactor design](./superpowers/specs/2026-08-21-grokking-simplicity-refactor-design.md) | Delivered (#19) — TDD stratification per generator package                     |
+| [Grokking Simplicity refactor plan](./superpowers/plans/2026-08-21-grokking-simplicity-refactor.md)          | Delivered (#19)                                                                |
 
 ### Specs & plans (detail)
 
