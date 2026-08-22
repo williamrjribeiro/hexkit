@@ -144,8 +144,6 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 | Header `apiKey`             | Petstore Hono `getPetById` dogfood; bearer / `X-API-Key` on `apps/fixtures/auth-api`                      |
 | Rename without plugin edits | Library contract rename case in `library-generation.test.ts`                                              |
 
-Library does not yet carry a nested embed. Adding one (and/or a Library Compose + Pactum loop) would prove JSONB without Petstore; that is a post-PoC improvement, not required for this sign-off. A seeded random-noun OpenAPI factory (unknown domain at test time) is a follow-up generate-path proof of §5.0.
-
 ### 5.1 Package requirements (PoC)
 
 | Package                                 | PoC must deliver                                                                                                                                                         |
@@ -329,7 +327,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore sur
 
 ### 11.1 Domain-agnostic invariant (closed 2026-08-22)
 
-Proof is dual-fixture generate: Petstore dogfood plus Library generate/typecheck/rename (`apps/cli/src/library-generation.test.ts`). A seeded random-noun OpenAPI factory is the follow-up that makes the domain unknowable at test-authoring time. This item is no longer blocking.
+Proof is dual-fixture generate: Petstore dogfood plus Library generate/typecheck/rename (`apps/cli/src/library-generation.test.ts`). This item is no longer blocking.
 
 ### 11.2 Next.js opt-in HTTP adapter (delivered alongside PoC)
 
