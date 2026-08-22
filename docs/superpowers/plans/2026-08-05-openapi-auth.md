@@ -1,6 +1,6 @@
 # OpenAPI Authentication Support Implementation Plan
 
-> **Status:** Partially delivered (August 2026). Generator plugins support auth for fixture contracts; `openapi.poc.yaml` and PoC dogfood remain auth-free per PRD.
+> **Status:** Delivered (August 2026). Generator plugins support auth for fixture contracts; Petstore Hono dogfood requires header `api_key` on `getPetById` (#21). Remaining: OAuth/OIDC, scopes, `plugin-auth` extraction.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- PoC authority remains `PRD.md`: leave `apps/petstore-sample/openapi.poc.yaml` **auth-free** and keep existing PoC dogfood green.
+- PoC authority remains `PRD.md`: `apps/petstore-sample/openapi.poc.yaml` requires header `api_key` on `getPetById` only; other PoC operations stay unauthenticated.
 - Plugins must stay domain-agnostic (PRD §5.0 / RFC): no Petstore/`api_key` literals baked into `@hexkit/plugin-*`; fixtures live under `apps/`.
 - Do **not** invent parallel header Zod schemas — Apical craft output is authoritative for wire validation.
 - v1 schemes only: `apiKey` + `in: header`, and `http` + `scheme: bearer`. Mark other schemes `unsupported` in IR.

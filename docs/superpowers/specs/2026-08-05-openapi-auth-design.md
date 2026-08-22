@@ -1,15 +1,15 @@
 # Design: OpenAPI Authentication Support in Hexkit
 
-**Status:** Partially implemented (August 2026) — auth fixture + generator wiring on `main`; Petstore PoC `getPetById` header `api_key` is specified in [2026-08-21-petstore-header-apikey-design.md](./2026-08-21-petstore-header-apikey-design.md)  
+**Status:** Implemented (August 2026) — auth fixture + generator wiring + Petstore Hono `getPetById` header `api_key` on `main` (#21). Remaining auth work (OAuth/OIDC, scopes, `plugin-auth` extraction) is post-PoC.  
 **Date:** 2026-08-05  
 **Companion:** [RFC.md](../../../RFC.md), [PRD.md](../../../PRD.md)  
 **Implementation plan:** [2026-08-05-openapi-auth.md](../plans/2026-08-05-openapi-auth.md)
 
 ## 1. Problem
 
-Hexkit generates hexagonal TypeScript apps from OpenAPI via Apical TS. Auth is explicitly out of the **PoC contract** (`PRD.md` §2 / §11), but generator plugins now support secured fixtures (see `apps/fixtures/auth-api`). Petstore’s full OpenAPI already declares `oauth2`, `apiKey`, and `mutualTLS`, but:
+Hexkit generates hexagonal TypeScript apps from OpenAPI via Apical TS. PoC auth is header `api_key` on `getPetById` only (`PRD.md` §3.1); OAuth/OIDC, scopes, and `plugin-auth` extraction remain post-PoC (`PRD.md` §11). Generator plugins also support secured fixtures (see `apps/fixtures/auth-api`). Petstore’s full OpenAPI already declares `oauth2`, `apiKey`, and `mutualTLS`, but:
 
-1. `openapi.poc.yaml` has **no** `security` / `securitySchemes` (intentional for PoC).
+1. ~~`openapi.poc.yaml` has **no** `security` / `securitySchemes`~~ — **addressed** — `getPetById` requires header `api_key` (`AUTH_API_KEYS` / default `test-key`); other PoC operations stay unauthenticated.
 2. ~~`ContractArtifact` dropped security metadata~~ — **addressed** for secured fixtures; `plugin-apical` carries security IR used by downstream plugins.
 3. ~~Generated Hono controllers mapped auth header failures to HTTP 400~~ — **addressed** for secured operations (401 for auth failures).
 4. ~~No principal / authenticator concept~~ — **addressed** — hexagonal `Principal` / `Authenticator` ports and a stub in-memory adapter are generated for secured contracts (`apps/fixtures/auth-api` dogfood).
@@ -412,7 +412,7 @@ Add a **separate** auth-focused OpenAPI fixture (do not break current PoC green 
 3. **Generator — hexagonal:** Secured ops get `Principal` parameter; public ops do not.
 4. **Generator — hono:** 401 mapping + authenticator wiring snapshots.
 5. **Dogfood — auth fixture:** Compose/API tests: no header → 401; bad token → 401; good token → 2xx; public route → 200 without header.
-6. **Regression:** Existing `openapi.poc.yaml` generation and tests unchanged (no auth).
+6. **Petstore dogfood:** `getPetById` requires header `api_key`; other PoC operations stay unauthenticated (`#21`).
 
 ## 7. Risks & mitigations
 
