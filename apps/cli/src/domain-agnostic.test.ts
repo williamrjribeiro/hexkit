@@ -17,8 +17,11 @@ const productionSourceRoots = [
   "apps/cli/src",
 ] as const;
 
+// PRD §5.0: Petstore is a fixture, not generator domain. Keep this list in
+// lockstep with packages/plugin-next/src/domain-agnostic.test.ts (strictest
+// ban list, including nested schema names Category and Tag).
 const bannedPattern =
-  /\bPet\b|\bOrder\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|available|pending|sold|placed|approved|delivered|\/pet|\/store\/order/;
+  /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|available|pending|sold|placed|approved|delivered|\/pet|\/store\/order/;
 
 function listProductionTypeScriptFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -34,6 +37,11 @@ function listProductionTypeScriptFiles(directory: string): string[] {
 }
 
 describe("Given production generator sources", () => {
+  it("then the ban list includes nested Petstore schema names Category and Tag", () => {
+    expect(bannedPattern.test("Category")).toBe(true);
+    expect(bannedPattern.test("Tag")).toBe(true);
+  });
+
   it("then they contain no Petstore-only fixture literals", () => {
     const hits: Array<{ path: string; match: string }> = [];
 

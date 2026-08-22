@@ -7,6 +7,8 @@ const packageRoot = join(import.meta.dirname, "..");
 
 const productionSourceRoot = join(packageRoot, "src");
 
+// PRD §5.0: keep in lockstep with apps/cli/src/domain-agnostic.test.ts
+// (workspace gate). Nested Petstore schema names Category and Tag are banned.
 const bannedPattern =
   /\bPet\b|\bOrder\b|\bCategory\b|\bTag\b|petstore|addPet|updatePet|getPetById|deletePet|placeOrder|getOrderById|deleteOrder|available|pending|sold|placed|approved|delivered|\/pet|\/store\/order/;
 
