@@ -46,3 +46,9 @@ Gotchas:
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
 - GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
 - `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory.
+
+## Agent skills
+
+Project skills live under [`.cursor/skills/`](./.cursor/skills/). Cursor discovers them automatically.
+
+- **`learning-opportunities`** — After architectural work (new modules, schema changes, refactors, unfamiliar patterns), offer an optional 10–15 minute learning exercise. Always ask first; pause for user input rather than answering your own questions. Soft caps: skip if the user already declined this session, or after 2 completed exercises. Source: [DrCatHicks/learning-opportunities](https://github.com/DrCatHicks/learning-opportunities) (CC BY 4.0). Invoke with `/learning-opportunities` or `/learning-opportunities orient` when an `orientation.md` exists under the skill's `resources/`.
