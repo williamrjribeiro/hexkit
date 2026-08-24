@@ -14,8 +14,8 @@
 #    original path back to .git/hooks
 #
 # Never fail prepare: a missing dispatcher or a failed vp config leaves Cursor
-# hooks in place and prints a warning. Intentionally disabled hooks
-# (empty core.hooksPath, e.g. after `vp hooks disable`) are left alone.
+# hooks in place and prints a warning. Do not rewrite .cursor-original-hooks-path
+# or install the .git/hooks bridge unless .vite-hooks/_/pre-commit is executable.
 set -eu
 
 ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
@@ -35,8 +35,12 @@ restore_hooks_path() {
   fi
 }
 
+dispatcher_ready() {
+  [ -x "$DISPATCHER/pre-commit" ] && [ -x "$DISPATCHER/h" ]
+}
+
 ensure_dispatcher() {
-  if [ -x "$DISPATCHER/pre-commit" ] && [ -x "$DISPATCHER/h" ]; then
+  if dispatcher_ready; then
     return 0
   fi
 
@@ -53,12 +57,12 @@ ensure_dispatcher() {
 
   if [ "$status" -ne 0 ]; then
     echo "ensure-commit-hooks: vp config --no-agent failed (code $status); left core.hooksPath unchanged" >&2
-    return 0
+    return 1
   fi
 
-  if [ ! -x "$DISPATCHER/pre-commit" ]; then
+  if ! dispatcher_ready; then
     echo "ensure-commit-hooks: dispatcher still missing at $DISPATCHER/pre-commit; skipping chain" >&2
-    return 0
+    return 1
   fi
 }
 
@@ -93,7 +97,11 @@ case "$HOOKS_PATH" in
   *) cursor_dir="$ROOT/$HOOKS_PATH" ;;
 esac
 
-ensure_dispatcher
+if ! ensure_dispatcher; then
+  echo "ensure-commit-hooks: not chaining to $DISPATCHER (dispatcher unavailable)"
+  exit 0
+fi
+
 install_git_hooks_bridge
 
 orig_file="$cursor_dir/.cursor-original-hooks-path"
