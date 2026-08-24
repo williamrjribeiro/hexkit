@@ -6,7 +6,7 @@
   "scripts": {
     "ready": "vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match build && vp check && vp run --filter './packages/*' --filter './apps/cli' --fail-if-no-match test && vp run coverage",
     "dev": "vp run @hexkit/cli#dev",
-    "prepare": "vp config",
+    "prepare": "vp config && sh scripts/ensure-commit-hooks.sh",
     "coverage": "vp exec pnpm --filter './packages/*' --filter './apps/cli' run --no-bail coverage"
   },
   "devDependencies": {
