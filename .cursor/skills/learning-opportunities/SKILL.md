@@ -20,6 +20,7 @@ When adapting these techniques or making judgment calls, consult [PRINCIPLES.md]
 ## When to offer exercises
 
 Offer an optional 10-15 minute exercise after:
+
 - Creating new files or modules
 - Database schema changes
 - Architectural decisions or refactors
@@ -38,6 +39,7 @@ Keep offers brief and non-repetitive. One short sentence is enough.
 ## Scope
 
 This skill applies to:
+
 - Cursor Agent sessions (this repo)
 - Claude Code sessions
 - Codex sessions
@@ -49,6 +51,7 @@ This skill applies to:
 **End your message immediately after the question.** Do not generate any further content after the pause point — treat it as a hard stop for the current message. This creates commitment that strengthens encoding and surfaces mental model gaps.
 
 After the pause point, do not generate:
+
 - Suggested or example responses
 - Hints disguised as encouragement ("Think about...", "Consider...")
 - Multiple questions in sequence
@@ -56,10 +59,12 @@ After the pause point, do not generate:
 - Any teaching content
 
 Allowed after the question:
+
 - Content-free reassurance: "(Take your best guess—wrong predictions are useful data.)"
 - An escape hatch: "(Or we can skip this one.)"
 
 Pause points follow this pattern:
+
 1. Pose a specific question or task
 2. Wait for the user's response (do not continue until they reply), and do not provide any prompt suggestions
 3. After their response, provide feedback that connects their thinking to the actual behavior
@@ -69,7 +74,7 @@ Pause points follow this pattern:
 Use explicit markers:
 
 > **Your turn:** What do you think happens when [specific scenario]?
-> 
+>
 > (Take your best guess—wrong predictions are useful data.)
 
 Wait for their response before continuing.
@@ -97,7 +102,6 @@ Wait for their response before continuing.
 3. Wait before revealing each step
 4. Continue through the full path
 
-
 ### Debug this
 
 1. Present a plausible bug or edge case
@@ -123,21 +127,26 @@ At the start of a new session on an ongoing project:
 ## Techniques to weave in
 
 **Elaborative interrogation**: Ask "why," "how," and "when else" questions
+
 - "Why did we structure it this way rather than [alternative]?"
 - "How would this behave differently if [condition changed]?"
 - "In what context might [alternative] be a better choice?"
 
 **Interleaving**: Mix concepts rather than drilling one
+
 - "Which of these three recent changes would be affected if we modified [X]?"
 
 **Varied practice contexts**: Apply the same concept in different scenarios
+
 - "We used this pattern for user auth—how would you apply it to API key validation?"
 
 **Concrete-to-abstract bridging**: After hands-on work, transfer to broader contexts
+
 - "This is an example of [pattern]. Where else might you use this approach?"
 - "What's the general principle here that you could apply to other projects?"
 
 **Error analysis**: Examine mistakes and edge cases deliberately
+
 - "Here's a bug someone might accidentally introduce—what would go wrong and why?"
 
 ## Hands-on code exploration
@@ -158,7 +167,7 @@ Adjust guidance based on demonstrated familiarity:
 - **Later:** "Find where we handle `[feature]`"
 - **Eventually:** "Where would you look to change how `[feature]` works?"
 
-Fading adjusts the difficulty of the *question setup*, not the *answer*. At every scaffolding level — from "open file X, line N" to "where would you look?" — the learner still generates the answer themselves. If a learner is struggling, move back UP the scaffolding ladder (more specific question) rather than hinting at the answer.
+Fading adjusts the difficulty of the _question setup_, not the _answer_. At every scaffolding level — from "open file X, line N" to "where would you look?" — the learner still generates the answer themselves. If a learner is struggling, move back UP the scaffolding ladder (more specific question) rather than hinting at the answer.
 
 ### Pair finding with explaining
 

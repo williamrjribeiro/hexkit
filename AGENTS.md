@@ -41,7 +41,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 
 Gotchas:
 
-- Running `vp install` executes the `prepare` script (`vp config`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` also detects the Cursor-managed git hooks path and skips installing its own hooks.
+- Running `vp install` executes the `prepare` script (`vp config` + `scripts/ensure-commit-hooks.sh`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` skips taking `core.hooksPath` when Cursor already owns it; `ensure-commit-hooks.sh` then chains Cursor's dispatcher to `.vite-hooks/_` so pre-commit still runs `vp staged` → `vp check --fix` (format + lint autofix on staged files).
 - Full Petstore OpenAPI coverage (beyond `openapi.poc.yaml`) is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md). Update that file whenever `@hexkit/plugin-hono` or `@hexkit/plugin-next` gains or loses Petstore-relevant OpenAPI support.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
 - GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
