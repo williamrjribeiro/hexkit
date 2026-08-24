@@ -4,6 +4,7 @@
 - [PRD](../PRD.md) — PoC product requirements and acceptance criteria (includes the plugin domain-agnostic invariant in §5.0)
 - [README](../README.md) — workspace overview and **project status** tracker
 - [Pet Store OpenAPI progress](./petstore-openapi-progress.md) — Hono & Next.js feature tracker toward the **full** Petstore OpenAPI (`missing` / `in progress` / `partial` / `shipped`; keep current)
+- [Upstream issue drafts](./upstream-issues/) — ready-to-post Cursor / Vite+ bug reports (e.g. Cloud Agent git hooks chaining)
 
 ## Specs & plans
 
