@@ -1,6 +1,6 @@
 /**
  * Inputs the use-case argument calculation needs. Structural so HTTP plugins
- * can pass hexagonal use cases without `@hexkit/shared` depending on hexagonal.
+ * can pass hexagonal use cases without `@hexkit/shared` importing hexagonal.
  */
 export type UseCaseArgumentInput = {
   requiresAuth: boolean;

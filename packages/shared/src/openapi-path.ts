@@ -1,13 +1,12 @@
 /**
  * Collect `{param}` names from an OpenAPI path template, in path order.
  *
- * Empty capture groups are dropped. Literal segments are ignored.
+ * Literal segments are ignored.
  *
  * @param openApiPath - Path such as `"/items/{itemId}/photos/{photoId}"`.
  */
 export function extractOpenApiPathParamNames(openApiPath: string): readonly string[] {
-  const matches = openApiPath.matchAll(/\{([^}]+)\}/g);
-  return [...matches].map((match) => match[1] ?? "").filter((name) => name.length > 0);
+  return [...openApiPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1]!);
 }
 
 /**
