@@ -42,6 +42,7 @@
     "@hexkit/plugin-architecture-hexagonal": "workspace:*"
   },
   "devDependencies": {
+    "@hexkit/shared": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

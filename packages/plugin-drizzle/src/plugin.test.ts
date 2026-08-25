@@ -3,23 +3,15 @@ import { join } from "node:path";
 
 import { beforeAll, describe, expect, it } from "vite-plus/test";
 
-import {
-  APICAL_CONTRACT_ARTIFACT,
-  loadValidatedOpenApi,
-  normalizeContractArtifact,
-  type ContractArtifact,
-} from "@hexkit/plugin-apical";
+import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
 import {
   APPLICATION_ARTIFACT,
   deriveApplicationModel,
   toApplicationArtifact,
   type ApplicationArtifact,
 } from "@hexkit/plugin-architecture-hexagonal";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-} from "@hexkit/plugin-api";
+import { type GeneratedFile } from "@hexkit/plugin-api";
+import { collectPluginOutput, loadNormalizedContract } from "@hexkit/shared/testing";
 
 import { PERSISTENCE_ARTIFACT, type PersistenceArtifact } from "./artifact.ts";
 import { createDrizzlePlugin } from "./plugin.ts";
@@ -76,22 +68,12 @@ let petstoreApplication: ApplicationArtifact;
 
 beforeAll(async () => {
   [petstoreContract, libraryContract, authContract] = await Promise.all([
-    loadContract(petstoreOpenApi, petstoreModules),
-    loadContract(libraryOpenApi, libraryModules),
-    loadContract(authOpenApi, authModules),
+    loadNormalizedContract(petstoreOpenApi, petstoreModules),
+    loadNormalizedContract(libraryOpenApi, libraryModules),
+    loadNormalizedContract(authOpenApi, authModules),
   ]);
   petstoreApplication = applicationFromContract(petstoreContract);
 });
-
-async function loadContract(
-  openApiPath: string,
-  modules: {
-    schemas: ReadonlyMap<string, string>;
-    operations: ReadonlyMap<string, string>;
-  },
-): Promise<ContractArtifact> {
-  return normalizeContractArtifact(await loadValidatedOpenApi(openApiPath), modules);
-}
 
 function applicationFromContract(contract: ContractArtifact): ApplicationArtifact {
   return toApplicationArtifact(deriveApplicationModel(contract));
@@ -101,20 +83,10 @@ async function collectGeneratedFiles(
   contract: ContractArtifact,
   application: ApplicationArtifact,
 ): Promise<{ files: GeneratedFile[]; artifact: PersistenceArtifact }> {
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
-
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  context.artifacts.publish(APPLICATION_ARTIFACT, application);
-  await createDrizzlePlugin().generate(context);
+  const { context, files } = await collectPluginOutput(createDrizzlePlugin(), (generation) => {
+    generation.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+    generation.artifacts.publish(APPLICATION_ARTIFACT, application);
+  });
 
   return {
     files,
@@ -885,7 +857,7 @@ describe("Given a property that combines an inline array with x-hexkit.reference
 describe("Given OpenAPI YAML that combines $ref with x-hexkit.reference", () => {
   it("when the document is normalized and persisted, then generation fails with the same error", async () => {
     const yamlPath = new URL("./__fixtures__/ref-plus-fk.yaml", import.meta.url).pathname;
-    const contract = await loadContract(yamlPath, {
+    const contract = await loadNormalizedContract(yamlPath, {
       schemas: new Map([
         ["Owner", "schemas/Owner.ts"],
         ["Widget", "schemas/Widget.ts"],

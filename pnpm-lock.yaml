@@ -538,6 +538,9 @@ importers:
         specifier: workspace:*
         version: link:../plugin-architecture-hexagonal
     devDependencies:
+      '@hexkit/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
