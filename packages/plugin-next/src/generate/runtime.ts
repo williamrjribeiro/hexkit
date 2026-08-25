@@ -1,7 +1,8 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { compareText, renderSourceFile, toKebabCase, toPascalCase, unique } from "@hexkit/codegen";
+import { compareText, renderSourceFile, toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal";
 import type { GeneratedFile } from "@hexkit/plugin-api";
+import { renderApiKeyDefaultsMapLiteral } from "@hexkit/shared";
 
 import type { NextHttpModel } from "../artifact.ts";
 import { RUNTIME_FILE_PATH } from "../model/derive.ts";
@@ -103,7 +104,11 @@ export function renderRuntimeFile(
             "function createDefaultAuthenticator(): Authenticator {",
             "  return createInMemoryAuthenticator({",
             '    bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
-            `    apiKeys: new Map(${renderApiKeyDefaults(model)}),`,
+            `    apiKeys: new Map(${renderApiKeyDefaultsMapLiteral(
+              model.routes.flatMap((route) =>
+                route.methods.flatMap((method) => method.authSchemes),
+              ),
+            )}),`,
             "  });",
             "}",
           ].join("\n"),
@@ -155,25 +160,4 @@ function routeUseCases(
   return application.useCases
     .filter((useCase) => routeOperationIds.has(useCase.operationId))
     .toSorted((left, right) => compareText(left.operationId, right.operationId));
-}
-
-function renderApiKeyDefaults(model: NextHttpModel): string {
-  const apiKeyHeaderNames = unique(
-    model.routes.flatMap((route) =>
-      route.methods.flatMap((method) =>
-        method.authSchemes.flatMap((scheme) =>
-          scheme.type === "apiKey" ? [scheme.headerName.toLowerCase()] : [],
-        ),
-      ),
-    ),
-  );
-
-  if (apiKeyHeaderNames.length === 0) return "[]";
-
-  const entries = apiKeyHeaderNames.map(
-    (headerName) =>
-      `[${JSON.stringify(headerName)}, new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]`,
-  );
-
-  return `[${entries.join(", ")}]`;
 }

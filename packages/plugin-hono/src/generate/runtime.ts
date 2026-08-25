@@ -1,6 +1,7 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile, unique } from "@hexkit/codegen";
+import { renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
+import { renderApiKeyDefaultsMapLiteral } from "@hexkit/shared";
 
 import type { HttpModel } from "../model/derive.ts";
 import { ROUTES_FILE_PATH, RUNTIME_FILE_PATH } from "../model/derive.ts";
@@ -57,7 +58,7 @@ export function renderRuntimeFile(model: HttpModel): GeneratedFile {
       ...(hasAuth
         ? [
             '  bearerTokens: new Set((process.env.AUTH_BEARER_TOKENS ?? "test-token").split(",")),',
-            `  apiKeys: new Map(${renderApiKeyDefaults(model)}),`,
+            `  apiKeys: new Map(${renderApiKeyDefaultsMapLiteral(model.operations.flatMap((operation) => operation.authSchemes))}),`,
             "})) {",
           ]
         : []),
@@ -73,23 +74,4 @@ export function renderRuntimeFile(model: HttpModel): GeneratedFile {
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
-}
-
-function renderApiKeyDefaults(model: HttpModel): string {
-  const apiKeyHeaderNames = unique(
-    model.operations.flatMap((operation) =>
-      operation.authSchemes.flatMap((scheme) =>
-        scheme.type === "apiKey" ? [scheme.headerName.toLowerCase()] : [],
-      ),
-    ),
-  );
-
-  if (apiKeyHeaderNames.length === 0) return "[]";
-
-  const entries = apiKeyHeaderNames.map(
-    (headerName) =>
-      `[${JSON.stringify(headerName)}, new Set((process.env.AUTH_API_KEYS ?? "test-key").split(","))]`,
-  );
-
-  return `[${entries.join(", ")}]`;
 }

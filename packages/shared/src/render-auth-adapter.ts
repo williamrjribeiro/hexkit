@@ -1,21 +1,27 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
-import { renderSourceFile } from "@hexkit/codegen";
+import { relativeImportPath, renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
-import { AUTH_ADAPTER_FILE_PATH } from "../model/derive.ts";
-import { relativeImportPath } from "../model/paths.ts";
+import { IN_MEMORY_AUTH_ADAPTER_PATH } from "./security-render.ts";
 
-export function renderAuthAdapterFile(): GeneratedFile {
+/**
+ * Emit the shared in-memory `Authenticator` adapter used by Hono and Next.
+ *
+ * @param filePath - Destination path. Defaults to {@link IN_MEMORY_AUTH_ADAPTER_PATH}.
+ */
+export function renderInMemoryAuthAdapterFile(
+  filePath: string = IN_MEMORY_AUTH_ADAPTER_PATH,
+): GeneratedFile {
   const imports: ImportDeclaration[] = [
     {
-      from: relativeImportPath(AUTH_ADAPTER_FILE_PATH, "src/core/ports/authenticator.ts"),
+      from: relativeImportPath(filePath, "src/core/ports/authenticator.ts"),
       names: ["Authenticator"],
       typeOnly: true,
     },
   ];
 
   return {
-    path: AUTH_ADAPTER_FILE_PATH,
+    path: filePath,
     contents: renderSourceFile({
       imports,
       statements: [
@@ -34,7 +40,7 @@ export function renderAuthAdapterFile(): GeneratedFile {
           "      const allowed = options.apiKeys?.get(credentials.headerName.toLowerCase());",
           "      if (!allowed?.has(credentials.apiKey)) return null;",
           '      return { id: "api-key-user", scheme: credentials.schemeName, scopes: [] };',
-          "    },",
+          "    }",
           "  };",
           "}",
         ].join("\n"),

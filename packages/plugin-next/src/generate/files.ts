@@ -2,6 +2,8 @@ import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal"
 import type { ContractArtifact } from "@hexkit/plugin-apical";
 import type { GeneratedFile } from "@hexkit/plugin-api";
 
+import { renderInMemoryAuthAdapterFile } from "@hexkit/shared";
+
 import type { NextHttpArtifact, NextSurface } from "../artifact.ts";
 import {
   CONTROLLERS_FILE_PATH,
@@ -10,7 +12,6 @@ import {
   RUNTIME_FILE_PATH,
   SERVER_ACCESS_FILE_PATH,
 } from "../model/derive.ts";
-import { renderAuthAdapterFile } from "./auth-adapter.ts";
 import { renderControllersFile } from "./controllers.ts";
 import { renderHelpersFile } from "./helpers.ts";
 import { renderPageFiles } from "./pages.ts";
@@ -34,7 +35,9 @@ export function generateNextDalFromArtifacts(
   const files: GeneratedFile[] = [
     renderServerAccessFile(model, application),
     ...(includesRoutes ? [renderHelpersFile(model), renderControllersFile(model)] : []),
-    ...(includesRoutes && model.authenticator !== undefined ? [renderAuthAdapterFile()] : []),
+    ...(includesRoutes && model.authenticator !== undefined
+      ? [renderInMemoryAuthAdapterFile()]
+      : []),
     ...(includesRoutes
       ? [renderRuntimeFile(model, application), ...renderRouteFiles(model.routes)]
       : []),

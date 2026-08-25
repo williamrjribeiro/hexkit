@@ -1,8 +1,8 @@
 import { toCamelCase } from "@hexkit/codegen";
 import type { ContractOperation, ContractType } from "@hexkit/plugin-apical";
+import { findJsonMedia, isSuccessStatus } from "@hexkit/shared";
 
 import type { ApplicationParameter, ResultCardinality } from "../artifact.ts";
-import { isSuccessStatus } from "./aggregate.ts";
 import { renderContractType } from "./type-render.ts";
 
 export function deriveParameters(operation: ContractOperation): {
@@ -18,9 +18,7 @@ export function deriveParameters(operation: ContractOperation): {
     );
   }
 
-  const requestMedia = operation.requestBody?.media.find(
-    (media) => media.mediaType === "application/json" && media.type !== undefined,
-  );
+  const requestMedia = findJsonMedia(operation.requestBody?.media);
 
   if (requestMedia?.type !== undefined) {
     if (requestMedia.type.kind === "reference") {
@@ -84,9 +82,7 @@ export function deriveReturnType(operation: ContractOperation): {
   );
 
   for (const response of successResponses) {
-    const media = response.media.find(
-      (entry) => entry.mediaType === "application/json" && entry.type !== undefined,
-    );
+    const media = findJsonMedia(response.media);
     if (media?.type === undefined) continue;
 
     const rendered = renderTypeExpression(media.type);

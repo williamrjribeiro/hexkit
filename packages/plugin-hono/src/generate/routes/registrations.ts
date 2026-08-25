@@ -1,3 +1,5 @@
+import { renderSecurityMetaLiteral } from "@hexkit/shared";
+
 import type { HttpOperationBinding } from "../../artifact.ts";
 
 export function renderRouteRegistration(operation: HttpOperationBinding): string {
@@ -25,13 +27,5 @@ export function renderRouteRegistration(operation: HttpOperationBinding): string
 }
 
 export function renderSecurityMeta(operation: HttpOperationBinding): string {
-  const schemes = operation.authSchemes.map((scheme) => {
-    if (scheme.type === "apiKey") {
-      return `{ name: ${JSON.stringify(scheme.name)}, type: "apiKey", headerName: ${JSON.stringify(scheme.headerName)} }`;
-    }
-
-    return `{ name: ${JSON.stringify(scheme.name)}, type: "http", scheme: "bearer", headerName: ${JSON.stringify(scheme.headerName)} }`;
-  });
-
-  return `{ schemes: [${schemes.join(", ")}] }`;
+  return renderSecurityMetaLiteral(operation.authSchemes);
 }

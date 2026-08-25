@@ -39,7 +39,8 @@
     "@hexkit/codegen": "workspace:*",
     "@hexkit/plugin-api": "workspace:*",
     "@hexkit/plugin-apical": "workspace:*",
-    "@hexkit/plugin-architecture-hexagonal": "workspace:*"
+    "@hexkit/plugin-architecture-hexagonal": "workspace:*",
+    "@hexkit/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "catalog:",

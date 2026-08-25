@@ -1,8 +1,8 @@
 {
-  "name": "@hexkit/plugin-architecture-hexagonal",
+  "name": "@hexkit/shared",
   "version": "0.0.0",
   "private": false,
-  "description": "Hexagonal architecture generator for Hexkit.",
+  "description": "Shared generator calculations for Hexkit plugins.",
   "license": "MIT",
   "files": [
     "dist"
@@ -38,11 +38,9 @@
   "dependencies": {
     "@hexkit/codegen": "workspace:*",
     "@hexkit/plugin-api": "workspace:*",
-    "@hexkit/plugin-apical": "workspace:*",
-    "@hexkit/shared": "workspace:*"
+    "@hexkit/plugin-apical": "workspace:*"
   },
   "devDependencies": {
-    "@hexkit/core": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
