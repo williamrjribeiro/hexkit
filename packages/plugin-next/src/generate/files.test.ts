@@ -3,11 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal";
 import { APPLICATION_ARTIFACT } from "@hexkit/plugin-architecture-hexagonal";
 import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-} from "@hexkit/plugin-api";
+import { collectPluginOutput } from "@hexkit/shared/testing";
 
 import { NEXT_HTTP_ARTIFACT } from "../artifact.ts";
 import { generateNextDalFromArtifacts } from "./files.ts";
@@ -107,20 +103,14 @@ describe("Given generateNextDalFromArtifacts defaults", () => {
 
 describe("Given createNextPlugin defaults", () => {
   it("when options are omitted, then surface defaults to both", async () => {
-    const files: GeneratedFile[] = [];
-    const context: GenerationContext = {
-      inputPath: "openapi.yaml",
-      outputDirectory: "/tmp/generated-next-defaults",
-      artifacts: createArtifactRegistry(),
-      writeFile(file) {
-        files.push(file);
+    const { context, files } = await collectPluginOutput(
+      createNextPlugin(),
+      (generation) => {
+        generation.artifacts.publish(APICAL_CONTRACT_ARTIFACT, itemContract());
+        generation.artifacts.publish(APPLICATION_ARTIFACT, itemApplication());
       },
-      log() {},
-    };
-    context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, itemContract());
-    context.artifacts.publish(APPLICATION_ARTIFACT, itemApplication());
-
-    await createNextPlugin().generate(context);
+      { outputDirectory: "/tmp/generated-next-defaults" },
+    );
 
     expect(context.artifacts.require(NEXT_HTTP_ARTIFACT).surface).toBe("both");
     expect(files.some((file) => file.path.endsWith("/route.ts"))).toBe(true);

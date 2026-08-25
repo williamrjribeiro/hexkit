@@ -1,5 +1,6 @@
 import { compareText } from "@hexkit/codegen";
 import type { ContractMedia, ContractOperation } from "@hexkit/plugin-apical";
+import { isSuccessStatus } from "@hexkit/shared";
 
 export function inferAggregateFromPath(
   path: string,
@@ -74,10 +75,6 @@ export function groupOperationsByAggregate(
   }
 
   return [...groups.entries()].sort(([left], [right]) => compareText(left, right));
-}
-
-export function isSuccessStatus(status: string): boolean {
-  return /^2\d\d$/.test(status);
 }
 
 function schemaReferenceFromMedia(media: readonly ContractMedia[] | undefined): string | undefined {

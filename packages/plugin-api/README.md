@@ -10,3 +10,7 @@ Each generation run receives an isolated typed artifact registry through
 `GenerationContext.artifacts`. Plugins publish and require artifacts with
 `ArtifactKey<T>` values; duplicate publication and missing requirements fail
 explicitly. Plugin `generate` methods may be synchronous or asynchronous.
+
+In-memory test helpers that record `writeFile` live in `@hexkit/shared/testing`,
+not here, so generator packages share one collecting context without duplicating
+registry wiring.

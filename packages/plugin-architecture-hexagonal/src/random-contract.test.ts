@@ -3,28 +3,15 @@ import { describe, expect, it } from "vite-plus/test";
 import { toKebabCase } from "@hexkit/codegen";
 import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
 import { createSeededLibraryContract } from "@hexkit/plugin-apical/testing";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-} from "@hexkit/plugin-api";
+import { type GeneratedFile } from "@hexkit/plugin-api";
+import { collectPluginOutput } from "@hexkit/shared/testing";
 
 import { createHexagonalPlugin } from "./plugin.ts";
 
 async function collectGeneratedFiles(contract: ContractArtifact): Promise<GeneratedFile[]> {
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
-
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  await createHexagonalPlugin().generate(context);
+  const { files } = await collectPluginOutput(createHexagonalPlugin(), (context) => {
+    context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+  });
   return files;
 }
 

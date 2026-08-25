@@ -1,4 +1,4 @@
-import { compareText, unique } from "@hexkit/codegen";
+import { compareText } from "@hexkit/codegen";
 import type {
   ApplicationArtifact,
   ApplicationUseCase,
@@ -6,10 +6,13 @@ import type {
 import type {
   ContractArtifact,
   ContractHttpMethod,
-  ContractMedia,
   ContractOperation,
-  ContractResponse,
 } from "@hexkit/plugin-apical";
+import {
+  deriveHttpControllerBinding,
+  extractOpenApiPathParamNames,
+  IN_MEMORY_AUTH_ADAPTER_PATH,
+} from "@hexkit/shared";
 
 import type {
   NextHttpModel,
@@ -20,13 +23,11 @@ import type {
 } from "../artifact.ts";
 import { openApiPathToAppRouteFile, openApiPathToUiPageFile } from "./paths.ts";
 
-type ContractSecurityScheme = ContractArtifact["securitySchemes"][number];
-
 export const HELPERS_FILE_PATH = "src/adapters/http-next/helpers.ts";
 export const CONTROLLERS_FILE_PATH = "src/adapters/http-next/controllers.ts";
 export const RUNTIME_FILE_PATH = "src/adapters/http-next/runtime.ts";
 export const SERVER_ACCESS_FILE_PATH = "src/adapters/http-next/server-access.ts";
-export const AUTH_ADAPTER_FILE_PATH = "src/adapters/auth/in-memory-authenticator.ts";
+export const AUTH_ADAPTER_FILE_PATH = IN_MEMORY_AUTH_ADAPTER_PATH;
 
 export function deriveNextHttpModel(
   contract: ContractArtifact,
@@ -83,61 +84,23 @@ export function deriveNextHttpModel(
 function deriveMethodBinding(
   operation: ContractOperation,
   useCase: ApplicationUseCase,
-  securitySchemes: readonly ContractSecurityScheme[],
-): NextMethodBinding & { openApiPath: string } {
-  const successResponse = findSuccessResponse(operation);
-  if (successResponse === undefined) {
-    throw new Error(
-      `Operation "${operation.operationId}" has no 2xx response for HTTP adapter generation.`,
-    );
-  }
-
-  const jsonSuccessMedia = findJsonMedia(successResponse.media);
-  const hasJsonBody = Boolean(
-    operation.requestBody?.media.some(
-      (media) => media.mediaType === "application/json" && media.type !== undefined,
-    ),
-  );
-  const hasNotFound = operation.responses.some((response) => response.status === "404");
-  const responseMapName =
-    jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
-
+  securitySchemes: ContractArtifact["securitySchemes"],
+): NextMethodBinding {
+  const binding = deriveHttpControllerBinding(operation, useCase, securitySchemes);
   return {
-    openApiPath: operation.path,
+    ...binding,
     method: toNextMethod(operation.method),
-    operationId: operation.operationId,
-    useCaseTypeName: useCase.typeName,
-    useCaseFactoryName: useCase.factoryName,
-    useCaseFilePath: useCase.filePath,
-    repositoryParameterName: useCase.repositoryParameterName,
-    wrapperName: `${operation.operationId}Wrapper`,
-    wrapperImportPath: `src/generated/contracts/server/${operation.operationId}.ts`,
-    ...(responseMapName === undefined
-      ? {}
-      : {
-          responseMapName,
-          responseMapImportPath: `src/generated/contracts/${operation.modulePath}`,
-        }),
-    hasJsonBody,
-    hasJsonSuccessBody: jsonSuccessMedia !== undefined,
-    successStatus: successResponse.status,
-    ...(hasNotFound ? { notFoundStatus: "404" } : {}),
-    ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
-    requiresPrincipal: useCase.requiresAuth,
-    authSchemes: useCase.requiresAuth ? deriveAuthSchemes(operation, securitySchemes) : [],
-    useCaseArgumentExpressions: deriveUseCaseArguments(useCase, hasJsonBody),
   };
 }
 
 function groupMethodBindingsIntoRoutes(
-  methodBindings: readonly (NextMethodBinding & { openApiPath: string })[],
+  methodBindings: readonly NextMethodBinding[],
 ): NextRouteFile[] {
   const routesByPath = new Map<string, NextMethodBinding[]>();
 
   for (const binding of methodBindings) {
     const methods = routesByPath.get(binding.openApiPath) ?? [];
-    const { openApiPath: _openApiPath, ...method } = binding;
-    methods.push(method);
+    methods.push(binding);
     routesByPath.set(binding.openApiPath, methods);
   }
 
@@ -156,7 +119,7 @@ function groupMethodBindingsIntoRoutes(
 
 function deriveUiPages(
   operations: readonly ContractOperation[],
-  methodBindings: readonly (NextMethodBinding & { openApiPath: string })[],
+  methodBindings: readonly NextMethodBinding[],
   useCasesByOperationId: ReadonlyMap<string, ApplicationUseCase>,
   surface: "both" | "rsc",
 ): NextUiPage[] {
@@ -175,7 +138,7 @@ function deriveUiPages(
           `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
         );
       }
-      if (binding.requiresPrincipal) {
+      if (binding.requiresAuth) {
         return [];
       }
 
@@ -185,68 +148,11 @@ function deriveUiPages(
           openApiPath: operation.path,
           operationId: operation.operationId,
           useCaseAccessorName: operation.operationId,
-          paramNames: extractPathParamNames(operation.path),
+          paramNames: [...extractOpenApiPathParamNames(operation.path)],
           parameters: useCase.parameters,
         },
       ];
     });
-}
-
-function deriveUseCaseArguments(useCase: ApplicationUseCase, hasJsonBody: boolean): string[] {
-  const principalExpression = useCase.requiresAuth ? ["principal"] : [];
-  if (hasJsonBody) {
-    return [...principalExpression, "request.value.body"];
-  }
-
-  return [
-    ...principalExpression,
-    ...useCase.parameters.map((parameter) => `request.value.path.${parameter.name}`),
-  ];
-}
-
-function deriveAuthSchemes(
-  operation: ContractOperation,
-  securitySchemes: readonly ContractSecurityScheme[],
-): NextMethodBinding["authSchemes"] {
-  if (operation.security.apicalServerHeaderNames.length === 0) return [];
-
-  const schemesByName = new Map(securitySchemes.map((scheme) => [scheme.name, scheme] as const));
-  const orderedNames = unique(
-    operation.security.requirements.flatMap((requirement) => requirement.schemes),
-  );
-
-  return orderedNames.flatMap((name): NextMethodBinding["authSchemes"] => {
-    const scheme = schemesByName.get(name);
-    if (scheme === undefined || scheme.type === "unsupported") return [];
-    if (scheme.type === "apiKey") {
-      return [{ name: scheme.name, type: "apiKey", headerName: scheme.headerName }];
-    }
-    return [
-      {
-        name: scheme.name,
-        type: "http",
-        scheme: "bearer",
-        headerName: scheme.headerName,
-      },
-    ];
-  });
-}
-
-function extractPathParamNames(openApiPath: string): string[] {
-  const matches = openApiPath.matchAll(/\{([^}]+)\}/g);
-  return [...matches].map((match) => match[1] ?? "").filter((name) => name.length > 0);
-}
-
-function findSuccessResponse(operation: ContractOperation): ContractResponse | undefined {
-  return operation.responses.find((response) => isSuccessStatus(response.status));
-}
-
-function findJsonMedia(media: readonly ContractMedia[]): ContractMedia | undefined {
-  return media.find((entry) => entry.mediaType === "application/json" && entry.type !== undefined);
-}
-
-function isSuccessStatus(status: string): boolean {
-  return /^2\d\d$/.test(status);
 }
 
 function toNextMethod(method: ContractHttpMethod): NextMethodBinding["method"] {

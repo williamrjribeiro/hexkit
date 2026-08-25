@@ -6,12 +6,8 @@ import {
   APPLICATION_ARTIFACT,
   generateApplicationFromContract,
 } from "@hexkit/plugin-architecture-hexagonal";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-  type HexkitPlugin,
-} from "@hexkit/plugin-api";
+import { type GeneratedFile, type HexkitPlugin } from "@hexkit/plugin-api";
+import { collectPluginOutput } from "@hexkit/shared/testing";
 
 import { type NextSurface } from "./artifact.ts";
 
@@ -20,23 +16,17 @@ async function collectGeneratedFiles(
   surface: NextSurface,
 ): Promise<GeneratedFile[]> {
   const application = generateApplicationFromContract(contract).artifact;
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-next-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
   const pluginModule = (await import("./plugin.ts")) as {
     createNextPlugin: (options?: { surface?: NextSurface }) => HexkitPlugin;
   };
-
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  context.artifacts.publish(APPLICATION_ARTIFACT, application);
-  await pluginModule.createNextPlugin({ surface }).generate(context);
+  const { files } = await collectPluginOutput(
+    pluginModule.createNextPlugin({ surface }),
+    (context) => {
+      context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+      context.artifacts.publish(APPLICATION_ARTIFACT, application);
+    },
+    { outputDirectory: "/tmp/generated-next-app" },
+  );
   return files;
 }
 

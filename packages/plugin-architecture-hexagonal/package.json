@@ -38,7 +38,8 @@
   "dependencies": {
     "@hexkit/codegen": "workspace:*",
     "@hexkit/plugin-api": "workspace:*",
-    "@hexkit/plugin-apical": "workspace:*"
+    "@hexkit/plugin-apical": "workspace:*",
+    "@hexkit/shared": "workspace:*"
   },
   "devDependencies": {
     "@hexkit/core": "workspace:*",

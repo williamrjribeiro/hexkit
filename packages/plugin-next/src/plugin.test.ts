@@ -5,18 +5,9 @@ import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { generateApplicationFromContract } from "@hexkit/plugin-architecture-hexagonal";
 import { APPLICATION_ARTIFACT } from "@hexkit/plugin-architecture-hexagonal";
-import {
-  APICAL_CONTRACT_ARTIFACT,
-  loadValidatedOpenApi,
-  normalizeContractArtifact,
-  type ContractArtifact,
-} from "@hexkit/plugin-apical";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-  type HexkitPlugin,
-} from "@hexkit/plugin-api";
+import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
+import { type GeneratedFile, type HexkitPlugin } from "@hexkit/plugin-api";
+import { collectPluginOutput, loadNormalizedContract } from "@hexkit/shared/testing";
 
 import { NEXT_HTTP_ARTIFACT, type NextHttpArtifact, type NextSurface } from "./artifact.ts";
 import { generateNextDalFromArtifacts } from "./generate/files.ts";
@@ -63,20 +54,10 @@ let libraryContract: ContractArtifact;
 
 beforeAll(async () => {
   [petstoreContract, libraryContract] = await Promise.all([
-    loadContract(petstoreOpenApi, petstoreModules),
-    loadContract(libraryOpenApi, libraryModules),
+    loadNormalizedContract(petstoreOpenApi, petstoreModules),
+    loadNormalizedContract(libraryOpenApi, libraryModules),
   ]);
 });
-
-async function loadContract(
-  openApiPath: string,
-  modules: {
-    schemas: ReadonlyMap<string, string>;
-    operations: ReadonlyMap<string, string>;
-  },
-): Promise<ContractArtifact> {
-  return normalizeContractArtifact(await loadValidatedOpenApi(openApiPath), modules);
-}
 
 function readProductionSources(): string {
   const root = join(import.meta.dirname);
@@ -111,24 +92,17 @@ async function collectGeneratedFiles(
   surface: NextSurface,
 ): Promise<{ files: GeneratedFile[]; artifact: NextHttpArtifact }> {
   const application = generateApplicationFromContract(contract).artifact;
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-next-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
   const pluginModule = (await import("./plugin.ts")) as {
     createNextPlugin: (options?: { surface?: NextSurface }) => HexkitPlugin;
   };
-  const createNextPlugin = pluginModule.createNextPlugin;
-
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  context.artifacts.publish(APPLICATION_ARTIFACT, application);
-  await createNextPlugin({ surface }).generate(context);
+  const { context, files } = await collectPluginOutput(
+    pluginModule.createNextPlugin({ surface }),
+    (generation) => {
+      generation.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+      generation.artifacts.publish(APPLICATION_ARTIFACT, application);
+    },
+    { outputDirectory: "/tmp/generated-next-app" },
+  );
 
   return {
     files,

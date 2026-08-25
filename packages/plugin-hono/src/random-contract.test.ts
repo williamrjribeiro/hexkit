@@ -6,30 +6,17 @@ import {
   APPLICATION_ARTIFACT,
   generateApplicationFromContract,
 } from "@hexkit/plugin-architecture-hexagonal";
-import {
-  createArtifactRegistry,
-  type GeneratedFile,
-  type GenerationContext,
-} from "@hexkit/plugin-api";
+import { type GeneratedFile } from "@hexkit/plugin-api";
+import { collectPluginOutput } from "@hexkit/shared/testing";
 
 import { createHonoPlugin } from "./plugin.ts";
 
 async function collectGeneratedFiles(contract: ContractArtifact): Promise<GeneratedFile[]> {
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
-
   const { artifact: application } = generateApplicationFromContract(contract);
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  context.artifacts.publish(APPLICATION_ARTIFACT, application);
-  await createHonoPlugin().generate(context);
+  const { files } = await collectPluginOutput(createHonoPlugin(), (context) => {
+    context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+    context.artifacts.publish(APPLICATION_ARTIFACT, application);
+  });
   return files;
 }
 

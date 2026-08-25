@@ -1,10 +1,12 @@
 # `@hexkit/codegen`
 
-Shared code-generation utilities for Hexkit. Provides source builders, import
+Shared source-generation utilities for Hexkit. Provides source builders, import
 management, naming helpers, and formatting utilities used by generator plugins.
 
 Generator plugins use this package to produce consistent TypeScript source
-without templates or application-specific business logic.
+without templates or application-specific business logic. Contract lookups,
+OpenAPI path translation, and HTTP adapter calculations live in
+[`@hexkit/shared`](../shared/README.md), not here.
 
 ## Exports
 

@@ -1,5 +1,5 @@
 import { createArtifactKey } from "@hexkit/plugin-api";
-import type { ContractHttpMethod } from "@hexkit/plugin-apical";
+import type { HttpAuthSchemeBinding, HttpControllerBinding } from "@hexkit/shared";
 
 export type HttpRepositoryBinding = {
   parameterName: string;
@@ -7,18 +7,7 @@ export type HttpRepositoryBinding = {
   repositoryFilePath: string;
 };
 
-export type HttpAuthSchemeBinding =
-  | {
-      name: string;
-      type: "apiKey";
-      headerName: string;
-    }
-  | {
-      name: string;
-      type: "http";
-      scheme: "bearer";
-      headerName: "Authorization";
-    };
+export type { HttpAuthSchemeBinding };
 
 export type HttpAuthenticatorBinding = {
   portName: "Authenticator";
@@ -27,28 +16,9 @@ export type HttpAuthenticatorBinding = {
   adapterFactoryName: "createInMemoryAuthenticator";
 };
 
-export type HttpOperationBinding = {
-  operationId: string;
-  method: ContractHttpMethod;
-  openApiPath: string;
+export type HttpOperationBinding = HttpControllerBinding & {
   honoPath: string;
-  useCaseTypeName: string;
-  useCaseFactoryName: string;
-  useCaseFilePath: string;
-  repositoryParameterName: string;
-  wrapperName: string;
-  wrapperImportPath: string;
-  responseMapName?: string;
-  responseMapImportPath?: string;
-  successStatus: string;
-  notFoundStatus?: string;
-  hasJsonRequestBody: boolean;
-  hasJsonSuccessBody: boolean;
-  successMediaType?: string;
-  requiresAuth: boolean;
   authMiddlewareName?: string;
-  authSchemes: readonly HttpAuthSchemeBinding[];
-  useCaseArgumentExpressions: readonly string[];
 };
 
 export type HttpArtifact = {

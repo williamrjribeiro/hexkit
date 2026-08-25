@@ -130,7 +130,7 @@ describe("Given deriveNextHttpModel", () => {
       useCaseTypeName: "getItemUseCase",
       useCaseFactoryName: "creategetItemUseCase",
       repositoryParameterName: "itemRepository",
-      hasJsonBody: false,
+      hasJsonRequestBody: false,
       hasJsonSuccessBody: true,
       successStatus: "200",
       successMediaType: "application/json",
@@ -225,11 +225,11 @@ describe("Given deriveNextHttpModel", () => {
     const binding = model.routes[0]?.methods[0];
 
     expect(binding).toMatchObject({
-      hasJsonBody: true,
+      hasJsonRequestBody: true,
       hasJsonSuccessBody: true,
       successStatus: "200",
       notFoundStatus: "404",
-      requiresPrincipal: true,
+      requiresAuth: true,
       useCaseArgumentExpressions: ["principal", "request.value.body"],
     });
   });

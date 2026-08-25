@@ -1,14 +1,9 @@
+import { openApiPathToNextSegments } from "@hexkit/shared";
+
 export { relativeImportPath } from "@hexkit/codegen";
 
-function openApiPathToAppSegments(openApiPath: string): string[] {
-  return openApiPath
-    .split("/")
-    .filter((segment) => segment.length > 0)
-    .map((segment) => segment.replace(/^\{([^}]+)\}$/, "[$1]"));
-}
-
 function openApiPathToAppRelativePath(openApiPath: string): string {
-  return openApiPathToAppSegments(openApiPath).join("/");
+  return openApiPathToNextSegments(openApiPath).join("/");
 }
 
 /** Map an OpenAPI path to a Next.js App Router Route Handler file path. */
@@ -29,5 +24,5 @@ export function openApiPathToUiPageFile(
 
 /** Split an OpenAPI path into Next.js App Router dynamic segment names. */
 export function openApiPathToAppRouteSegments(openApiPath: string): string[] {
-  return openApiPathToAppSegments(openApiPath);
+  return [...openApiPathToNextSegments(openApiPath)];
 }

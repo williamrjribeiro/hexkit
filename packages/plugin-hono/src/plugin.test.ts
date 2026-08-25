@@ -10,12 +10,7 @@ import {
   APPLICATION_ARTIFACT,
   generateApplicationFromContract,
 } from "@hexkit/plugin-architecture-hexagonal";
-import {
-  APICAL_CONTRACT_ARTIFACT,
-  loadValidatedOpenApi,
-  normalizeContractArtifact,
-  type ContractArtifact,
-} from "@hexkit/plugin-apical";
+import { APICAL_CONTRACT_ARTIFACT, type ContractArtifact } from "@hexkit/plugin-apical";
 import { createApicalPlugin } from "@hexkit/plugin-apical";
 import { createHexagonalPlugin } from "@hexkit/plugin-architecture-hexagonal";
 import {
@@ -23,6 +18,7 @@ import {
   type GeneratedFile,
   type GenerationContext,
 } from "@hexkit/plugin-api";
+import { collectPluginOutput, loadNormalizedContract } from "@hexkit/shared/testing";
 
 import { HTTP_ARTIFACT, type HttpArtifact } from "./artifact.ts";
 import { createHonoPlugin } from "./plugin.ts";
@@ -70,40 +66,20 @@ let libraryContract: ContractArtifact;
 
 beforeAll(async () => {
   [petstoreContract, libraryContract] = await Promise.all([
-    loadContract(petstoreOpenApi, petstoreModules),
-    loadContract(libraryOpenApi, libraryModules),
+    loadNormalizedContract(petstoreOpenApi, petstoreModules),
+    loadNormalizedContract(libraryOpenApi, libraryModules),
   ]);
 });
-
-async function loadContract(
-  openApiPath: string,
-  modules: {
-    schemas: ReadonlyMap<string, string>;
-    operations: ReadonlyMap<string, string>;
-  },
-): Promise<ContractArtifact> {
-  return normalizeContractArtifact(await loadValidatedOpenApi(openApiPath), modules);
-}
 
 async function collectGeneratedFiles(contract: ContractArtifact): Promise<{
   files: GeneratedFile[];
   artifact: HttpArtifact;
 }> {
-  const files: GeneratedFile[] = [];
-  const context: GenerationContext = {
-    inputPath: "openapi.yaml",
-    outputDirectory: "/tmp/generated-app",
-    artifacts: createArtifactRegistry(),
-    writeFile(file: GeneratedFile) {
-      files.push(file);
-    },
-    log() {},
-  };
-
   const { artifact: application } = generateApplicationFromContract(contract);
-  context.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
-  context.artifacts.publish(APPLICATION_ARTIFACT, application);
-  await createHonoPlugin().generate(context);
+  const { context, files } = await collectPluginOutput(createHonoPlugin(), (generation) => {
+    generation.artifacts.publish(APICAL_CONTRACT_ARTIFACT, contract);
+    generation.artifacts.publish(APPLICATION_ARTIFACT, application);
+  });
 
   return {
     files,

@@ -12,6 +12,7 @@ const productionSourceRoots = [
   "packages/plugin-drizzle/src",
   "packages/plugin-hono/src",
   "packages/plugin-next/src",
+  "packages/shared/src",
   "packages/codegen/src",
   "packages/core/src",
   "apps/cli/src",

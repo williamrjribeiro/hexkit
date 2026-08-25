@@ -12,19 +12,19 @@ requirements and acceptance criteria are in [PRD.md](./PRD.md).
 **Stage:** PoC complete (2026-08-22). Remaining work is post-PoC (full Petstore
 OpenAPI, SST/AWS, OAuth).
 
-| Area                                                    | Status                                                                         |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api` | Implemented — pipeline, file writer, plugin contracts                          |
-| `@hexkit/plugin-apical`                                 | Implemented — Craft → Zod contracts + manifest                                 |
-| `@hexkit/plugin-architecture-hexagonal`                 | Implemented — domain, ports, use-case skeletons                                |
-| `@hexkit/plugin-hono`                                   | Implemented — default HTTP adapter                                             |
-| `@hexkit/plugin-next`                                   | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`)              |
-| `@hexkit/plugin-drizzle`                                | Implemented — Postgres schema, repos, nested JSONB columns                     |
-| `@hexkit/cli`                                           | Implemented — `hexkit generate` with Hono/Next selection                       |
-| Docker Compose packaging                                | Implemented — emitted by CLI for Hono and Next                                 |
-| `@hexkit/plugin-sst`                                    | Scaffold only (`export {}`) — deferred post-PoC                                |
-| AWS Lambda / SST deploy                                 | Not in PoC scope                                                               |
-| GitHub Actions CI                                       | `.github/workflows/ci.yml` — Quality + Dogfood API + Dogfood NextJS (parallel) |
+| Area                                                                      | Status                                                                                    |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `@hexkit/core`, `@hexkit/codegen`, `@hexkit/plugin-api`, `@hexkit/shared` | Implemented — pipeline, file writer, plugin contracts, shared calculations + test harness |
+| `@hexkit/plugin-apical`                                                   | Implemented — Craft → Zod contracts + manifest                                            |
+| `@hexkit/plugin-architecture-hexagonal`                                   | Implemented — domain, ports, use-case skeletons                                           |
+| `@hexkit/plugin-hono`                                                     | Implemented — default HTTP adapter                                                        |
+| `@hexkit/plugin-next`                                                     | Implemented — opt-in Next.js Route Handlers + RSC (`--http next`)                         |
+| `@hexkit/plugin-drizzle`                                                  | Implemented — Postgres schema, repos, nested JSONB columns                                |
+| `@hexkit/cli`                                                             | Implemented — `hexkit generate` with Hono/Next selection                                  |
+| Docker Compose packaging                                                  | Implemented — emitted by CLI for Hono and Next                                            |
+| `@hexkit/plugin-sst`                                                      | Scaffold only (`export {}`) — deferred post-PoC                                           |
+| AWS Lambda / SST deploy                                                   | Not in PoC scope                                                                          |
+| GitHub Actions CI                                                         | `.github/workflows/ci.yml` — Quality + Dogfood API + Dogfood NextJS (parallel)            |
 
 **Automated tests:** ~100+ Vitest cases across Hexkit plugins and the CLI
 (`vp run --filter './packages/*' --filter './apps/cli' build` then the matching
@@ -54,6 +54,7 @@ Shop + Pactum), and Dogfood NextJS (generated Next Pet Shop lint/build).
 - [`apps/petstore-next`](./apps/petstore-next/README.md) — vanilla Next.js PetShop dogfood fixture (opt-in `--http next`)
 - [`packages/core`](./packages/core/README.md) — generation orchestration
 - [`packages/codegen`](./packages/codegen/README.md) — shared source generation utilities
+- [`packages/shared`](./packages/shared/README.md) — shared generator calculations and plugin-test harness
 - [`packages/plugin-api`](./packages/plugin-api/README.md) — plugin contracts and lifecycle
 - [`packages/plugin-apical`](./packages/plugin-apical/README.md) — Apical TS contract generation
 - [`packages/plugin-architecture-hexagonal`](./packages/plugin-architecture-hexagonal/README.md) — hexagonal architecture generation
@@ -62,6 +63,26 @@ Shop + Pactum), and Dogfood NextJS (generated Next Pet Shop lint/build).
 - [`packages/plugin-drizzle`](./packages/plugin-drizzle/README.md) — Drizzle persistence adapter generation
 - [`packages/plugin-sst`](./packages/plugin-sst/README.md) — SST infrastructure generation
 - [`docs`](./docs/README.md) — project documentation
+
+Generator packages that share HTTP and contract calculations import `@hexkit/shared`. That package is a library, not a `hexkit generate` pipeline step:
+
+```mermaid
+flowchart TB
+    pluginApi["@hexkit/plugin-api"]
+    codegen["@hexkit/codegen"]
+    apical["@hexkit/plugin-apical"]
+    shared["@hexkit/shared"]
+    hexagonal["plugin-architecture-hexagonal"]
+    hono["plugin-hono"]
+    next["plugin-next"]
+
+    pluginApi --> shared
+    codegen --> shared
+    apical --> shared
+    shared --> hexagonal
+    shared --> hono
+    shared --> next
+```
 
 ## Development
 

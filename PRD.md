@@ -116,12 +116,13 @@ Architectural principles remain those in the RFC: contract-first, boundary valid
 - `apps/petstore-next/` — vanilla Next.js PetShop fixture UI (not plugin source)
 - PoC **acceptance criteria** that describe the expected sample outcome
 
-It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit/codegen`, or CLI packaging generators.
+It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit/codegen`, `@hexkit/shared`, or CLI packaging generators.
 
 | Layer                                   | May know Petstore? | How domain knowledge enters                                                                                                       |
 | --------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/petstore-sample`                  | **Yes**            | Authored OpenAPI + tests against generated output                                                                                 |
 | `@hexkit/plugin-apical`                 | **No**             | Runs craft against `context.inputPath`                                                                                            |
+| `@hexkit/shared`                        | **No**             | Pure calculations and test harness over `ContractArtifact` / plugin-api types; no sample operationIds or paths                    |
 | `@hexkit/plugin-architecture-hexagonal` | **No**             | Derives domain, ports, and use-case skeletons from Apical contracts / OpenAPI IR                                                  |
 | `@hexkit/plugin-hono`                   | **No**             | Derives routes/controllers from Apical operations                                                                                 |
 | `@hexkit/plugin-next`                   | **No**             | Derives Route Handlers, RSC pages, and server-access from Apical operations (opt-in via `--http next`)                            |
@@ -150,6 +151,7 @@ It must **not** be hardcoded inside `@hexkit/plugin-*`, `@hexkit/core`, `@hexkit
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `@hexkit/plugin-api`                    | Plugin interfaces, metadata, generation context contracts                                                                                                                |
 | `@hexkit/codegen`                       | Source builders, import management, file abstractions, formatting helpers aligned with workspace formatter                                                               |
+| `@hexkit/shared`                        | Shared generator calculations (HTTP adapter model, status/media, path translation, shared HTTP renderers) and `@hexkit/shared/testing`                                   |
 | `@hexkit/core`                          | Load plugins, execute ordered pipeline, manage output files, enforce protected-zone policy                                                                               |
 | `@hexkit/plugin-apical`                 | Run Apical craft; emit contracts/Zod/operations under `src/generated/contracts/`                                                                                         |
 | `@hexkit/plugin-architecture-hexagonal` | **Contract-derived** domain entities, repository ports, use-case skeletons; designate protected user zones                                                               |
@@ -172,6 +174,8 @@ openapi.poc.yaml
 ```
 
 Hono remains the default HTTP adapter. `--http next` swaps `plugin-hono` for `plugin-next`. `--next-surface both|routes|rsc` (default `both`) selects emitted Next surfaces.
+
+`@hexkit/shared` is **not** a pipeline step. HTTP plugins (and hexagonal status/media lookups) consume its calculations; plugins still communicate through `plugin-api` artifacts.
 
 `core` must not contain framework-specific logic. Plugins communicate through `plugin-api` contracts and shared generation context. Downstream plugins (hexagonal → hono/drizzle) must read **generated contracts and prior plugin outputs**, not a Petstore-specific constant table in Hexkit source.
 

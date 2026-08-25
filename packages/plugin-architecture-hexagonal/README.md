@@ -12,4 +12,6 @@ types or operation lists in this package (see PRD §5.0).
 
 Every component schema used by the contract gets a domain file, including nested
 types that are not persisted as tables. Persistence is owned by
-`@hexkit/plugin-drizzle`.
+`@hexkit/plugin-drizzle`. HTTP success-status and JSON media lookups come from
+[`@hexkit/shared`](../shared/README.md). In-memory plugin tests use
+`@hexkit/shared/testing`.

@@ -33,6 +33,9 @@ and Docker Compose packaging.
 4. `@hexkit/plugin-drizzle` — Postgres schema and repository adapters
 5. CLI `packaging-plugin` — `package.json`, Compose, Dockerfile (shape depends on HTTP adapter)
 
+`@hexkit/shared` is not in this list: HTTP plugins and hexagonal status/media
+lookups import it as a library. Plugin tests share `@hexkit/shared/testing`.
+
 Plugins are domain-agnostic; sample contracts live under `apps/petstore-sample/`
 and `apps/fixtures/`.
 

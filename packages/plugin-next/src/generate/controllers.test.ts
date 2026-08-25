@@ -8,17 +8,18 @@ function binding(
 ): NextMethodBinding {
   return {
     method: "get",
+    openApiPath: "/items",
     useCaseTypeName: `${overrides.operationId}UseCase`,
     useCaseFactoryName: `create${overrides.operationId}UseCase`,
     useCaseFilePath: `src/core/use-cases/${overrides.operationId}.ts`,
     repositoryParameterName: "itemRepository",
     wrapperName: `${overrides.operationId}Wrapper`,
     wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
-    hasJsonBody: false,
+    hasJsonRequestBody: false,
     hasJsonSuccessBody: true,
     successStatus: "200",
     successMediaType: "application/json",
-    requiresPrincipal: false,
+    requiresAuth: false,
     authSchemes: [],
     useCaseArgumentExpressions: [],
     ...overrides,
@@ -114,8 +115,8 @@ describe("Given renderControllersFile", () => {
               binding({
                 operationId: "createItem",
                 method: "post",
-                hasJsonBody: true,
-                requiresPrincipal: true,
+                hasJsonRequestBody: true,
+                requiresAuth: true,
                 useCaseArgumentExpressions: ["principal", "request.value.body"],
                 responseMapName: "createItemResponseMap",
                 responseMapImportPath: "src/generated/contracts/routes/createItem.ts",
@@ -150,7 +151,7 @@ describe("Given renderControllersFile", () => {
             methods: [
               binding({
                 operationId: "getItem",
-                requiresPrincipal: true,
+                requiresAuth: true,
                 hasJsonSuccessBody: false,
                 successMediaType: undefined,
                 useCaseArgumentExpressions: ["principal", "request.value.path.itemId"],
@@ -177,7 +178,7 @@ describe("Given renderControllersFile", () => {
               binding({
                 operationId: "createItem",
                 method: "post",
-                hasJsonBody: true,
+                hasJsonRequestBody: true,
                 useCaseArgumentExpressions: ["request.value.body"],
                 responseMapName: "createItemResponseMap",
                 responseMapImportPath: "src/generated/contracts/routes/createItem.ts",

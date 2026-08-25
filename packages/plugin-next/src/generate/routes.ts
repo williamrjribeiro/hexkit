@@ -1,4 +1,5 @@
 import type { GeneratedFile } from "@hexkit/plugin-api";
+import { renderSecurityMetaLiteral } from "@hexkit/shared";
 
 import type { NextMethodBinding, NextRouteFile } from "../artifact.ts";
 
@@ -15,7 +16,7 @@ function renderRouteFile(route: NextRouteFile): GeneratedFile {
 }
 
 function renderRouteSource(route: NextRouteFile): string {
-  const hasAuth = route.methods.some((method) => method.requiresPrincipal);
+  const hasAuth = route.methods.some((method) => method.requiresAuth);
 
   return [
     'import type { NextRequest } from "next/server";',
@@ -35,10 +36,8 @@ function renderRouteSource(route: NextRouteFile): string {
 
 function renderMethodHandler(method: NextMethodBinding): string {
   const methodName = method.method.toUpperCase();
-  const jsonBody = method.hasJsonBody ? "true" : "false";
-  const controllerArguments = method.requiresPrincipal
-    ? "apicalRequest, principal"
-    : "apicalRequest";
+  const jsonBody = method.hasJsonRequestBody ? "true" : "false";
+  const controllerArguments = method.requiresAuth ? "apicalRequest, principal" : "apicalRequest";
 
   return [
     `export async function ${methodName}(`,
@@ -60,10 +59,10 @@ function renderMethodHandler(method: NextMethodBinding): string {
 }
 
 function renderAuthentication(method: NextMethodBinding): string[] {
-  if (!method.requiresPrincipal) return [];
+  if (!method.requiresAuth) return [];
 
   return [
-    `    const credentials = extractCredentials(request.headers, ${renderSecurityMeta(method)});`,
+    `    const credentials = extractCredentials(request.headers, ${renderSecurityMetaLiteral(method.authSchemes)});`,
     "    if (credentials === undefined) {",
     '      throw new AuthenticationError("credentials-missing");',
     "    }",
@@ -72,16 +71,4 @@ function renderAuthentication(method: NextMethodBinding): string[] {
     '      throw new AuthenticationError("principal-missing");',
     "    }",
   ];
-}
-
-function renderSecurityMeta(method: NextMethodBinding): string {
-  const schemes = method.authSchemes.map((scheme) => {
-    if (scheme.type === "apiKey") {
-      return `{ name: ${JSON.stringify(scheme.name)}, type: "apiKey", headerName: ${JSON.stringify(scheme.headerName)} }`;
-    }
-
-    return `{ name: ${JSON.stringify(scheme.name)}, type: "http", scheme: "bearer", headerName: ${JSON.stringify(scheme.headerName)} }`;
-  });
-
-  return `{ schemes: [${schemes.join(", ")}] }`;
 }
