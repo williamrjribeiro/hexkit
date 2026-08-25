@@ -28,3 +28,6 @@ foreign-key property, or omit `x-hexkit.reference` to store the nested value as
 JSONB. Declaring `x-hexkit.persistence` on a _referenced_ schema does **not**
 turn an embed into a relation; that opt-in is a later Phase 2 feature (see
 [Rich Pet nested persistence](../../docs/superpowers/plans/2026-08-20-rich-pet-nested-persistence.md)).
+
+In-memory plugin tests use `@hexkit/shared/testing`. Generation does not import
+production `@hexkit/shared` calculations.

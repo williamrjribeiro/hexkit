@@ -10,3 +10,7 @@ Petstore paths; dogfood and Library fixtures may drive tests, not the generator
 implementation (see PRD §5.0). Nested JSON request and response bodies follow
 the Apical maps; no extra mapping is required for object, array, or `$ref`
 payloads.
+
+Controller bindings, OpenAPI path translation, status/media lookups, and the
+in-memory authenticator renderer come from [`@hexkit/shared`](../shared/README.md).
+In-memory plugin tests use `@hexkit/shared/testing`.

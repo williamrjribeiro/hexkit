@@ -9,6 +9,10 @@ framework outside the application core. It is **domain-agnostic** (PRD §5.0):
 it must not hardcode sample operationIds or fixture paths. Dogfood and Library
 fixtures may drive tests, not the generator implementation.
 
+Controller bindings, OpenAPI path segments, status/media lookups, and the
+in-memory authenticator renderer come from [`@hexkit/shared`](../shared/README.md).
+In-memory plugin tests use `@hexkit/shared/testing`.
+
 **OpenAPI → Route Handlers** at literal contract paths. Server Actions are not
 part of the OpenAPI HTTP surface; PetShop form posts live in
 `apps/petstore-next` only.

@@ -16,3 +16,7 @@ Craft emits a schema module for every component schema used by the contract,
 including nested types that never become database tables. Persistence markers
 such as `x-hexkit.persistence` are recorded on the contract artifact for later
 plugins; they do not change whether a craft schema module is generated.
+
+`@hexkit/plugin-apical/testing` exports library-shaped random contracts
+(`createSeededLibraryContract`). In-memory `GenerationContext` collection lives
+in `@hexkit/shared/testing`.

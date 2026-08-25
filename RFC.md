@@ -7,6 +7,7 @@ Implementation snapshot (August 2026)
 
 - `@hexkit/cli` generates compose-ready Hono or Next.js applications from OpenAPI 3.1.
 - Plugins implemented: apical, architecture-hexagonal, hono, next (opt-in), drizzle.
+- `@hexkit/shared` holds generator calculations used by more than one plugin (HTTP adapter model, status/media lookups) plus `@hexkit/shared/testing`. It is **not** a pipeline plugin.
 - `@hexkit/plugin-sst` remains scaffold-only; AWS/SST deploy deferred post-PoC.
 - Dogfood: Hono Rich Pet + Order (`vp run dogfood`), Next PetShop (`vp run dogfood-petstore-next`), auth fixture (`vp run dogfood-auth`).
 
@@ -135,6 +136,7 @@ hexkit/
 │   ├── core/
 │   ├── codegen/
 │   ├── plugin-api/
+│   ├── shared/
 │   │
 │   ├── plugin-apical/
 │   ├── plugin-architecture-hexagonal/
@@ -160,7 +162,7 @@ The core package must not contain framework-specific logic.
 
 codegen
 
-Shared code generation utilities.
+Shared source-generation utilities (builders, imports, formatting).
 
 Responsibilities:
 
@@ -169,7 +171,7 @@ Import management
 File abstractions
 Formatting helpers
 
-No business logic.
+No contract or HTTP business logic — those calculations live in `shared`.
 
 plugin-api
 
@@ -180,6 +182,21 @@ Responsibilities:
 Plugin interfaces
 Plugin metadata
 Generation context contracts
+
+shared
+
+Shared generator calculations used by more than one plugin, plus an in-memory plugin-test harness.
+
+Responsibilities:
+
+HTTP status and JSON media lookups over `ContractArtifact` data
+OpenAPI path translations (Hono / Next)
+HTTP controller binding and auth-scheme derivation
+Shared HTTP controller and in-memory authenticator renderers
+`@hexkit/shared/testing` — in-memory `GenerationContext` helpers for plugin tests
+
+Not a pipeline plugin. Must not import hexagonal (avoids a cycle). Must not hardcode sample domains (see PRD §5.0).
+
 plugin-apical
 
 Integration with Apical TS.
@@ -209,7 +226,7 @@ Output:
 
 src/core/
 
-Domain shapes, ports, and use cases are derived from Apical-generated contracts (and the OpenAPI input that produced them). This plugin must not hardcode a sample domain such as Petstore Pet/Order types or operation lists.
+Domain shapes, ports, and use cases are derived from Apical-generated contracts (and the OpenAPI input that produced them). This plugin must not hardcode a sample domain such as Petstore Pet/Order types or operation lists. Status and JSON media lookups come from `@hexkit/shared`.
 
 plugin-hono
 
@@ -222,7 +239,7 @@ Controllers
 Middleware wiring
 Operation integration
 
-Consumes Apical-generated contracts. Routes and controllers are derived from those operations; the plugin must not hardcode sample operationIds or Petstore paths.
+Consumes Apical-generated contracts and `@hexkit/shared` HTTP calculations (controller bindings, path translation, shared renderers). Routes and controllers are derived from those operations; the plugin must not hardcode sample operationIds or Petstore paths.
 
 plugin-next
 
@@ -235,7 +252,7 @@ RSC pages and server-access wiring (surface-selectable)
 Middleware/auth wiring aligned with Hono behavior
 Operation integration
 
-Consumes Apical-generated contracts. OpenAPI maps to Route Handlers; Server Actions are not part of the OpenAPI HTTP surface. The plugin must not hardcode sample operationIds or Petstore paths (see PRD §5.0).
+Consumes Apical-generated contracts and `@hexkit/shared` HTTP calculations (same adapter model as Hono, with Next path segments). OpenAPI maps to Route Handlers; Server Actions are not part of the OpenAPI HTTP surface. The plugin must not hardcode sample operationIds or Petstore paths (see PRD §5.0).
 
 plugin-drizzle
 
@@ -282,6 +299,29 @@ flowchart TD
     G --> H[plugin-sst]
 
     H --> I[Deployable Project]
+
+Generator package dependencies (not a pipeline step):
+
+```mermaid
+flowchart TB
+    pluginApi["@hexkit/plugin-api"]
+    codegen["@hexkit/codegen"]
+    apical["@hexkit/plugin-apical"]
+    shared["@hexkit/shared"]
+    hexagonal["plugin-architecture-hexagonal"]
+    hono["plugin-hono"]
+    next["plugin-next"]
+
+    pluginApi --> shared
+    codegen --> shared
+    apical --> shared
+    shared --> hexagonal
+    shared --> hono
+    shared --> next
+```
+
+`@hexkit/shared` is a library, not a pipeline plugin. Hexagonal uses it for HTTP status and JSON media lookups. Hono and Next use it for the HTTP adapter model and shared renderers. Drizzle generation does not import production `@hexkit/shared` calculations; its plugin tests use `@hexkit/shared/testing`.
+
 Code Generation Strategy
 
 Hexkit follows the same generation philosophy used by Apical TS.

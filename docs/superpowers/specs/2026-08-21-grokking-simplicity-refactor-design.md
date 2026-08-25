@@ -207,3 +207,12 @@ All work lands on **one branch / one PR**.
 - `plugin-sst` implementation
 - Lowering the 90% coverage floor
 - Result/`ValidationIssue[]` instead of throw (defer; throws stay at calculation edges this PR)
+
+## Follow-up (2026-08-25)
+
+Approach A (`@hexkit/http-adapter-model`) stayed out of this refactor as YAGNI.
+A later extract added `@hexkit/shared` for calculations used by more than one
+plugin (HTTP adapter model, path translation, status/media lookups, shared HTTP
+renderers) without making hexagonal a dependency of shared. Plugin tests share
+`@hexkit/shared/testing`. Library-shaped contract fixtures remain
+`@hexkit/plugin-apical/testing`.
