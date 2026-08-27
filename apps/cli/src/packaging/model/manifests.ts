@@ -25,7 +25,7 @@ export function createHonoPackageManifest(packageName: string, migrationPath: st
     engines: {
       node: ">=24.18.1",
     },
-    packageManager: "pnpm@11.18.0",
+    packageManager: "pnpm@11.24.0",
   };
 }
 
@@ -64,6 +64,6 @@ export function createNextPackageManifest(packageName: string, migrationPath: st
     engines: {
       node: ">=24.18.1",
     },
-    packageManager: "pnpm@11.18.0",
+    packageManager: "pnpm@11.24.0",
   };
 }
