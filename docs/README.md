@@ -27,7 +27,7 @@ lists remain for historical traceability.
 | [Test coverage quality gate design](./superpowers/specs/2026-08-21-test-coverage-quality-gate-design.md)     | Delivered — 90% gate green for generator packages                              |
 | [Grokking Simplicity refactor design](./superpowers/specs/2026-08-21-grokking-simplicity-refactor-design.md) | Delivered (#19) — TDD stratification per generator package                     |
 | [Grokking Simplicity refactor plan](./superpowers/plans/2026-08-21-grokking-simplicity-refactor.md)          | Delivered (#19)                                                                |
-| [Petstore query list ops design](./superpowers/specs/2026-08-28-petstore-query-list-operations-design.md)    | Draft — `findPetsByStatus` / `findPetsByTags` (JSON, query params)             |
+| [Petstore query list ops design](./superpowers/specs/2026-08-28-petstore-query-list-operations-design.md)    | Implemented — `findPetsByStatus` / `findPetsByTags` (JSON, query params)       |
 | [Petstore query list ops plan](./superpowers/plans/2026-08-28-petstore-query-list-operations.md)             | Draft — pending review                                                         |
 
 ### Specs & plans (detail)

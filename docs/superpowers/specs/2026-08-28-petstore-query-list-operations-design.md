@@ -1,6 +1,6 @@
 # Design: Petstore query-parameter list operations (`findPetsByStatus`, `findPetsByTags`)
 
-**Status:** Draft — pending review  
+**Status:** Implemented  
 **Date:** 2026-08-28  
 **Tracker:** [docs/petstore-openapi-progress.md](../../petstore-openapi-progress.md) (Pet rows: `findPetsByStatus`, `findPetsByTags`)  
 **Companions:** [PRD.md](../../../PRD.md) §11, [Rich Pet nested persistence plan](../plans/2026-08-20-rich-pet-nested-persistence.md), [RFC.md](../../../RFC.md)
