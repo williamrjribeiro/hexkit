@@ -73,7 +73,7 @@ function renderRequestHelper(contextType: string): string {
   return [
     `function request(context: ${contextType}): ApicalRequest {`,
     "  return {",
-    "    query: context.req.query(),",
+    "    query: context.req.queries(),",
     "    path: context.req.param(),",
     "    headers: toApicalHeaders(context.req.raw.headers),",
     "  };",
