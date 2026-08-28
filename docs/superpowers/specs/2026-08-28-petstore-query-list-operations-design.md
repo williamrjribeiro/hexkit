@@ -243,8 +243,37 @@ Never silently ignore filter parameters.
 ### 5.7 Next.js
 
 - Route Handlers: inherit shared controller binding changes automatically.
-- RSC: `page-plan.ts` already coerces query args via `getSearchParam`; no new pages required for this slice (find ops are API-first).
-- Regenerate `apps/petstore-next` Route Handlers after contract change.
+- Regenerate `apps/petstore-next` Route Handlers and `server-access.ts` after contract change (`findPetsByStatus`, `findPetsByTags` on `ServerAccess`).
+- **Fixture-owned PetShop UI** (Task 10): showcase list filters on `/pets` without client-side fetching.
+
+#### 5.7.1 PetShop catalog filters (`apps/petstore-next`)
+
+The fixture owns UI under `app/pets/**`. Reads call generated **server-access in-process** (DAL); writes stay on Server Actions. Do not `fetch` Route Handlers from RSC.
+
+**Replace** the current `featuredPetIds` + repeated `getPetById` workaround with query-driven catalog loading:
+
+| URL                                  | Server-access call                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `/pets` (no params)                  | `findPetsByStatus(["available", "pending", "sold"])` — full catalog default |
+| `/pets?status=available`             | `findPetsByStatus(["available"])`                                           |
+| `/pets?status=available&status=sold` | `findPetsByStatus(["available", "sold"])`                                   |
+| `/pets?tags=friendly`                | `findPetsByTags(["friendly"])`                                              |
+| `/pets?tags=friendly&tags=quiet`     | `findPetsByTags(["friendly", "quiet"])`                                     |
+
+**Filter precedence (v1):** Petstore has separate find endpoints, not a combined filter. If any `tags` are present in `searchParams`, call `findPetsByTags`; else if any `status` values are present, call `findPetsByStatus`; else default catalog (all statuses).
+
+**Filter bar** — plain HTML `<form method="get">` on `/pets` (no `"use client"`):
+
+- **Status:** `<select name="status">` with All / Available / Pending / Sold. “All” omits the param (default catalog). Single status submits one value.
+- **Tags:** checkbox group with `name="tags"` and preset fixture labels (`friendly`, `quiet`, `trained`) matching dogfood seed data.
+- **Apply filters** submit button; **Clear** links to `/pets`.
+- Results: existing card grid + status badge + tag pills; header shows match count; empty state when API returns `[]`.
+
+**Homepage** (`app/page.tsx`): add quick-link pills to `/pets?status=available`, `/pets?status=pending`, `/pets?status=sold`.
+
+**Optional demo footer** on `/pets`: one line showing the equivalent OpenAPI Route Handler (`GET /pet/findByStatus?status=…`) for manual/curl testing — UI proves in-process DAL; footer proves public HTTP surface.
+
+**Out of scope for fixture UI:** Vitest/Playwright tests (fixture has no app test suite per README); combined status+tags AND filter; client-side autocomplete.
 
 ### 5.8 Dogfood / Pactum
 
@@ -297,6 +326,7 @@ Notes: JSON + DB filter proven; `petstore_auth` / XML still absent. Refresh Summ
 | Dogfood    | Petstore Pactum against Compose                                     |
 | Regression | `auth-api` `listItems` still unfiltered; existing PoC ops unchanged |
 | CI         | Quality + Dogfood API + Dogfood NextJS (parallel)                   |
+| Next UI    | Manual smoke: `/pets` status/tag filters update catalog (Task 10)   |
 
 Run locally: `vp run ready` then `vp run dogfood`.
 
@@ -307,6 +337,7 @@ Run locally: `vp run ready` then `vp run dogfood`.
 3. Plugin unit tests use `filter-api` fixture — no Petstore strings in `@hexkit/plugin-*` production source.
 4. Tracker rows move to `partial` with accurate Notes.
 5. `@hexkit/plugin-apical` unchanged unless craft parity test gaps appear for array query params.
+6. PetShop Next fixture: `/pets` filter toolbar drives `findPetsByStatus` / `findPetsByTags` via server-access; homepage status pills link into filtered views.
 
 ## 9. Risks
 

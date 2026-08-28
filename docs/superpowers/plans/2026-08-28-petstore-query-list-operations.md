@@ -383,6 +383,87 @@ HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
 
 ---
 
+### Task 10: PetShop Next.js catalog filter UI
+
+**Files:**
+
+- Create: `apps/petstore-next/app/pets/catalog.ts`
+- Modify: `apps/petstore-next/app/pets/page.tsx`
+- Modify: `apps/petstore-next/app/page.tsx`
+- Modify: `apps/petstore-next/app/pets/featured.ts` (remove or repoint; may delete if unused)
+- Modify: `apps/petstore-next/README.md`
+
+**Interfaces:**
+
+- Consumes: regenerated `ServerAccess` with `findPetsByStatus(statuses)` and `findPetsByTags(tags)` (from Task 9).
+- Produces: RSC catalog driven by `searchParams`; no client components.
+
+- [ ] **Step 1:** Add `catalog.ts` with param normalization and filter precedence:
+
+```ts
+import type { Pet } from "@/core/domain/pet";
+import { getServerAccess } from "@/adapters/http-next/server-access";
+
+const allStatuses = ["available", "pending", "sold"] as const;
+export const catalogTagOptions = ["friendly", "quiet", "trained"] as const;
+
+function normalizeMultiParam(value: string | string[] | undefined): string[] {
+  if (value === undefined) return [];
+  return (Array.isArray(value) ? value : [value]).map((entry) => entry.trim()).filter(Boolean);
+}
+
+export async function loadPetCatalog(searchParams: {
+  status?: string | string[];
+  tags?: string | string[];
+}): Promise<Pet[]> {
+  const access = getServerAccess();
+  const tags = normalizeMultiParam(searchParams.tags);
+  if (tags.length > 0) {
+    return access.findPetsByTags(tags);
+  }
+
+  const statuses = normalizeMultiParam(searchParams.status);
+  if (statuses.length > 0) {
+    return access.findPetsByStatus(statuses as Array<(typeof allStatuses)[number]>);
+  }
+
+  return access.findPetsByStatus([...allStatuses]);
+}
+```
+
+- [ ] **Step 2:** Rewrite `app/pets/page.tsx`:
+  - Accept `searchParams: Promise<{ status?: string | string[]; tags?: string | string[] }>`.
+  - Render GET filter form: status `<select name="status">` (empty option = All), tag checkboxes from `catalogTagOptions`, Apply + Clear (`href="/pets"`).
+  - Call `loadPetCatalog(await searchParams)`; show count, cards with status badge + tag pills, empty state for `[]`.
+  - Add optional footer line: equivalent Route Handler path for demo (`GET /pet/findByStatus?…` or `/pet/findByTags?…` based on active filter).
+  - Remove copy about “fixture ids” / `featuredPetIds` workaround.
+
+- [ ] **Step 3:** Update `app/page.tsx`:
+  - Replace `loadFeaturedPets()` with `loadPetCatalog({})` or a thin `loadFeaturedPets()` that delegates to catalog (homepage shows default catalog, not id loop).
+  - Add status pill links: `/pets?status=available`, `pending`, `sold`.
+
+- [ ] **Step 4:** Delete `featured.ts` if nothing imports it; otherwise make it re-export from `catalog.ts`.
+
+- [ ] **Step 5:** Update `apps/petstore-next/README.md` — document `/pets` filters and that list reads use `findPetsByStatus` / `findPetsByTags` via server-access.
+
+- [ ] **Step 6:** Manual smoke (no new test suite):
+
+```bash
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+cd apps/petstore-next && pnpm next dev
+```
+
+- Open `/pets`, change status dropdown → grid updates.
+- Select tag checkbox → grid updates.
+- Clear → full catalog.
+- Homepage pills navigate to filtered views.
+
+- [ ] **Step 7:** Commit `feat(petstore-next): catalog filters for status and tags`.
+
+**Depends on:** Task 9 (regenerated `server-access` with find methods).
+
+---
+
 ## Spec coverage
 
 | Spec section                         | Task                            |
@@ -394,12 +475,13 @@ HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
 | §5.5 filter-api fixture              | 1, 5                            |
 | §5.6 Drizzle filtered list           | 4                               |
 | §5.7 Next Route Handlers             | 9                               |
+| §5.7.1 PetShop catalog filters       | 10                              |
 | §5.8 Pactum dogfood                  | 7                               |
 | §5.9 Progress tracker                | 8                               |
 | §3 Non-goals (OAuth/XML)             | no task — intentionally omitted |
 | §6 Error handling                    | 4, 7                            |
-| §7 Testing strategy                  | 2–7, 9                          |
-| §8 Success criteria                  | 9                               |
+| §7 Testing strategy                  | 2–7, 9, 10 (manual UI smoke)    |
+| §8 Success criteria                  | 9, 10                           |
 
 ## Execution options
 
