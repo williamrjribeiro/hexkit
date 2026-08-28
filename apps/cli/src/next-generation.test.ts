@@ -14,6 +14,8 @@ const petstoreApicalContractPaths = [
   "routes/addPet.ts",
   "routes/deleteOrder.ts",
   "routes/deletePet.ts",
+  "routes/findPetsByStatus.ts",
+  "routes/findPetsByTags.ts",
   "routes/getOrderById.ts",
   "routes/getPetById.ts",
   "routes/index.ts",
@@ -26,6 +28,10 @@ const petstoreApicalContractPaths = [
   "schemas/addPetParameters.ts",
   "schemas/deleteOrderParameters.ts",
   "schemas/deletePetParameters.ts",
+  "schemas/findPetsByStatusParameters.ts",
+  "schemas/FindPetsByStatus200Response.ts",
+  "schemas/findPetsByTagsParameters.ts",
+  "schemas/FindPetsByTags200Response.ts",
   "schemas/getOrderByIdParameters.ts",
   "schemas/getPetByIdParameters.ts",
   "schemas/index.ts",
@@ -35,6 +41,8 @@ const petstoreApicalContractPaths = [
   "server/addPet.ts",
   "server/deleteOrder.ts",
   "server/deletePet.ts",
+  "server/findPetsByStatus.ts",
+  "server/findPetsByTags.ts",
   "server/getOrderById.ts",
   "server/getPetById.ts",
   "server/index.ts",
@@ -57,6 +65,8 @@ import { serverRoute as addPetRoute } from "./addPet.ts";
 import { serverRoute as updatePetRoute } from "./updatePet.ts";
 import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
 import { serverRoute as deletePetRoute } from "./deletePet.ts";
+import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
+import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
 import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
 import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
 import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
@@ -65,6 +75,8 @@ export const routes = {
   updatePet: updatePetRoute,
   getPetById: getPetByIdRoute,
   deletePet: deletePetRoute,
+  findPetsByStatus: findPetsByStatusRoute,
+  findPetsByTags: findPetsByTagsRoute,
   placeOrder: placeOrderRoute,
   getOrderById: getOrderByIdRoute,
   deleteOrder: deleteOrderRoute,
@@ -142,6 +154,10 @@ describe("Given Next.js CLI generation", () => {
     expect(paths).toEqual(
       expect.arrayContaining([
         "app/pet/[petId]/route.ts",
+        "app/pet/findByStatus/route.ts",
+        "app/pet/findByTags/route.ts",
+        "app/ui/pet/findByStatus/page.tsx",
+        "app/ui/pet/findByTags/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",
         "src/adapters/auth/in-memory-authenticator.ts",
         "src/adapters/http-next/server-access.ts",
@@ -290,6 +306,8 @@ describe("Given Next.js CLI generation", () => {
     expect(result.exitCode).toBe(0);
     expect(paths).toEqual(
       expect.arrayContaining([
+        "app/pet/findByStatus/page.tsx",
+        "app/pet/findByTags/page.tsx",
         "app/store/order/[orderId]/page.tsx",
         "src/adapters/http-next/server-access.ts",
         "src/adapters/db/database.ts",

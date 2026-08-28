@@ -12,7 +12,9 @@ line). Optional nested `category` and `tags` are not collected by those forms;
 the generated API still accepts them as JSON.
 
 **Data flow:** no client-side data fetching. RSC pages read via generated
-server-access (DAL in-process). Writes use plain HTML forms wired to Server
+server-access (DAL in-process). The `/pets` catalog uses `findPetsByStatus` and
+`findPetsByTags` from server-access for filtered lists (status dropdown and tag
+checkboxes in a GET form). Writes use plain HTML forms wired to Server
 Actions. Server Actions are not the OpenAPI HTTP surface.
 
 **No PetShop test suite** — do not add Vitest, Pactum, or Playwright here.

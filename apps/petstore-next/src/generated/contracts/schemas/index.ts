@@ -5,6 +5,14 @@ import {
 import {
   deletePetPathSchema,
 } from "./deletePetParameters.ts";
+import { FindPetsByStatus200Response } from "./FindPetsByStatus200Response.ts";
+import {
+  findPetsByStatusQuerySchema,
+} from "./findPetsByStatusParameters.ts";
+import { FindPetsByTags200Response } from "./FindPetsByTags200Response.ts";
+import {
+  findPetsByTagsQuerySchema,
+} from "./findPetsByTagsParameters.ts";
 import {
   getOrderByIdPathSchema,
 } from "./getOrderByIdParameters.ts";
@@ -18,11 +26,15 @@ import { Tag } from "./Tag.ts";
 
 export {
   Category,
+  FindPetsByStatus200Response,
+  FindPetsByTags200Response,
   Order,
   Pet,
   Tag,
   deleteOrderPathSchema,
   deletePetPathSchema,
+  findPetsByStatusQuerySchema,
+  findPetsByTagsQuerySchema,
   getOrderByIdPathSchema,
   getPetByIdHeadersSchema,
   getPetByIdPathSchema,

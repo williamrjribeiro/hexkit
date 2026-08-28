@@ -14,6 +14,6 @@ export function createInMemoryAuthenticator(options: {
       const allowed = options.apiKeys?.get(credentials.headerName.toLowerCase());
       if (!allowed?.has(credentials.apiKey)) return null;
       return { id: "api-key-user", scheme: credentials.schemeName, scopes: [] };
-    },
+    }
   };
 }
