@@ -28,6 +28,8 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["findPetsByStatus", "routes/findPetsByStatus.ts"],
+    ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
@@ -94,6 +96,8 @@ describe("Given a ContractArtifact for Petstore", () => {
       { path: "src/core/application/add-pet.ts", ownership: "protected" },
       { path: "src/core/application/delete-order.ts", ownership: "protected" },
       { path: "src/core/application/delete-pet.ts", ownership: "protected" },
+      { path: "src/core/application/find-pets-by-status.ts", ownership: "protected" },
+      { path: "src/core/application/find-pets-by-tags.ts", ownership: "protected" },
       { path: "src/core/application/get-order-by-id.ts", ownership: "protected" },
       { path: "src/core/application/get-pet-by-id.ts", ownership: "protected" },
       { path: "src/core/application/place-order.ts", ownership: "protected" },
@@ -125,6 +129,8 @@ describe("Given a ContractArtifact for Petstore", () => {
         export interface PetRepository {
           addPet(pet: Pet): Promise<Pet>;
           deletePet(petId: number): Promise<void>;
+          findPetsByStatus(status: Array<"available" | "pending" | "sold">): Promise<Array<Pet>>;
+          findPetsByTags(tags: Array<string>): Promise<Array<Pet>>;
           getPetById(petId: number): Promise<Pet | undefined>;
           updatePet(pet: Pet): Promise<Pet>;
         }
@@ -170,6 +176,8 @@ describe("Given a ContractArtifact for Petstore", () => {
           methods: [
             { operationId: "addPet", name: "addPet" },
             { operationId: "deletePet", name: "deletePet" },
+            { operationId: "findPetsByStatus", name: "findPetsByStatus" },
+            { operationId: "findPetsByTags", name: "findPetsByTags" },
             { operationId: "getPetById", name: "getPetById" },
             { operationId: "updatePet", name: "updatePet" },
           ],
@@ -263,10 +271,13 @@ describe("Given a ContractArtifact with secured and public operations", () => {
     expect(source).not.toContain("Principal");
   });
 
-  it("when an operation only has a query parameter, then generation reports unsupported input", async () => {
-    await expect(collectGeneratedFiles(createQueryOnlyContract())).rejects.toThrow(
-      'Operation "searchItems" declares unsupported query parameter "term".',
-    );
+  it("when an operation only has a query parameter, then generation emits a query-backed use case", async () => {
+    const { files, artifact } = await collectGeneratedFiles(createQueryOnlyContract());
+
+    expect(artifact.useCases.map((useCase) => useCase.operationId)).toContain("searchItems");
+    expect(
+      files.find((file) => file.path === "src/core/application/search-items.ts")?.contents,
+    ).toContain("term:");
   });
 
   it("when any secured operation exists, then principal and authenticator port files are emitted", async () => {
@@ -477,6 +488,7 @@ function createAuthContract(): ContractArtifact {
 
 function createQueryOnlyContract(): ContractArtifact {
   const stringType = { kind: "string", nullable: false } as const;
+  const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
   const contract = createAuthContract();
   const getHealth = contract.operations.find((operation) => operation.operationId === "getHealth");
   if (getHealth === undefined) {
@@ -495,8 +507,20 @@ function createQueryOnlyContract(): ContractArtifact {
           {
             name: "term",
             location: "query",
-            required: false,
+            required: true,
             type: stringType,
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "array", nullable: false, items: itemReference },
+              },
+            ],
           },
         ],
         extension: { aggregate: "Item", action: "search" },

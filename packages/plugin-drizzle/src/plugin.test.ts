@@ -35,6 +35,8 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["findPetsByStatus", "routes/findPetsByStatus.ts"],
+    ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
@@ -183,7 +185,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
         import type { PetRepository } from "../../core/ports/pet-repository.ts";
         import { mapPetRow } from "./mappers.ts";
         import { pets } from "./schema.ts";
-        import { eq } from "drizzle-orm";
+        import { eq, inArray } from "drizzle-orm";
         import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
         export function createDrizzlePetRepository(
@@ -197,6 +199,23 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
             },
             async deletePet(petId: number): Promise<void> {
               await db.delete(pets).where(eq(pets.id, petId));
+            },
+            async findPetsByStatus(status: Array<"available" | "pending" | "sold">): Promise<Array<Pet>> {
+              const rows = await db
+                .select()
+                .from(pets)
+                .where(inArray(pets.status, status));
+              return rows.map(mapPetRow);
+            },
+            async findPetsByTags(tags: Array<string>): Promise<Array<Pet>> {
+              const rows = await db.select().from(pets);
+              return rows
+                .filter((row) => {
+                  const values = row.tags as Array<{ name?: string }> | null;
+                  if (values == null) return false;
+                  return values.some((entry) => entry.name !== undefined && tags.includes(entry.name));
+                })
+                .map(mapPetRow);
             },
             async getPetById(petId: number): Promise<Pet | undefined> {
               const [row] = await db.select().from(pets).where(eq(pets.id, petId)).limit(1);

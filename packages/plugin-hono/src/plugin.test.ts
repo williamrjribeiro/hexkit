@@ -42,6 +42,8 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["findPetsByStatus", "routes/findPetsByStatus.ts"],
+    ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
@@ -328,6 +330,8 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(routes?.contents).toContain(
       'app.get("/pet/:petId", authenticateGetPetById, async (context) =>',
     );
+    expect(routes?.contents).toContain('app.get("/pet/findByStatus", async (context) =>');
+    expect(routes?.contents).toContain('app.get("/pet/findByTags", async (context) =>');
     expect(routes?.contents).toContain('app.post("/store/order", async (context) =>');
 
     expect(runtime?.contents).toContain("addPet: createAddPet(repositories.pets),");
@@ -358,6 +362,8 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       "addPet",
       "deleteOrder",
       "deletePet",
+      "findPetsByStatus",
+      "findPetsByTags",
       "getOrderById",
       "getPetById",
       "placeOrder",

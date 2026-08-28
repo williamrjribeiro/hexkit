@@ -55,7 +55,7 @@ function extractOperations(contract: string): ContractOperation[] {
 }
 
 describe("Given the Petstore PoC contract", () => {
-  it("when operations are inspected, then it contains the seven normative operations", () => {
+  it("when operations are inspected, then it contains the PoC operations", () => {
     expect(extractOperations(readContract())).toMatchInlineSnapshot(`
       [
         {
@@ -77,6 +77,16 @@ describe("Given the Petstore PoC contract", () => {
           "method": "DELETE",
           "operationId": "deletePet",
           "path": "/pet/{petId}",
+        },
+        {
+          "method": "GET",
+          "operationId": "findPetsByStatus",
+          "path": "/pet/findByStatus",
+        },
+        {
+          "method": "GET",
+          "operationId": "findPetsByTags",
+          "path": "/pet/findByTags",
         },
         {
           "method": "POST",
@@ -213,6 +223,8 @@ describe("Given real Apical craft output", () => {
         "updatePet",
         "getPetById",
         "deletePet",
+        "findPetsByStatus",
+        "findPetsByTags",
         "placeOrder",
         "getOrderById",
         "deleteOrder",

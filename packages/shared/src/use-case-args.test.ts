@@ -6,16 +6,46 @@ describe("Given use-case argument derivation", () => {
   it("when the operation is public with path parameters, then only path expressions are emitted", () => {
     expect(
       deriveUseCaseArgumentExpressions(
-        { requiresAuth: false, parameters: [{ name: "itemId" }, { name: "photoId" }] },
+        {
+          requiresAuth: false,
+          parameters: [
+            { name: "itemId", location: "path" },
+            { name: "photoId", location: "path" },
+          ],
+        },
         false,
       ),
     ).toEqual(["request.value.path.itemId", "request.value.path.photoId"]);
   });
 
+  it("when query parameters are present, then query expressions follow path expressions", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        {
+          requiresAuth: false,
+          parameters: [
+            { name: "widgetId", location: "path" },
+            { name: "status", location: "query" },
+          ],
+        },
+        false,
+      ),
+    ).toEqual(["request.value.path.widgetId", "request.value.query.status"]);
+  });
+
+  it("when only query parameters exist, then only query expressions are emitted", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        { requiresAuth: false, parameters: [{ name: "status", location: "query" }] },
+        false,
+      ),
+    ).toEqual(["request.value.query.status"]);
+  });
+
   it("when the operation has a JSON body, then the body expression replaces path parameters", () => {
     expect(
       deriveUseCaseArgumentExpressions(
-        { requiresAuth: false, parameters: [{ name: "itemId" }] },
+        { requiresAuth: false, parameters: [{ name: "itemId", location: "path" }] },
         true,
       ),
     ).toEqual(["request.value.body"]);
@@ -24,7 +54,7 @@ describe("Given use-case argument derivation", () => {
   it("when the operation requires auth, then principal is the first argument", () => {
     expect(
       deriveUseCaseArgumentExpressions(
-        { requiresAuth: true, parameters: [{ name: "itemId" }] },
+        { requiresAuth: true, parameters: [{ name: "itemId", location: "path" }] },
         false,
       ),
     ).toEqual(["principal", "request.value.path.itemId"]);
