@@ -52,11 +52,13 @@ export function deriveHttpModel(
 
   const repositories = application.repositories
     .toSorted((left, right) => compareText(left.parameterName, right.parameterName))
-    .map((repository): HttpRepositoryBinding => ({
-      parameterName: repository.parameterName,
-      repositoryName: repository.name,
-      repositoryFilePath: repository.filePath,
-    }));
+    .map(
+      (repository): HttpRepositoryBinding => ({
+        parameterName: repository.parameterName,
+        repositoryName: repository.name,
+        repositoryFilePath: repository.filePath,
+      }),
+    );
 
   const authenticator =
     application.authenticatorPort === undefined
