@@ -9,6 +9,7 @@ export type ApplicationEntity = {
 export type ApplicationParameter = {
   name: string;
   typeExpression: string;
+  location?: "path" | "query";
 };
 
 export type ResultCardinality = "one" | "many" | "void";

@@ -7,6 +7,7 @@ import type {
   PersistenceRepositoryMethodModel,
   PersistenceRepositoryModel,
 } from "../model/repository.ts";
+import { findListFilterColumn, renderFilteredListMethodBody } from "./list-filter.ts";
 import { mapperFunctionName } from "../model/table.ts";
 
 export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] {
@@ -18,9 +19,18 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
   const needsEq = repository.methods.some(
     (method) => method.kind === "update" || method.kind === "select" || method.kind === "delete",
   );
+  const needsInArray = repository.methods.some((method) => {
+    if (method.kind !== "list" || method.parameters.length === 0) return false;
+    const column = findListFilterColumn(table.columns, method.parameters[0]?.name ?? "");
+    return column !== undefined && column.sqlType !== "jsonb";
+  });
 
+  const drizzleNames = [
+    ...(needsEq ? (["eq"] as const) : []),
+    ...(needsInArray ? (["inArray"] as const) : []),
+  ];
   const imports: ImportDeclaration[] = [
-    ...(needsEq ? [{ from: "drizzle-orm", names: ["eq"] }] : []),
+    ...(drizzleNames.length > 0 ? [{ from: "drizzle-orm", names: [...drizzleNames] }] : []),
     {
       from: "drizzle-orm/node-postgres",
       names: ["NodePgDatabase"],
@@ -116,6 +126,10 @@ function renderMethod(
       ].join("\n");
     }
     case "list": {
+      if (method.parameters.length > 0) {
+        return renderFilteredListMethodBody(repository, method).bodyLines.join("\n");
+      }
+
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      const rows = await db.select().from(${table.exportName});`,

@@ -1,5 +1,5 @@
 import { toCamelCase } from "@hexkit/codegen";
-import type { ContractOperation, ContractType } from "@hexkit/plugin-apical";
+import type { ContractOperation, ContractParameter, ContractType } from "@hexkit/plugin-apical";
 import { findJsonMedia, isSuccessStatus } from "@hexkit/shared";
 
 import type { ApplicationParameter, ResultCardinality } from "../artifact.ts";
@@ -10,7 +10,7 @@ export function deriveParameters(operation: ContractOperation): {
   referencedSchemas: readonly string[];
 } {
   const unsupportedParameter = operation.parameters.find(
-    (parameter) => parameter.location !== "path",
+    (parameter) => parameter.location === "header" || parameter.location === "cookie",
   );
   if (unsupportedParameter !== undefined) {
     throw new Error(
@@ -52,22 +52,36 @@ export function deriveParameters(operation: ContractOperation): {
   }
 
   const pathParameters = operation.parameters.filter((parameter) => parameter.location === "path");
-  if (pathParameters.length === 0) return { parameters: [], referencedSchemas: [] };
+  const queryParameters = operation.parameters.filter(
+    (parameter) => parameter.location === "query",
+  );
 
-  const renderedParameters = pathParameters.map((parameter) => {
-    const rendered = renderContractType(parameter.type);
-    return {
-      parameter: {
-        name: parameter.name,
-        typeExpression: rendered.expression,
-      },
-      referencedSchemas: rendered.referencedSchemas,
-    };
-  });
+  const renderedParameters = [...pathParameters, ...queryParameters].map((parameter) =>
+    renderOperationParameter(parameter),
+  );
+
+  if (renderedParameters.length === 0) {
+    return { parameters: [], referencedSchemas: [] };
+  }
 
   return {
     parameters: renderedParameters.map((entry) => entry.parameter),
     referencedSchemas: renderedParameters.flatMap((entry) => entry.referencedSchemas),
+  };
+}
+
+function renderOperationParameter(parameter: ContractParameter): {
+  parameter: ApplicationParameter;
+  referencedSchemas: readonly string[];
+} {
+  const rendered = renderContractType(parameter.type);
+  return {
+    parameter: {
+      name: parameter.name,
+      typeExpression: rendered.expression,
+      location: parameter.location === "query" ? "query" : "path",
+    },
+    referencedSchemas: rendered.referencedSchemas,
   };
 }
 

@@ -57,6 +57,58 @@ paths:
       responses:
         "204":
           description: Pet deleted
+  /pet/findByStatus:
+    get:
+      operationId: findPetsByStatus
+      parameters:
+        - name: status
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - available
+                - pending
+                - sold
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Pets matching status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+        "400":
+          description: Invalid status value
+  /pet/findByTags:
+    get:
+      operationId: findPetsByTags
+      parameters:
+        - name: tags
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+      responses:
+        "200":
+          description: Pets matching tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+        "400":
+          description: Invalid tag value
   /store/order:
     post:
       operationId: placeOrder

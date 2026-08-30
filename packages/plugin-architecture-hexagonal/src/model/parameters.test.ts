@@ -90,7 +90,59 @@ describe("Given operation inputs", () => {
         }),
       ),
     ).toEqual({
-      parameters: [{ name: "itemId", typeExpression: "string" }],
+      parameters: [{ name: "itemId", typeExpression: "string", location: "path" }],
+      referencedSchemas: [],
+    });
+  });
+
+  it("when query parameters are declared, then they are included with query location", () => {
+    expect(
+      deriveParameters(
+        operation({
+          operationId: "findWidgetsByStatus",
+          path: "/widgets/findByStatus",
+          parameters: [
+            {
+              name: "status",
+              location: "query",
+              required: true,
+              type: {
+                kind: "array",
+                nullable: false,
+                items: {
+                  kind: "string",
+                  nullable: false,
+                  enum: ["active", "inactive"],
+                },
+              },
+            },
+          ],
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: {
+                    kind: "array",
+                    nullable: false,
+                    items: { kind: "reference", nullable: false, schema: "Widget" },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      parameters: [
+        {
+          name: "status",
+          typeExpression: 'Array<"active" | "inactive">',
+          location: "query",
+        },
+      ],
       referencedSchemas: [],
     });
   });
@@ -102,22 +154,15 @@ describe("Given operation inputs", () => {
     });
   });
 
-  it("when a query parameter is declared, then the calculation throws", () => {
+  it("when a header parameter is declared, then the calculation throws", () => {
     expect(() =>
       deriveParameters(
         operation({
-          operationId: "searchItems",
-          parameters: [
-            {
-              name: "term",
-              location: "query",
-              required: false,
-              type: stringType,
-            },
-          ],
+          operationId: "badOp",
+          parameters: [{ name: "X-Trace", location: "header", required: false, type: stringType }],
         }),
       ),
-    ).toThrow('Operation "searchItems" declares unsupported query parameter "term".');
+    ).toThrow('unsupported header parameter "X-Trace"');
   });
 
   it("when a request body has no json schema, then the calculation throws", () => {
@@ -152,7 +197,7 @@ describe("Given operation inputs", () => {
         }),
       ),
     ).toEqual({
-      parameters: [{ name: "item", typeExpression: "Item" }],
+      parameters: [{ name: "item", typeExpression: "Item", location: "path" }],
       referencedSchemas: ["Item"],
     });
   });

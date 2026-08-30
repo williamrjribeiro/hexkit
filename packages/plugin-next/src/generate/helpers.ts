@@ -87,12 +87,21 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
         ]
       : []),
     [
+      "function parseApicalQuery(searchParams: URLSearchParams): Record<string, string | string[]> {",
+      "  const query: Record<string, string[]> = {};",
+      "  for (const key of searchParams.keys()) {",
+      "    query[key] = searchParams.getAll(key);",
+      "  }",
+      "  return query;",
+      "}",
+    ].join("\n"),
+    [
       "export async function toApicalRequest(",
       "  request: NextRequest,",
       "  params: Record<string, string>,",
       "  options: { jsonBody: boolean },",
       "): Promise<ApicalRequest> {",
-      "  const query = Object.fromEntries(request.nextUrl.searchParams.entries());",
+      "  const query = parseApicalQuery(request.nextUrl.searchParams);",
       "  const baseRequest: ApicalRequest = {",
       "    query,",
       "    path: params,",

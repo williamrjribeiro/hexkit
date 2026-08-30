@@ -1,6 +1,8 @@
 import { AddPet, createAddPet } from "../../core/application/add-pet.ts";
 import { DeleteOrder, createDeleteOrder } from "../../core/application/delete-order.ts";
 import { DeletePet, createDeletePet } from "../../core/application/delete-pet.ts";
+import { FindPetsByStatus, createFindPetsByStatus } from "../../core/application/find-pets-by-status.ts";
+import { FindPetsByTags, createFindPetsByTags } from "../../core/application/find-pets-by-tags.ts";
 import { GetOrderById, createGetOrderById } from "../../core/application/get-order-by-id.ts";
 import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
 import { PlaceOrder, createPlaceOrder } from "../../core/application/place-order.ts";
@@ -22,6 +24,8 @@ export type ServerAccess = {
   addPet: AddPet;
   deleteOrder: DeleteOrder;
   deletePet: DeletePet;
+  findPetsByStatus: FindPetsByStatus;
+  findPetsByTags: FindPetsByTags;
   getOrderById: GetOrderById;
   getPetById: (petId: number) => Promise<Pet | undefined>;
   placeOrder: PlaceOrder;
@@ -50,6 +54,8 @@ function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
     addPet: createAddPet(repositories.pets),
     deleteOrder: createDeleteOrder(repositories.orders),
     deletePet: createDeletePet(repositories.pets),
+    findPetsByStatus: createFindPetsByStatus(repositories.pets),
+    findPetsByTags: createFindPetsByTags(repositories.pets),
     getOrderById: createGetOrderById(repositories.orders),
     getPetById: (petId) => createGetPetById(repositories.pets)(rscPrincipal, petId),
     placeOrder: createPlaceOrder(repositories.orders),

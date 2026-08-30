@@ -368,6 +368,113 @@
       }
     },
     {
+      "operationId": "findPetsByStatus",
+      "method": "get",
+      "path": "/pet/findByStatus",
+      "modulePath": "routes/findPetsByStatus.ts",
+      "parameters": [
+        {
+          "name": "status",
+          "location": "query",
+          "required": true,
+          "type": {
+            "kind": "array",
+            "nullable": false,
+            "items": {
+              "kind": "string",
+              "nullable": false,
+              "enum": [
+                "available",
+                "pending",
+                "sold"
+              ]
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Pets matching status",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "array",
+                "nullable": false,
+                "items": {
+                  "kind": "reference",
+                  "nullable": false,
+                  "schema": "Pet"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "status": "400",
+          "description": "Invalid status value",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "findPetsByTags",
+      "method": "get",
+      "path": "/pet/findByTags",
+      "modulePath": "routes/findPetsByTags.ts",
+      "parameters": [
+        {
+          "name": "tags",
+          "location": "query",
+          "required": true,
+          "type": {
+            "kind": "array",
+            "nullable": false,
+            "items": {
+              "kind": "string",
+              "nullable": false
+            }
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Pets matching tags",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "array",
+                "nullable": false,
+                "items": {
+                  "kind": "reference",
+                  "nullable": false,
+                  "schema": "Pet"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "status": "400",
+          "description": "Invalid tag value",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
       "operationId": "placeOrder",
       "method": "post",
       "path": "/store/order",

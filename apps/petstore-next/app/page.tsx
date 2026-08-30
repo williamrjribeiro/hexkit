@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { loadFeaturedPets } from "./pets/featured";
+import { loadPetCatalog } from "./pets/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ function statusBadge(status: string | undefined) {
 }
 
 export default async function Home() {
-  const pets = await loadFeaturedPets();
+  const pets = await loadPetCatalog({});
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12">
@@ -39,6 +39,18 @@ export default async function Home() {
             Manage orders
           </Link>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="text-sm font-medium text-stone-600">Filter by status:</span>
+          {(["available", "pending", "sold"] as const).map((status) => (
+            <Link
+              key={status}
+              href={`/pets?status=${status}`}
+              className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-800 hover:bg-stone-200"
+            >
+              {status}
+            </Link>
+          ))}
+        </div>
       </section>
 
       <section>
@@ -53,11 +65,11 @@ export default async function Home() {
         </div>
         {pets.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-stone-600">
-            No featured pets were returned by the current server access implementation.
+            No pets were returned by the current server access implementation.
           </p>
         ) : (
           <ul className="mt-4 grid gap-4 md:grid-cols-3">
-            {pets.map((pet) => (
+            {pets.slice(0, 6).map((pet) => (
               <li key={pet.id} className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-stone-200">
                 <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                   #{pet.id} / {statusBadge(pet.status)}
