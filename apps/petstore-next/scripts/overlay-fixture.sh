@@ -9,11 +9,8 @@ if [ -z "$GENERATED_DIR" ] || [ -z "$FIXTURE_DIR" ]; then
   exit 2
 fi
 
-VP_BIN_DIR=${VP_HOME:-$HOME/.vite-plus}/bin
-if [ -x "$VP_BIN_DIR/vp" ]; then
-  PATH="$VP_BIN_DIR:$PATH"
-  export PATH
-fi
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd)
+. "$ROOT_DIR/scripts/ensure-vp-shims-on-path.sh"
 
 mkdir -p "$GENERATED_DIR/app"
 
