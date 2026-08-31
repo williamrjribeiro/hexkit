@@ -167,7 +167,7 @@ describe("Given the canonical Petstore contract", () => {
           "node": ">=24.18.1",
         },
         "name": "generated-hexkit-petstore-poc",
-        "packageManager": "pnpm@11.18.0",
+        "packageManager": "pnpm@11.24.0",
         "private": true,
         "scripts": {
           "check": "tsc --noEmit",

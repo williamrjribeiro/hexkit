@@ -16,15 +16,15 @@ catalog:
   "@standard-schema/spec": ^1.1.0
   "@types/node": ^24
   "@types/pg": ^8.20.3
-  "@vitest/coverage-v8": 4.1.10
+  "@vitest/coverage-v8": 4.1.11
   drizzle-orm: ^0.45.2
   hono: ^4.12.33
   pactum: ^3.9.1
   pg: ^8.22.0
   pure-rand: ^8.4.2
   typescript: ^7.0.2
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.7
-  vite-plus: 0.2.7
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.0
+  vite-plus: 0.3.0
   zod: ^4.4.3
 overrides:
   vite: "catalog:"

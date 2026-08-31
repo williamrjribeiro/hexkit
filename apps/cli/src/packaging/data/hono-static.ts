@@ -24,7 +24,7 @@ WORKDIR /app
 
 RUN apk add --no-cache postgresql-client \\
   && corepack enable \\
-  && corepack prepare pnpm@11.18.0 --activate
+  && corepack prepare pnpm@11.24.0 --activate
 
 COPY package.json ./
 RUN pnpm install --prod

@@ -26,7 +26,7 @@ export default defineConfig({
     tasks: {
       dogfood: {
         command: "apps/petstore-sample/scripts/dogfood.sh",
-        // Vite+ 0.2.7 uncached tasks inherit caller env. Its schema rejects
+        // Vite+ 0.3.0 uncached tasks inherit caller env. Its schema rejects
         // `env` together with `cache: false`; the controlled task proof covers
         // PETSTORE_API_URL, HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
         cache: false,
