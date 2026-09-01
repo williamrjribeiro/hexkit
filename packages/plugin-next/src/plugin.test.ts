@@ -28,6 +28,7 @@ const petstoreModules = {
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
     ["updatePet", "routes/updatePet.ts"],
+    ["updatePetWithForm", "routes/updatePetWithForm.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
     ["findPetsByStatus", "routes/findPetsByStatus.ts"],
