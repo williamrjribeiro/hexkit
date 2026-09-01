@@ -1,6 +1,6 @@
 # Design: Petstore `updatePetWithForm` (query field patch)
 
-**Status:** Draft — awaiting review  
+**Status:** Implemented  
 **Date:** 2026-09-01  
 **Tracker:** [docs/petstore-openapi-progress.md](../../petstore-openapi-progress.md) (Pet row: `updatePetWithForm`)  
 **Companions:** [PRD.md](../../../PRD.md) §11, [query-list design](./2026-08-28-petstore-query-list-operations-design.md), [RFC.md](../../../RFC.md)

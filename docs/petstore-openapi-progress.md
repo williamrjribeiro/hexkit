@@ -10,7 +10,7 @@ whenever Hono/Next OpenAPI support changes (see [Keeping this tracker current](#
 
 | Field        | Value                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| Last updated | 2026-08-28                                                                                      |
+| Last updated | 2026-09-01                                                                                      |
 | Target spec  | Full Swagger Petstore (classic 19 operations + OAS 3.1 extras in the checked-in reference)      |
 | PoC contract | [`apps/petstore-sample/openapi.poc.yaml`](../apps/petstore-sample/openapi.poc.yaml)             |
 | OAS 3.1 ref  | [`apps/petstore-sample/openapi.yaml`](../apps/petstore-sample/openapi.yaml) (Pet-focused slice) |
@@ -46,8 +46,8 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono` | 3         | 8         | 0             | 15        |
-| `@hexkit/plugin-next` | 2         | 9         | 0             | 15        |
+| `@hexkit/plugin-hono` | 3         | 9         | 0             | 14        |
+| `@hexkit/plugin-next` | 2         | 10        | 0             | 14        |
 
 Almost all PoC Pet / Order routes are **partial** (JSON-only and/or missing
 Petstore security). **Shipped:** `deleteOrder`, JSON media type, and Hono header
@@ -73,7 +73,7 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 | `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)  |
 | `findPetsByStatus`  | `GET /pet/findByStatus`         | partial | partial | PoC JSON + DB filter; still need XML and `petstore_auth`                    |
 | `findPetsByTags`    | `GET /pet/findByTags`           | partial | partial | PoC JSON + DB filter (JSONB tag names); still need XML and `petstore_auth`  |
-| `updatePetWithForm` | `POST /pet/{petId}`             | missing | missing | Query `name` / `status`; `petstore_auth`                                    |
+| `updatePetWithForm` | `POST /pet/{petId}`             | partial | partial | Query `name` / `status`; still need `petstore_auth`                         |
 | `uploadFile`        | `POST /pet/{petId}/uploadImage` | missing | missing | Binary `application/octet-stream`; optional query metadata; `petstore_auth` |
 
 Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
