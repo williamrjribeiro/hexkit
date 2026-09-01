@@ -23,6 +23,10 @@ import {
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
 import { Tag } from "./Tag.ts";
+import {
+  updatePetWithFormQuerySchema,
+  updatePetWithFormPathSchema,
+} from "./updatePetWithFormParameters.ts";
 
 export {
   Category,
@@ -38,4 +42,6 @@ export {
   getOrderByIdPathSchema,
   getPetByIdHeadersSchema,
   getPetByIdPathSchema,
+  updatePetWithFormPathSchema,
+  updatePetWithFormQuerySchema,
 };

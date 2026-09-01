@@ -13,7 +13,7 @@ export async function GET(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: ["tags"] });
     const result = await runtime.controllers.findPetsByTags(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {

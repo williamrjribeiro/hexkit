@@ -7,4 +7,5 @@ export interface PetRepository {
   findPetsByTags(tags: Array<string>): Promise<Array<Pet>>;
   getPetById(petId: number): Promise<Pet | undefined>;
   updatePet(pet: Pet): Promise<Pet>;
+  updatePetWithForm(petId: number, name: string | undefined, status: "available" | "pending" | "sold" | undefined): Promise<Pet | undefined>;
 }
