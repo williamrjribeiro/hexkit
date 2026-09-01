@@ -380,7 +380,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(route?.contents).toContain("ctx: { params: Promise<Record<string, string>> },");
     expect(route?.contents).toContain("const params = await ctx.params;");
     expect(route?.contents).toContain(
-      "const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });",
+      "const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });",
     );
     expect(route?.contents).toContain("const result = await runtime.controllers.getPetById(");
     expect(route?.contents).toContain("export async function DELETE(");

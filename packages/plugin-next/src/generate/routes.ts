@@ -37,6 +37,7 @@ function renderRouteSource(route: NextRouteFile): string {
 function renderMethodHandler(method: NextMethodBinding): string {
   const methodName = method.method.toUpperCase();
   const jsonBody = method.hasJsonRequestBody ? "true" : "false";
+  const arrayKeysLiteral = JSON.stringify(method.arrayQueryParameterNames);
   const controllerArguments = method.requiresAuth ? "apicalRequest, principal" : "apicalRequest";
 
   return [
@@ -47,7 +48,7 @@ function renderMethodHandler(method: NextMethodBinding): string {
     "  const params = await ctx.params;",
     "  const runtime = getRuntime();",
     "  try {",
-    `    const apicalRequest = await toApicalRequest(request, params, { jsonBody: ${jsonBody} });`,
+    `    const apicalRequest = await toApicalRequest(request, params, { jsonBody: ${jsonBody}, arrayQueryKeys: ${arrayKeysLiteral} });`,
     ...renderAuthentication(method),
     `    const result = await runtime.controllers.${method.operationId}(${controllerArguments});`,
     "    return handleControllerResult(result);",

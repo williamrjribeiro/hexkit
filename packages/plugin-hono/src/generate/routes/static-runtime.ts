@@ -5,6 +5,7 @@ export function renderStaticRuntimeStatements(options: { hasAuth: boolean }): st
     ...(options.hasAuth ? renderAppBindingTypes() : []),
     renderApicalRequestType(),
     renderToApicalHeaders(),
+    renderToApicalQuery(),
     renderRequestHelper(contextType),
     renderJsonRequestHelper(contextType),
     ...(options.hasAuth
@@ -69,11 +70,31 @@ function renderToApicalHeaders(): string {
   ].join("\n");
 }
 
+function renderToApicalQuery(): string {
+  return [
+    "function toApicalQuery(",
+    "  queries: Record<string, string[]>,",
+    "  arrayQueryKeys: readonly string[],",
+    "): Record<string, string | string[]> {",
+    "  const arrayKeySet = new Set(arrayQueryKeys);",
+    "  const query: Record<string, string | string[]> = {};",
+    "  for (const [key, values] of Object.entries(queries)) {",
+    "    if (arrayKeySet.has(key)) {",
+    "      query[key] = values;",
+    "    } else if (values[0] !== undefined) {",
+    "      query[key] = values[0];",
+    "    }",
+    "  }",
+    "  return query;",
+    "}",
+  ].join("\n");
+}
+
 function renderRequestHelper(contextType: string): string {
   return [
-    `function request(context: ${contextType}): ApicalRequest {`,
+    `function request(context: ${contextType}, arrayQueryKeys: readonly string[] = []): ApicalRequest {`,
     "  return {",
-    "    query: context.req.queries(),",
+    "    query: toApicalQuery(context.req.queries(), arrayQueryKeys),",
     "    path: context.req.param(),",
     "    headers: toApicalHeaders(context.req.raw.headers),",
     "  };",
@@ -83,7 +104,7 @@ function renderRequestHelper(contextType: string): string {
 
 function renderJsonRequestHelper(contextType: string): string {
   return [
-    `async function jsonRequest(context: ${contextType}): Promise<ApicalRequest> {`,
+    `async function jsonRequest(context: ${contextType}, arrayQueryKeys: readonly string[] = []): Promise<ApicalRequest> {`,
     '  const contentType = context.req.header("content-type")?.split(";", 1)[0]?.trim();',
     '  if (contentType !== "application/json") {',
     '    throw new RequestValidationError("body-error");',
@@ -91,7 +112,7 @@ function renderJsonRequestHelper(contextType: string): string {
     "",
     "  try {",
     "    return {",
-    "      ...request(context),",
+    "      ...request(context, arrayQueryKeys),",
     "      body: await context.req.json(),",
     '      contentType: "application/json",',
     "    };",

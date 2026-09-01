@@ -49,6 +49,8 @@ export type HttpControllerBinding = {
   requiresAuth: boolean;
   authSchemes: readonly HttpAuthSchemeBinding[];
   useCaseArgumentExpressions: readonly string[];
+  /** Query parameter names whose OpenAPI schema is an array (Hono/Next must keep `string[]`). */
+  arrayQueryParameterNames: readonly string[];
 };
 
 /**
@@ -71,6 +73,7 @@ export type HttpControllerOperation = Pick<
   | "successMediaType"
   | "requiresAuth"
   | "useCaseArgumentExpressions"
+  | "arrayQueryParameterNames"
 >;
 
 /**
@@ -121,5 +124,8 @@ export function deriveHttpControllerBinding(
     requiresAuth: useCase.requiresAuth,
     authSchemes: deriveAuthSchemes(operation, securitySchemes),
     useCaseArgumentExpressions: deriveUseCaseArgumentExpressions(useCase, jsonRequestBody),
+    arrayQueryParameterNames: operation.parameters
+      .filter((parameter) => parameter.location === "query" && parameter.type.kind === "array")
+      .map((parameter) => parameter.name),
   };
 }

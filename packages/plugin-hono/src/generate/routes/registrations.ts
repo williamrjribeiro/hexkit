@@ -3,9 +3,10 @@ import { renderSecurityMetaLiteral } from "@hexkit/shared";
 import type { HttpOperationBinding } from "../../artifact.ts";
 
 export function renderRouteRegistration(operation: HttpOperationBinding): string {
+  const arrayKeysLiteral = JSON.stringify(operation.arrayQueryParameterNames);
   const requestExpression = operation.hasJsonRequestBody
-    ? "await jsonRequest(context)"
-    : "request(context)";
+    ? `await jsonRequest(context, ${arrayKeysLiteral})`
+    : `request(context, ${arrayKeysLiteral})`;
   const controllerArguments = operation.requiresAuth
     ? `${requestExpression}, context.var.principal`
     : requestExpression;
