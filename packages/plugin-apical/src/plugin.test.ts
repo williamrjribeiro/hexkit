@@ -79,6 +79,11 @@ describe("Given the Petstore PoC contract", () => {
           "path": "/pet/{petId}",
         },
         {
+          "method": "POST",
+          "operationId": "updatePetWithForm",
+          "path": "/pet/{petId}",
+        },
+        {
           "method": "GET",
           "operationId": "findPetsByStatus",
           "path": "/pet/findByStatus",
@@ -223,6 +228,7 @@ describe("Given real Apical craft output", () => {
         "updatePet",
         "getPetById",
         "deletePet",
+        "updatePetWithForm",
         "findPetsByStatus",
         "findPetsByTags",
         "placeOrder",
