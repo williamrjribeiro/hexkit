@@ -63,6 +63,41 @@ vp run -F @hexkit/cli... --fail-if-no-match build
 vp run @hexkit/petstore-sample#test:generation
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR"
 
+# Nested Docker (overlay-on-overlay) often breaks bridge ICC: containers cannot
+# reach each other. Host networking is a local workaround; leave unset in CI.
+if [ "${HEXKIT_DOGFOOD_HOST_NETWORK:-0}" = "1" ]; then
+  cat > "$OUTPUT_DIR/docker-compose.yml" <<'EOF'
+services:
+  postgres:
+    image: postgres:17-alpine
+    network_mode: host
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hexkit_petstore_poc}
+      POSTGRES_USER: ${POSTGRES_USER:-hexkit_petstore_poc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hexkit_petstore_poc}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB -h 127.0.0.1"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    network_mode: host
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-hexkit_petstore_poc}:${POSTGRES_PASSWORD:-hexkit_petstore_poc}@127.0.0.1:5432/${POSTGRES_DB:-hexkit_petstore_poc}
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+EOF
+fi
+
 (
   cd "$OUTPUT_DIR"
   vp install --no-frozen-lockfile
