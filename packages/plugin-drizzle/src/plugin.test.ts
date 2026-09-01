@@ -22,6 +22,8 @@ const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml"
   .pathname;
 const authOpenApi = new URL("../../../apps/fixtures/auth-api/openapi.yaml", import.meta.url)
   .pathname;
+const patchOpenApi = new URL("../../../apps/fixtures/patch-api/openapi.yaml", import.meta.url)
+  .pathname;
 
 const petstoreModules = {
   schemas: new Map([
@@ -63,16 +65,26 @@ const authModules = {
   ]),
 };
 
+const patchModules = {
+  schemas: new Map([["Widget", "schemas/Widget.ts"]]),
+  operations: new Map([
+    ["getWidgetById", "routes/getWidgetById.ts"],
+    ["updateWidgetWithForm", "routes/updateWidgetWithForm.ts"],
+  ]),
+};
+
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
 let authContract: ContractArtifact;
+let patchContract: ContractArtifact;
 let petstoreApplication: ApplicationArtifact;
 
 beforeAll(async () => {
-  [petstoreContract, libraryContract, authContract] = await Promise.all([
+  [petstoreContract, libraryContract, authContract, patchContract] = await Promise.all([
     loadNormalizedContract(petstoreOpenApi, petstoreModules),
     loadNormalizedContract(libraryOpenApi, libraryModules),
     loadNormalizedContract(authOpenApi, authModules),
+    loadNormalizedContract(patchOpenApi, patchModules),
   ]);
   petstoreApplication = applicationFromContract(petstoreContract);
 });
@@ -284,6 +296,27 @@ describe("Given ContractArtifact and ApplicationArtifact for Auth API", () => {
     expect(repository).toContain("async getHealth(): Promise<{");
     expect(repository).toContain("return { ok: true };");
     expect(repository).not.toMatch(/getHealth[\s\S]*eq\(items\.id/);
+  });
+});
+
+describe("Given ContractArtifact and ApplicationArtifact for Patch API", () => {
+  it("when the Drizzle plugin runs, then updateWidgetWithForm emits a conditional field patch", async () => {
+    const { files } = await collectGeneratedFiles(
+      patchContract,
+      applicationFromContract(patchContract),
+    );
+    const repository =
+      files.find((file) => file.path === "src/adapters/db/widget-repository.ts")?.contents ?? "";
+
+    expect(repository).toContain("async updateWidgetWithForm(");
+    expect(repository).toContain("const patch:");
+    expect(repository).toContain("if (name !== undefined) patch.name = name");
+    expect(repository).toContain("if (status !== undefined) patch.status = status");
+    expect(repository).toContain("Object.keys(patch).length === 0");
+    expect(repository).toContain(".set(patch)");
+    expect(repository).toContain("eq(widgets.id, widgetId)");
+    expect(repository).toContain("return row ? mapWidgetRow(row) : undefined");
+    expect(repository).not.toMatch(/\.set\(\{ name: /);
   });
 });
 

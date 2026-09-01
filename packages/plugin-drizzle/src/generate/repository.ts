@@ -8,6 +8,7 @@ import type {
   PersistenceRepositoryModel,
 } from "../model/repository.ts";
 import { findListFilterColumn, renderFilteredListMethodBody } from "./list-filter.ts";
+import { isFieldPatchUpdate, renderFieldPatchUpdateMethod } from "./field-patch.ts";
 import { mapperFunctionName } from "../model/table.ts";
 
 export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] {
@@ -99,6 +100,9 @@ function renderMethod(
       ].join("\n");
     }
     case "update": {
+      if (isFieldPatchUpdate(method)) {
+        return renderFieldPatchUpdateMethod(repository, method);
+      }
       const parameter = method.entityParameterName;
       const setFields = table.columns
         .filter((column) => !column.isIdentity)
