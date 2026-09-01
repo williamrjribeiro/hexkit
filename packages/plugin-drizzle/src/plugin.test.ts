@@ -37,6 +37,7 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["updatePetWithForm", "routes/updatePetWithForm.ts"],
     ["findPetsByStatus", "routes/findPetsByStatus.ts"],
     ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
@@ -241,6 +242,25 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
                 .returning();
               if (!row) throw new Error(\`Pet \${pet.id} was not found\`);
               return mapPetRow(row);
+            },
+            async updatePetWithForm(petId: number, name: string | undefined, status: "available" | "pending" | "sold" | undefined): Promise<Pet | undefined> {
+              const patch: { name?: string; status?: "available" | "pending" | "sold" } = {};
+              if (name !== undefined) patch.name = name;
+              if (status !== undefined) patch.status = status;
+              if (Object.keys(patch).length === 0) {
+                const [existing] = await db
+                  .select()
+                  .from(pets)
+                  .where(eq(pets.id, petId))
+                  .limit(1);
+                return existing ? mapPetRow(existing) : undefined;
+              }
+              const [row] = await db
+                .update(pets)
+                .set(patch)
+                .where(eq(pets.id, petId))
+                .returning();
+              return row ? mapPetRow(row) : undefined;
             },
           };
         }

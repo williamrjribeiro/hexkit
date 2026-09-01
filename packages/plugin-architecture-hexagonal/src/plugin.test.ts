@@ -28,6 +28,7 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["updatePetWithForm", "routes/updatePetWithForm.ts"],
     ["findPetsByStatus", "routes/findPetsByStatus.ts"],
     ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
@@ -102,6 +103,7 @@ describe("Given a ContractArtifact for Petstore", () => {
       { path: "src/core/application/get-pet-by-id.ts", ownership: "protected" },
       { path: "src/core/application/place-order.ts", ownership: "protected" },
       { path: "src/core/application/update-pet.ts", ownership: "protected" },
+      { path: "src/core/application/update-pet-with-form.ts", ownership: "protected" },
     ]);
 
     expect(files.find((file) => file.path === "src/core/domain/pet.ts")?.contents)
@@ -133,6 +135,7 @@ describe("Given a ContractArtifact for Petstore", () => {
           findPetsByTags(tags: Array<string>): Promise<Array<Pet>>;
           getPetById(petId: number): Promise<Pet | undefined>;
           updatePet(pet: Pet): Promise<Pet>;
+          updatePetWithForm(petId: number, name: string | undefined, status: "available" | "pending" | "sold" | undefined): Promise<Pet | undefined>;
         }
         "
       `);
@@ -180,6 +183,7 @@ describe("Given a ContractArtifact for Petstore", () => {
             { operationId: "findPetsByTags", name: "findPetsByTags" },
             { operationId: "getPetById", name: "getPetById" },
             { operationId: "updatePet", name: "updatePet" },
+            { operationId: "updatePetWithForm", name: "updatePetWithForm" },
           ],
         },
       ],
