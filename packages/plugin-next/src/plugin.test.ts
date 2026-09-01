@@ -317,6 +317,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(petByIdRoute?.methods.map((method) => method.operationId).toSorted()).toEqual([
       "deletePet",
       "getPetById",
+      "updatePetWithForm",
     ]);
     expect(orderByIdRoute?.methods.map((method) => method.operationId).toSorted()).toEqual([
       "deleteOrder",
@@ -385,6 +386,14 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(route?.contents).toContain("const result = await runtime.controllers.getPetById(");
     expect(route?.contents).toContain("export async function DELETE(");
     expect(route?.contents).not.toContain("force-static");
+
+    const findByStatusRoute = filesByPath.get("app/pet/findByStatus/route.ts");
+    expect(findByStatusRoute?.contents).toContain(
+      'const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: ["status"] });',
+    );
+    expect(findByStatusRoute?.contents).toContain(
+      "const result = await runtime.controllers.findPetsByStatus(",
+    );
 
     expect(page?.contents).toContain(
       'import { getServerAccess } from "@/adapters/http-next/server-access";',

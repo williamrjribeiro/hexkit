@@ -37,6 +37,7 @@ const petstoreApicalContractPaths = [
   "routes/index.ts",
   "routes/placeOrder.ts",
   "routes/updatePet.ts",
+  "routes/updatePetWithForm.ts",
   "schemas/Category.ts",
   "schemas/Order.ts",
   "schemas/Pet.ts",
@@ -54,6 +55,7 @@ const petstoreApicalContractPaths = [
   "schemas/placeOrderParameters.ts",
   "schemas/runtime.ts",
   "schemas/updatePetParameters.ts",
+  "schemas/updatePetWithFormParameters.ts",
   "server/addPet.ts",
   "server/deleteOrder.ts",
   "server/deletePet.ts",
@@ -64,6 +66,7 @@ const petstoreApicalContractPaths = [
   "server/index.ts",
   "server/placeOrder.ts",
   "server/updatePet.ts",
+  "server/updatePetWithForm.ts",
   "standard-schema.ts",
   "tsconfig.json",
 ] as const;
@@ -100,6 +103,7 @@ export { Category, Order, Pet, Tag };
 const petstoreRoutesIndex = `
 import { serverRoute as addPetRoute } from "./addPet.ts";
 import { serverRoute as updatePetRoute } from "./updatePet.ts";
+import { serverRoute as updatePetWithFormRoute } from "./updatePetWithForm.ts";
 import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
 import { serverRoute as deletePetRoute } from "./deletePet.ts";
 import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
@@ -110,6 +114,7 @@ import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
 export const routes = {
   addPet: addPetRoute,
   updatePet: updatePetRoute,
+  updatePetWithForm: updatePetWithFormRoute,
   getPetById: getPetByIdRoute,
   deletePet: deletePetRoute,
   findPetsByStatus: findPetsByStatusRoute,
@@ -541,6 +546,7 @@ describe("Given the default generation pipeline", () => {
         "src/core/application/get-order-by-id.ts",
         "src/core/application/get-pet-by-id.ts",
         "src/core/application/place-order.ts",
+        "src/core/application/update-pet-with-form.ts",
         "src/core/application/update-pet.ts",
         "src/core/domain/auth-principal.ts",
         "src/core/domain/category.ts",
@@ -562,6 +568,7 @@ describe("Given the default generation pipeline", () => {
         "src/generated/contracts/routes/index.ts",
         "src/generated/contracts/routes/placeOrder.ts",
         "src/generated/contracts/routes/updatePet.ts",
+        "src/generated/contracts/routes/updatePetWithForm.ts",
         "src/generated/contracts/schemas/Category.ts",
         "src/generated/contracts/schemas/FindPetsByStatus200Response.ts",
         "src/generated/contracts/schemas/FindPetsByTags200Response.ts",
@@ -579,6 +586,7 @@ describe("Given the default generation pipeline", () => {
         "src/generated/contracts/schemas/placeOrderParameters.ts",
         "src/generated/contracts/schemas/runtime.ts",
         "src/generated/contracts/schemas/updatePetParameters.ts",
+        "src/generated/contracts/schemas/updatePetWithFormParameters.ts",
         "src/generated/contracts/server/addPet.ts",
         "src/generated/contracts/server/deleteOrder.ts",
         "src/generated/contracts/server/deletePet.ts",
@@ -589,6 +597,7 @@ describe("Given the default generation pipeline", () => {
         "src/generated/contracts/server/index.ts",
         "src/generated/contracts/server/placeOrder.ts",
         "src/generated/contracts/server/updatePet.ts",
+        "src/generated/contracts/server/updatePetWithForm.ts",
         "src/generated/contracts/standard-schema.ts",
         "src/generated/contracts/tsconfig.json",
         "src/runtime/app.ts",

@@ -21,6 +21,7 @@ const petstoreApicalContractPaths = [
   "routes/index.ts",
   "routes/placeOrder.ts",
   "routes/updatePet.ts",
+  "routes/updatePetWithForm.ts",
   "schemas/Category.ts",
   "schemas/Order.ts",
   "schemas/Pet.ts",
@@ -38,6 +39,7 @@ const petstoreApicalContractPaths = [
   "schemas/placeOrderParameters.ts",
   "schemas/runtime.ts",
   "schemas/updatePetParameters.ts",
+  "schemas/updatePetWithFormParameters.ts",
   "server/addPet.ts",
   "server/deleteOrder.ts",
   "server/deletePet.ts",
@@ -48,6 +50,7 @@ const petstoreApicalContractPaths = [
   "server/index.ts",
   "server/placeOrder.ts",
   "server/updatePet.ts",
+  "server/updatePetWithForm.ts",
   "standard-schema.ts",
   "tsconfig.json",
 ] as const;
@@ -63,6 +66,7 @@ export { Category, Order, Pet, Tag };
 const petstoreRoutesIndex = `
 import { serverRoute as addPetRoute } from "./addPet.ts";
 import { serverRoute as updatePetRoute } from "./updatePet.ts";
+import { serverRoute as updatePetWithFormRoute } from "./updatePetWithForm.ts";
 import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
 import { serverRoute as deletePetRoute } from "./deletePet.ts";
 import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
@@ -73,6 +77,7 @@ import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
 export const routes = {
   addPet: addPetRoute,
   updatePet: updatePetRoute,
+  updatePetWithForm: updatePetWithFormRoute,
   getPetById: getPetByIdRoute,
   deletePet: deletePetRoute,
   findPetsByStatus: findPetsByStatusRoute,
