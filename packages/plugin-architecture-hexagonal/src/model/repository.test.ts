@@ -50,6 +50,13 @@ describe("Given a repository action", () => {
       expected: "update",
     },
     {
+      action: "update",
+      httpMethod: "post",
+      resultCardinality: "one",
+      parameterCount: 3,
+      expected: "update",
+    },
+    {
       action: "patch",
       httpMethod: "get",
       resultCardinality: "one",

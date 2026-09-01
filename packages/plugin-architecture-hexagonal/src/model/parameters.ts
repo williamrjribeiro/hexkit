@@ -75,10 +75,13 @@ function renderOperationParameter(parameter: ContractParameter): {
   referencedSchemas: readonly string[];
 } {
   const rendered = renderContractType(parameter.type);
+  const typeExpression = parameter.required
+    ? rendered.expression
+    : `${rendered.expression} | undefined`;
   return {
     parameter: {
       name: parameter.name,
-      typeExpression: rendered.expression,
+      typeExpression,
       location: parameter.location === "query" ? "query" : "path",
     },
     referencedSchemas: rendered.referencedSchemas,

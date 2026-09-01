@@ -180,6 +180,66 @@ describe("Given operation inputs", () => {
     ).toThrow(/unsupported request body/);
   });
 
+  it("when a query parameter is optional, then the type expression includes undefined", () => {
+    expect(
+      deriveParameters(
+        operation({
+          operationId: "updateWidgetWithForm",
+          method: "post",
+          path: "/widgets/{widgetId}",
+          parameters: [
+            {
+              name: "widgetId",
+              location: "path",
+              required: true,
+              type: stringType,
+            },
+            {
+              name: "name",
+              location: "query",
+              required: false,
+              type: stringType,
+            },
+            {
+              name: "status",
+              location: "query",
+              required: false,
+              type: {
+                kind: "string",
+                nullable: false,
+                enum: ["active", "inactive"],
+              },
+            },
+          ],
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: { kind: "reference", nullable: false, schema: "Widget" },
+                },
+              ],
+            },
+            { status: "404", description: "missing", media: [] },
+          ],
+        }),
+      ),
+    ).toEqual({
+      parameters: [
+        { name: "widgetId", typeExpression: "string", location: "path" },
+        { name: "name", typeExpression: "string | undefined", location: "query" },
+        {
+          name: "status",
+          typeExpression: '"active" | "inactive" | undefined',
+          location: "query",
+        },
+      ],
+      referencedSchemas: [],
+    });
+  });
+
   it("when a path parameter references a schema, then that schema is collected", () => {
     expect(
       deriveParameters(
