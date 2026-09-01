@@ -463,13 +463,24 @@ describe.sequential("Given the generated Petstore API", () => {
           .post(`/pet/${String(petId)}`)
           .withQueryParams({ status: "sold" })
           .expectStatus(200)
-          .expectJsonLike({ id: petId, status: "sold" }),
+          .expectJsonLike({
+            id: petId,
+            name: `Form-updated ${String(petId)}`,
+            status: "sold",
+          }),
       );
     });
 
     it("when POST /pet/{petId} has no query fields, then the pet is unchanged", async () => {
       await runAgainstApi(() =>
-        spec().post(`/pet/${String(petId)}`).expectStatus(200).expectJsonLike({ id: petId }),
+        spec()
+          .post(`/pet/${String(petId)}`)
+          .expectStatus(200)
+          .expectJsonLike({
+            id: petId,
+            name: `Form-updated ${String(petId)}`,
+            status: "sold",
+          }),
       );
     });
 
