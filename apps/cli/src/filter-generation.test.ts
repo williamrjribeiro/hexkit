@@ -62,7 +62,7 @@ describe("Given the filter-api fixture", () => {
       "utf8",
     );
 
-    expect(controllers).toContain("request.value.query.status");
+    expect(controllers).toContain("request.value.query?.status");
     expect(repository).toContain("inArray(widgets.status, status)");
     expect(useCase).toContain("findWidgetsByStatus");
     expect(

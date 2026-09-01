@@ -12,7 +12,9 @@ export type UseCaseArgumentInput = {
  *
  * Authenticated operations always receive `principal` first. JSON bodies use
  * `request.value.body`; otherwise path parameters are read from
- * `request.value.path.<name>` and query parameters from `request.value.query.<name>`.
+ * `request.value.path.<name>` and query parameters from `request.value.query?.<name>`
+ * (optional chaining: Apical marks the query object optional when every query
+ * field is optional).
  *
  * @param useCase - Auth flag and path/body parameter names.
  * @param hasJsonRequestBody - Whether the operation's request body is JSON.
@@ -31,7 +33,7 @@ export function deriveUseCaseArgumentExpressions(
     .map((parameter) => `request.value.path.${parameter.name}`);
   const queryExpressions = useCase.parameters
     .filter((parameter) => parameter.location === "query")
-    .map((parameter) => `request.value.query.${parameter.name}`);
+    .map((parameter) => `request.value.query?.${parameter.name}`);
 
   return [...principalExpression, ...pathExpressions, ...queryExpressions];
 }
