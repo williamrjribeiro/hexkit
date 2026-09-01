@@ -6,6 +6,7 @@ import { createFindPetsByTags } from "../../core/application/find-pets-by-tags.t
 import { createGetOrderById } from "../../core/application/get-order-by-id.ts";
 import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
 import { createPlaceOrder } from "../../core/application/place-order.ts";
+import { createUpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import { createUpdatePet } from "../../core/application/update-pet.ts";
 import type { Authenticator } from "../../core/ports/authenticator.ts";
 import type { OrderRepository } from "../../core/ports/order-repository.ts";
@@ -62,6 +63,7 @@ function composeRuntime(repositories: RuntimeRepositories, authenticator: Authen
     getPetById: createGetPetById(repositories.pets),
     placeOrder: createPlaceOrder(repositories.orders),
     updatePet: createUpdatePet(repositories.pets),
+    updatePetWithForm: createUpdatePetWithForm(repositories.pets),
     }, authenticator),
     repositories,
     authenticator,

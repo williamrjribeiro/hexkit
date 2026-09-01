@@ -9,7 +9,11 @@ export type PersistenceRepositoryMethodModel = {
   operationId: string;
   name: string;
   kind: PersistenceMethodKind;
-  parameters: readonly { name: string; typeExpression: string }[];
+  parameters: readonly {
+    name: string;
+    typeExpression: string;
+    location?: "path" | "query";
+  }[];
   returnTypeExpression: string;
   entityParameterName: string;
   identityParameterName: string;
@@ -48,6 +52,7 @@ export function deriveRepository(
     const parameters = method.parameters.map((parameter) => ({
       name: parameter.name,
       typeExpression: parameter.typeExpression,
+      ...(parameter.location !== undefined ? { location: parameter.location } : {}),
     }));
     const kind = method.persistenceKind;
     const firstParameterName = parameters[0]?.name;

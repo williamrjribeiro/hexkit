@@ -6,6 +6,7 @@ import { FindPetsByTags, createFindPetsByTags } from "../../core/application/fin
 import { GetOrderById, createGetOrderById } from "../../core/application/get-order-by-id.ts";
 import { createGetPetById } from "../../core/application/get-pet-by-id.ts";
 import { PlaceOrder, createPlaceOrder } from "../../core/application/place-order.ts";
+import { UpdatePetWithForm, createUpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import { UpdatePet, createUpdatePet } from "../../core/application/update-pet.ts";
 import type { Principal } from "../../core/domain/auth-principal.ts";
 import type { Pet } from "../../core/domain/pet.ts";
@@ -30,6 +31,7 @@ export type ServerAccess = {
   getPetById: (petId: number) => Promise<Pet | undefined>;
   placeOrder: PlaceOrder;
   updatePet: UpdatePet;
+  updatePetWithForm: UpdatePetWithForm;
 };
 
 let cachedRepositories: RuntimeRepositories | undefined;
@@ -60,6 +62,7 @@ function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
     getPetById: (petId) => createGetPetById(repositories.pets)(rscPrincipal, petId),
     placeOrder: createPlaceOrder(repositories.orders),
     updatePet: createUpdatePet(repositories.pets),
+    updatePetWithForm: createUpdatePetWithForm(repositories.pets),
   };
 }
 

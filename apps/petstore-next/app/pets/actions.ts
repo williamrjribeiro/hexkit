@@ -56,6 +56,31 @@ export async function updatePetAction(formData: FormData) {
   redirect(`/pets/${pet.id}`);
 }
 
+export async function updatePetWithFormAction(formData: FormData) {
+  const petId = readRequiredInteger(formData, "petId");
+  const nameRaw = readText(formData, "name");
+  const statusRaw = readText(formData, "status");
+
+  const name = nameRaw.length === 0 ? undefined : nameRaw;
+  let status: "available" | "pending" | "sold" | undefined;
+  if (statusRaw.length === 0) {
+    status = undefined;
+  } else if (petStatuses.includes(statusRaw as (typeof petStatuses)[number])) {
+    status = statusRaw as (typeof petStatuses)[number];
+  } else {
+    throw new Error("status must be available, pending, or sold.");
+  }
+
+  const pet = await getServerAccess().updatePetWithForm(petId, name, status);
+  if (pet == null) {
+    throw new Error(`Pet ${String(petId)} was not found.`);
+  }
+  revalidatePath("/");
+  revalidatePath("/pets");
+  revalidatePath(`/pets/${pet.id}`);
+  redirect(`/pets/${pet.id}`);
+}
+
 export async function deletePetAction(formData: FormData) {
   const petId = readRequiredInteger(formData, "petId");
   await getServerAccess().deletePet(petId);

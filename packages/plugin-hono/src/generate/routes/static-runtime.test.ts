@@ -19,9 +19,12 @@ describe("Given an unauthenticated app", () => {
   it("when static runtime is rendered, then request helpers use Context", () => {
     const source = renderStaticRuntimeStatements({ hasAuth: false }).join("\n");
     expect(source).toContain("function toApicalHeaders(headers: Headers)");
-    expect(source).toContain("function request(context: Context): ApicalRequest");
+    expect(source).toContain("function toApicalQuery(");
     expect(source).toContain(
-      "async function jsonRequest(context: Context): Promise<ApicalRequest>",
+      "function request(context: Context, arrayQueryKeys: readonly string[] = []): ApicalRequest",
+    );
+    expect(source).toContain(
+      "async function jsonRequest(context: Context, arrayQueryKeys: readonly string[] = []): Promise<ApicalRequest>",
     );
     expect(source).not.toContain("createAuthenticateMiddleware");
     expect(source).not.toContain("AppBindings");
@@ -48,7 +51,9 @@ describe("Given an authenticated app", () => {
   it("when static runtime is rendered, then auth middleware helpers are included", () => {
     const source = renderStaticRuntimeStatements({ hasAuth: true }).join("\n");
     expect(source).toContain("type AppVariables = { principal: Principal };");
-    expect(source).toContain("function request(context: AppContext): ApicalRequest");
+    expect(source).toContain(
+      "function request(context: AppContext, arrayQueryKeys: readonly string[] = []): ApicalRequest",
+    );
     expect(source).toContain("function extractCredentials(");
     expect(source).toContain("function createAuthenticateMiddleware(");
   });

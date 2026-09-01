@@ -28,6 +28,7 @@ const petstoreModules = {
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
     ["updatePet", "routes/updatePet.ts"],
+    ["updatePetWithForm", "routes/updatePetWithForm.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
     ["findPetsByStatus", "routes/findPetsByStatus.ts"],
@@ -317,6 +318,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(petByIdRoute?.methods.map((method) => method.operationId).toSorted()).toEqual([
       "deletePet",
       "getPetById",
+      "updatePetWithForm",
     ]);
     expect(orderByIdRoute?.methods.map((method) => method.operationId).toSorted()).toEqual([
       "deleteOrder",
@@ -380,11 +382,19 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     expect(route?.contents).toContain("ctx: { params: Promise<Record<string, string>> },");
     expect(route?.contents).toContain("const params = await ctx.params;");
     expect(route?.contents).toContain(
-      "const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });",
+      "const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });",
     );
     expect(route?.contents).toContain("const result = await runtime.controllers.getPetById(");
     expect(route?.contents).toContain("export async function DELETE(");
     expect(route?.contents).not.toContain("force-static");
+
+    const findByStatusRoute = filesByPath.get("app/pet/findByStatus/route.ts");
+    expect(findByStatusRoute?.contents).toContain(
+      'const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: ["status"] });',
+    );
+    expect(findByStatusRoute?.contents).toContain(
+      "const result = await runtime.controllers.findPetsByStatus(",
+    );
 
     expect(page?.contents).toContain(
       'import { getServerAccess } from "@/adapters/http-next/server-access";',

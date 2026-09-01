@@ -42,6 +42,7 @@ const petstoreModules = {
     ["updatePet", "routes/updatePet.ts"],
     ["getPetById", "routes/getPetById.ts"],
     ["deletePet", "routes/deletePet.ts"],
+    ["updatePetWithForm", "routes/updatePetWithForm.ts"],
     ["findPetsByStatus", "routes/findPetsByStatus.ts"],
     ["findPetsByTags", "routes/findPetsByTags.ts"],
     ["placeOrder", "routes/placeOrder.ts"],
@@ -368,6 +369,7 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       "getPetById",
       "placeOrder",
       "updatePet",
+      "updatePetWithForm",
     ]);
   });
 });
@@ -447,7 +449,7 @@ describe("Given ContractArtifact + ApplicationArtifact with secured and public o
       '  app.post("/items", authenticateCreateItem, async (context) =>',
     );
     expect(routes?.contents).toContain(
-      "    respond(await controllers.createItem(await jsonRequest(context), context.var.principal)),",
+      "    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal)),",
     );
     expect(routes?.contents).toContain('  app.get("/health/:itemId", async (context) =>');
   });

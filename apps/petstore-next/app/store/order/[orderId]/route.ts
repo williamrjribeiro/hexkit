@@ -13,7 +13,7 @@ export async function DELETE(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });
     const result = await runtime.controllers.deleteOrder(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {
@@ -28,7 +28,7 @@ export async function GET(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });
     const result = await runtime.controllers.getOrderById(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {

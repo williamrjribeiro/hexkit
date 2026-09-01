@@ -13,7 +13,7 @@ export async function POST(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: true });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: true, arrayQueryKeys: [] });
     const result = await runtime.controllers.addPet(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {
@@ -28,7 +28,7 @@ export async function PUT(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: true });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: true, arrayQueryKeys: [] });
     const result = await runtime.controllers.updatePet(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {

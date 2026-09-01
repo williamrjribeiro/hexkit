@@ -49,12 +49,29 @@ export function extractCredentials(
   return undefined;
 }
 
+function parseApicalQuery(
+  searchParams: URLSearchParams,
+  arrayQueryKeys: readonly string[],
+): Record<string, string | string[]> {
+  const arrayKeySet = new Set(arrayQueryKeys);
+  const query: Record<string, string | string[]> = {};
+  for (const key of new Set(searchParams.keys())) {
+    const values = searchParams.getAll(key);
+    if (arrayKeySet.has(key)) {
+      query[key] = values;
+    } else if (values[0] !== undefined) {
+      query[key] = values[0];
+    }
+  }
+  return query;
+}
+
 export async function toApicalRequest(
   request: NextRequest,
   params: Record<string, string>,
-  options: { jsonBody: boolean },
+  options: { jsonBody: boolean; arrayQueryKeys?: readonly string[] },
 ): Promise<ApicalRequest> {
-  const query = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const query = parseApicalQuery(request.nextUrl.searchParams, options.arrayQueryKeys ?? []);
   const baseRequest: ApicalRequest = {
     query,
     path: params,

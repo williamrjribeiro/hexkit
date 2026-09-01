@@ -17,6 +17,7 @@ function operation(
     successMediaType: "application/json",
     requiresAuth: false,
     useCaseArgumentExpressions: [],
+    arrayQueryParameterNames: [],
     ...overrides,
   };
 }

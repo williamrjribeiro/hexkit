@@ -15,7 +15,7 @@ export async function DELETE(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });
     const result = await runtime.controllers.deletePet(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {
@@ -30,7 +30,7 @@ export async function GET(
   const params = await ctx.params;
   const runtime = getRuntime();
   try {
-    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false });
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });
     const credentials = extractCredentials(request.headers, { schemes: [{ name: "api_key", type: "apiKey", headerName: "api_key" }] });
     if (credentials === undefined) {
       throw new AuthenticationError("credentials-missing");
@@ -40,6 +40,21 @@ export async function GET(
       throw new AuthenticationError("principal-missing");
     }
     const result = await runtime.controllers.getPetById(apicalRequest, principal);
+    return handleControllerResult(result);
+  } catch (error) {
+    return handleControllerError(error);
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  ctx: { params: Promise<Record<string, string>> },
+) {
+  const params = await ctx.params;
+  const runtime = getRuntime();
+  try {
+    const apicalRequest = await toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] });
+    const result = await runtime.controllers.updatePetWithForm(apicalRequest);
     return handleControllerResult(result);
   } catch (error) {
     return handleControllerError(error);

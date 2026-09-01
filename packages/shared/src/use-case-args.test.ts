@@ -30,7 +30,7 @@ describe("Given use-case argument derivation", () => {
         },
         false,
       ),
-    ).toEqual(["request.value.path.widgetId", "request.value.query.status"]);
+    ).toEqual(["request.value.path.widgetId", "request.value.query?.status"]);
   });
 
   it("when only query parameters exist, then only query expressions are emitted", () => {
@@ -39,7 +39,27 @@ describe("Given use-case argument derivation", () => {
         { requiresAuth: false, parameters: [{ name: "status", location: "query" }] },
         false,
       ),
-    ).toEqual(["request.value.query.status"]);
+    ).toEqual(["request.value.query?.status"]);
+  });
+
+  it("when all query fields are optional, then expressions use optional chaining on the query bag", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        {
+          requiresAuth: false,
+          parameters: [
+            { name: "petId", location: "path" },
+            { name: "name", location: "query" },
+            { name: "status", location: "query" },
+          ],
+        },
+        false,
+      ),
+    ).toEqual([
+      "request.value.path.petId",
+      "request.value.query?.name",
+      "request.value.query?.status",
+    ]);
   });
 
   it("when the operation has a JSON body, then the body expression replaces path parameters", () => {

@@ -22,6 +22,7 @@ function binding(
     requiresAuth: false,
     authSchemes: [],
     useCaseArgumentExpressions: [],
+    arrayQueryParameterNames: [],
     ...overrides,
   };
 }

@@ -148,4 +148,42 @@ describe("Given deriveHttpControllerBinding", () => {
     expect(binding.successMediaType).toBeUndefined();
     expect(binding.successStatus).toBe("204");
   });
+
+  it("when query parameters include arrays and scalars, then only array names are listed", () => {
+    const binding = deriveHttpControllerBinding(
+      operation({
+        operationId: "updateWidgetWithForm",
+        method: "post",
+        path: "/widgets/{widgetId}",
+        parameters: [
+          { name: "widgetId", location: "path", required: true, type: stringType },
+          { name: "name", location: "query", required: false, type: stringType },
+          {
+            name: "tags",
+            location: "query",
+            required: false,
+            type: { kind: "array", nullable: false, items: stringType },
+          },
+        ],
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        ],
+      }),
+      useCase({
+        typeName: "UpdateWidgetWithForm",
+        parameters: [
+          { name: "widgetId", location: "path" },
+          { name: "name", location: "query" },
+          { name: "tags", location: "query" },
+        ],
+      }),
+      [],
+    );
+
+    expect(binding.arrayQueryParameterNames).toEqual(["tags"]);
+  });
 });

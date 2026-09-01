@@ -368,6 +368,82 @@
       }
     },
     {
+      "operationId": "updatePetWithForm",
+      "method": "post",
+      "path": "/pet/{petId}",
+      "modulePath": "routes/updatePetWithForm.ts",
+      "parameters": [
+        {
+          "name": "petId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "name",
+          "location": "query",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "status",
+          "location": "query",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false,
+            "enum": [
+              "available",
+              "pending",
+              "sold"
+            ]
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Pet updated",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "Pet"
+              }
+            }
+          ]
+        },
+        {
+          "status": "400",
+          "description": "Invalid input",
+          "media": []
+        },
+        {
+          "status": "404",
+          "description": "Pet not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "extension": {
+        "aggregate": "Pet",
+        "action": "update"
+      }
+    },
+    {
       "operationId": "findPetsByStatus",
       "method": "get",
       "path": "/pet/findByStatus",

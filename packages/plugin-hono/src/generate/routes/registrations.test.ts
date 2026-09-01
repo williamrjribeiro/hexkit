@@ -22,6 +22,7 @@ function binding(
     requiresAuth: false,
     authSchemes: [],
     useCaseArgumentExpressions: ["request.value.path.itemId"],
+    arrayQueryParameterNames: [],
     ...overrides,
   };
 }
@@ -37,7 +38,7 @@ describe("Given one public GET HttpOperationBinding", () => {
     expect(renderRouteRegistration(operation)).toBe(
       [
         '  app.get("/items/:itemId", async (context) =>',
-        "    respond(await controllers.getItem(request(context))),",
+        "    respond(await controllers.getItem(request(context, []))),",
         "  );",
       ].join("\n"),
     );
@@ -58,7 +59,7 @@ describe("Given one public JSON POST HttpOperationBinding", () => {
     expect(renderRouteRegistration(operation)).toBe(
       [
         '  app.post("/items", async (context) =>',
-        "    respond(await controllers.createItem(await jsonRequest(context))),",
+        "    respond(await controllers.createItem(await jsonRequest(context, []))),",
         "  );",
       ].join("\n"),
     );
@@ -82,7 +83,7 @@ describe("Given one secured HttpOperationBinding", () => {
       [
         '  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, { schemes: [{ name: "internalKey", type: "apiKey", headerName: "X-Internal-Key" }] });',
         '  app.post("/items", authenticateCreateItem, async (context) =>',
-        "    respond(await controllers.createItem(await jsonRequest(context), context.var.principal)),",
+        "    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal)),",
         "  );",
       ].join("\n"),
     );
@@ -102,7 +103,27 @@ describe("Given one secured HttpOperationBinding", () => {
     expect(renderRouteRegistration(operation)).toBe(
       [
         '  app.get("/items/:itemId", async (context) =>',
-        "    respond(await controllers.getItem(request(context), context.var.principal)),",
+        "    respond(await controllers.getItem(request(context, []), context.var.principal)),",
+        "  );",
+      ].join("\n"),
+    );
+  });
+});
+
+describe("Given array query parameters", () => {
+  it("when renderRouteRegistration runs, then array query keys are passed to request()", () => {
+    const operation = binding({
+      operationId: "findPetsByStatus",
+      method: "get",
+      honoPath: "/pet/findByStatus",
+      arrayQueryParameterNames: ["status"],
+      useCaseArgumentExpressions: ["request.value.query?.status"],
+    });
+
+    expect(renderRouteRegistration(operation)).toBe(
+      [
+        '  app.get("/pet/findByStatus", async (context) =>',
+        '    respond(await controllers.findPetsByStatus(request(context, ["status"]))),',
         "  );",
       ].join("\n"),
     );

@@ -193,6 +193,45 @@ describe("deriveRepository", () => {
     expect(repository.methods[0]?.kind).toBe("list");
   });
 
+  it("when hexagonal parameters carry location, then drizzle keeps location on method parameters", () => {
+    const operationsById = new Map([
+      ["updateWidgetWithForm", operation("updateWidgetWithForm", "post")],
+    ] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "updateWidgetWithForm",
+          name: "updateWidgetWithForm",
+          action: "update",
+          parameters: [
+            { name: "widgetId", typeExpression: "string", location: "path" },
+            { name: "name", typeExpression: "string | undefined", location: "query" },
+            {
+              name: "status",
+              typeExpression: '"active" | "inactive" | undefined',
+              location: "query",
+            },
+          ],
+          returnTypeExpression: "Widget | undefined",
+          persistenceKind: "update",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]?.parameters).toEqual([
+      { name: "widgetId", typeExpression: "string", location: "path" },
+      { name: "name", typeExpression: "string | undefined", location: "query" },
+      {
+        name: "status",
+        typeExpression: '"active" | "inactive" | undefined',
+        location: "query",
+      },
+    ]);
+  });
+
   it("when the aggregate has no persisted table, then deriveRepository throws", () => {
     expect(() => deriveRepository(applicationRepository([]), new Map(), new Map())).toThrow(
       'Application repository aggregate "Widget" has no schema with x-hexkit.persistence.',

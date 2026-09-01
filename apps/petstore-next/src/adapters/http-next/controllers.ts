@@ -6,6 +6,7 @@ import type { FindPetsByTags } from "../../core/application/find-pets-by-tags.ts
 import type { GetOrderById } from "../../core/application/get-order-by-id.ts";
 import type { GetPetById } from "../../core/application/get-pet-by-id.ts";
 import type { PlaceOrder } from "../../core/application/place-order.ts";
+import type { UpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import type { UpdatePet } from "../../core/application/update-pet.ts";
 import type { Principal } from "../../core/domain/auth-principal.ts";
 import type { Authenticator } from "../../core/ports/authenticator.ts";
@@ -16,6 +17,7 @@ import { getOrderByIdResponseMap } from "../../generated/contracts/routes/getOrd
 import { getPetByIdResponseMap } from "../../generated/contracts/routes/getPetById.ts";
 import { placeOrderResponseMap } from "../../generated/contracts/routes/placeOrder.ts";
 import { updatePetResponseMap } from "../../generated/contracts/routes/updatePet.ts";
+import { updatePetWithFormResponseMap } from "../../generated/contracts/routes/updatePetWithForm.ts";
 import { addPetWrapper } from "../../generated/contracts/server/addPet.ts";
 import { deleteOrderWrapper } from "../../generated/contracts/server/deleteOrder.ts";
 import { deletePetWrapper } from "../../generated/contracts/server/deletePet.ts";
@@ -25,6 +27,7 @@ import { getOrderByIdWrapper } from "../../generated/contracts/server/getOrderBy
 import { getPetByIdWrapper } from "../../generated/contracts/server/getPetById.ts";
 import { placeOrderWrapper } from "../../generated/contracts/server/placeOrder.ts";
 import { updatePetWrapper } from "../../generated/contracts/server/updatePet.ts";
+import { updatePetWithFormWrapper } from "../../generated/contracts/server/updatePetWithForm.ts";
 
 export type HttpUseCases = {
   addPet: AddPet;
@@ -36,6 +39,7 @@ export type HttpUseCases = {
   getPetById: GetPetById;
   placeOrder: PlaceOrder;
   updatePet: UpdatePet;
+  updatePetWithForm: UpdatePetWithForm;
 };
 
 export class RequestValidationError extends Error {
@@ -82,7 +86,7 @@ export function createHttpControllers(useCases: HttpUseCases, authenticator?: Au
     }),
     findPetsByStatus: findPetsByStatusWrapper(async (request) => {
       if (!request.isValid) throw new RequestValidationError(request.kind);
-      const result = await useCases.findPetsByStatus(request.value.query.status);
+      const result = await useCases.findPetsByStatus(request.value.query?.status);
       return {
         status: "200",
         contentType: "application/json",
@@ -91,7 +95,7 @@ export function createHttpControllers(useCases: HttpUseCases, authenticator?: Au
     }),
     findPetsByTags: findPetsByTagsWrapper(async (request) => {
       if (!request.isValid) throw new RequestValidationError(request.kind);
-      const result = await useCases.findPetsByTags(request.value.query.tags);
+      const result = await useCases.findPetsByTags(request.value.query?.tags);
       return {
         status: "200",
         contentType: "application/json",
@@ -146,6 +150,16 @@ export function createHttpControllers(useCases: HttpUseCases, authenticator?: Au
         status: "200",
         contentType: "application/json",
         data: updatePetResponseMap["200"]["application/json"].parse(result),
+      };
+    }),
+    updatePetWithForm: updatePetWithFormWrapper(async (request) => {
+      if (!request.isValid) throw new RequestValidationError(request.kind);
+      const result = await useCases.updatePetWithForm(request.value.path.petId, request.value.query?.name, request.value.query?.status);
+      if (!result) return { status: "404" };
+      return {
+        status: "200",
+        contentType: "application/json",
+        data: updatePetWithFormResponseMap["200"]["application/json"].parse(result),
       };
     })
   };

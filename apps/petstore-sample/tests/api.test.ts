@@ -440,6 +440,68 @@ describe.sequential("Given the generated Petstore API", () => {
       );
     });
 
+    it("when POST /pet/{petId} patches name and status, then nested fields are preserved", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post(`/pet/${String(petId)}`)
+          .withQueryParams({ name: `Form-updated ${String(petId)}`, status: "pending" })
+          .expectStatus(200)
+          .expectJsonLike({
+            id: petId,
+            name: `Form-updated ${String(petId)}`,
+            status: "pending",
+            category: addedPet.category,
+            photoUrls: addedPet.photoUrls,
+            tags: addedPet.tags,
+          }),
+      );
+    });
+
+    it("when POST /pet/{petId} omits name, then the existing name is kept", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post(`/pet/${String(petId)}`)
+          .withQueryParams({ status: "sold" })
+          .expectStatus(200)
+          .expectJsonLike({
+            id: petId,
+            name: `Form-updated ${String(petId)}`,
+            status: "sold",
+          }),
+      );
+    });
+
+    it("when POST /pet/{petId} has no query fields, then the pet is unchanged", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post(`/pet/${String(petId)}`)
+          .expectStatus(200)
+          .expectJsonLike({
+            id: petId,
+            name: `Form-updated ${String(petId)}`,
+            status: "sold",
+          }),
+      );
+    });
+
+    it("when POST /pet/{petId} targets a missing pet, then it returns 404", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post(`/pet/${String(missingPetId)}`)
+          .withQueryParams({ name: "nope" })
+          .expectStatus(404),
+      );
+    });
+
+    it("when POST /pet/{petId} has an invalid status, then it returns 400", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post(`/pet/${String(petId)}`)
+          .withQueryParams({ status: "not-a-status" })
+          .expectStatus(400),
+      );
+    });
+
     it("when the Pet is updated, then it returns the persisted changes", async () => {
       await runAgainstApi(() =>
         spec().put("/pet").withJson(updatedPet).expectStatus(200).expectJson(updatedPet),
