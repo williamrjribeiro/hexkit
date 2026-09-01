@@ -17,6 +17,26 @@ export function isFieldPatchUpdate(method: PersistenceRepositoryMethodModel): bo
   );
 }
 
+/** True when every parameter is path/query-located (field-patch shape, valid or invalid). */
+export function isLocatedUpdate(method: PersistenceRepositoryMethodModel): boolean {
+  return (
+    method.kind === "update" &&
+    method.parameters.length > 0 &&
+    method.parameters.every(
+      (parameter) => parameter.location === "path" || parameter.location === "query",
+    )
+  );
+}
+
+export function assertValidFieldPatchUpdate(method: PersistenceRepositoryMethodModel): void {
+  const pathCount = method.parameters.filter((parameter) => parameter.location === "path").length;
+  if (pathCount !== 1) {
+    throw new Error(
+      `Field-patch update "${method.operationId}" requires exactly one path parameter, found ${pathCount}.`,
+    );
+  }
+}
+
 export function renderFieldPatchUpdateMethod(
   repository: PersistenceRepositoryModel,
   method: PersistenceRepositoryMethodModel,
@@ -61,6 +81,20 @@ export function renderFieldPatchUpdateMethod(
     (field) => `      if (${field.name} !== undefined) patch.${field.name} = ${field.name};`,
   );
 
+  const allowsUndefined = returnTypeAllowsUndefined(method.returnTypeExpression);
+  const emptyMissLines = allowsUndefined
+    ? [`        return existing ? ${mapper}(existing) : undefined;`]
+    : [
+        `        if (!existing) throw new Error(\`${table.schemaName} \${${pathParameter.name}} was not found\`);`,
+        `        return ${mapper}(existing);`,
+      ];
+  const updateMissLines = allowsUndefined
+    ? [`      return row ? ${mapper}(row) : undefined;`]
+    : [
+        `      if (!row) throw new Error(\`${table.schemaName} \${${pathParameter.name}} was not found\`);`,
+        `      return ${mapper}(row);`,
+      ];
+
   return [
     `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
     `      const patch: ${patchType} = {};`,
@@ -71,16 +105,22 @@ export function renderFieldPatchUpdateMethod(
     `          .from(${table.exportName})`,
     `          .where(eq(${table.exportName}.${table.identityPropertyName}, ${pathParameter.name}))`,
     "          .limit(1);",
-    `        return existing ? ${mapper}(existing) : undefined;`,
+    ...emptyMissLines,
     "      }",
     "      const [row] = await db",
     `        .update(${table.exportName})`,
     "        .set(patch)",
     `        .where(eq(${table.exportName}.${table.identityPropertyName}, ${pathParameter.name}))`,
     "        .returning();",
-    `      return row ? ${mapper}(row) : undefined;`,
+    ...updateMissLines,
     "    }",
   ].join("\n");
+}
+
+function returnTypeAllowsUndefined(returnTypeExpression: string): boolean {
+  return (
+    /\|\s*undefined\b/.test(returnTypeExpression) || /\bundefined\s*\|/.test(returnTypeExpression)
+  );
 }
 
 function stripUndefined(typeExpression: string): string {

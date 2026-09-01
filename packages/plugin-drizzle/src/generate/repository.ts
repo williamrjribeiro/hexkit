@@ -8,7 +8,12 @@ import type {
   PersistenceRepositoryModel,
 } from "../model/repository.ts";
 import { findListFilterColumn, renderFilteredListMethodBody } from "./list-filter.ts";
-import { isFieldPatchUpdate, renderFieldPatchUpdateMethod } from "./field-patch.ts";
+import {
+  assertValidFieldPatchUpdate,
+  isFieldPatchUpdate,
+  isLocatedUpdate,
+  renderFieldPatchUpdateMethod,
+} from "./field-patch.ts";
 import { mapperFunctionName } from "../model/table.ts";
 
 export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] {
@@ -102,6 +107,9 @@ function renderMethod(
     case "update": {
       if (isFieldPatchUpdate(method)) {
         return renderFieldPatchUpdateMethod(repository, method);
+      }
+      if (isLocatedUpdate(method)) {
+        assertValidFieldPatchUpdate(method);
       }
       const parameter = method.entityParameterName;
       const setFields = table.columns

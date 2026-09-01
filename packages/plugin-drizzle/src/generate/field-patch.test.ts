@@ -116,6 +116,45 @@ describe("Given field-patch update rendering", () => {
     );
   });
 
+  it("when update has multiple path parameters, then generation throws instead of entity update", () => {
+    const method = fieldPatchMethod({
+      parameters: [
+        { name: "widgetId", typeExpression: "string", location: "path" },
+        { name: "storeId", typeExpression: "string", location: "path" },
+        { name: "name", typeExpression: "string | undefined", location: "query" },
+      ],
+    });
+
+    expect(isFieldPatchUpdate(method)).toBe(false);
+
+    const model: PersistenceModel = {
+      applicationSlug: "patch-api",
+      migrationPath: "drizzle/0000_patch-api.sql",
+      schemaFilePath: "src/adapters/db/schema.ts",
+      mapperFilePath: "src/adapters/db/mappers.ts",
+      enums: [],
+      tables: [widgetTable],
+      repositories: [repository(method)],
+    };
+
+    expect(() => renderRepositoryFiles(model)).toThrow(
+      /exactly one path parameter|multiple path|field-patch/i,
+    );
+  });
+
+  it("when return type has no undefined, then missing row throws instead of returning undefined", () => {
+    const method = fieldPatchMethod({
+      returnTypeExpression: "Widget",
+    });
+    const body = renderFieldPatchUpdateMethod(repository(method), method);
+
+    expect(body).toContain("if (!existing) throw new Error(`Widget ${widgetId} was not found`)");
+    expect(body).toContain("if (!row) throw new Error(`Widget ${widgetId} was not found`)");
+    expect(body).toContain("return mapWidgetRow(existing)");
+    expect(body).toContain("return mapWidgetRow(row)");
+    expect(body).not.toMatch(/return (?:existing|row) \? mapWidgetRow/);
+  });
+
   it("when update has a single entity body param without location, then the existing full set path is used", () => {
     const method: PersistenceRepositoryMethodModel = {
       operationId: "updateWidget",
