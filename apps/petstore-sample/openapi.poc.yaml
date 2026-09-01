@@ -57,6 +57,39 @@ paths:
       responses:
         "204":
           description: Pet deleted
+    post:
+      operationId: updatePetWithForm
+      x-hexkit:
+        operation:
+          aggregate: Pet
+          action: update
+      parameters:
+        - $ref: "#/components/parameters/PetId"
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - available
+              - pending
+              - sold
+      responses:
+        "200":
+          description: Pet updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+        "400":
+          description: Invalid input
+        "404":
+          description: Pet not found
   /pet/findByStatus:
     get:
       operationId: findPetsByStatus
