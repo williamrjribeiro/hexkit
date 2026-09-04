@@ -219,6 +219,24 @@ describe("Given a repository action", () => {
     },
   );
 
+  it("when a parameterized GET returns a scalar instead of the aggregate, then persistence is stub", () => {
+    expect(
+      persistenceKindFromAction("get", "get", "one", 2, {
+        returnTypeExpression: "string",
+        aggregate: "Widget",
+      }),
+    ).toBe("stub");
+  });
+
+  it("when a parameterized GET returns the aggregate, then persistence stays select", () => {
+    expect(
+      persistenceKindFromAction("get", "get", "one", 1, {
+        returnTypeExpression: "Widget | undefined",
+        aggregate: "Widget",
+      }),
+    ).toBe("select");
+  });
+
   it("when the HTTP method cannot be classified, then the calculation throws", () => {
     expect(() => persistenceKindFromAction("search", "head", "one", 0)).toThrow(
       /Cannot infer persistence action/,

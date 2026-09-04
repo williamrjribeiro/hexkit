@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: Key API Fixture
+  version: 1.0.0
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+  /widgets/batch:
+    post:
+      operationId: createWidgets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/Widget"
+      responses:
+        "200":
+          description: first created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+  /widgets/logout:
+    get:
+      operationId: logoutWidgets
+      responses:
+        "200":
+          description: logged out
+  /widgets/token:
+    get:
+      operationId: issueWidgetToken
+      parameters:
+        - name: label
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: token
+          content:
+            application/json:
+              schema:
+                type: string
+  /widgets/{sku}:
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getWidgetBySku
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "404":
+          description: missing
+    put:
+      operationId: updateWidgetBySku
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "404":
+          description: missing
+    delete:
+      operationId: deleteWidgetBySku
+      responses:
+        "204":
+          description: deleted
+        "404":
+          description: missing
+components:
+  schemas:
+    Widget:
+      type: object
+      x-hexkit:
+        persistence:
+          table: widgets
+          identity: id
+      required: [id, sku, name]
+      properties:
+        id: { type: string }
+        sku: { type: string }
+        name: { type: string }

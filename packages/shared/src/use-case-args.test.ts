@@ -62,10 +62,22 @@ describe("Given use-case argument derivation", () => {
     ]);
   });
 
-  it("when the operation has a JSON body, then the body expression replaces path parameters", () => {
+  it("when the operation has a JSON body, then path and query expressions precede the body", () => {
     expect(
       deriveUseCaseArgumentExpressions(
-        { requiresAuth: false, parameters: [{ name: "itemId", location: "path" }] },
+        {
+          requiresAuth: false,
+          parameters: [{ name: "sku", location: "path" }, { name: "item" }],
+        },
+        true,
+      ),
+    ).toEqual(["request.value.path.sku", "request.value.body"]);
+  });
+
+  it("when the operation has only a JSON body, then only the body expression is emitted", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        { requiresAuth: false, parameters: [{ name: "item" }] },
         true,
       ),
     ).toEqual(["request.value.body"]);
