@@ -165,6 +165,7 @@ describe("Given alternate-key persistence rendering", () => {
       lookupColumnName: "id",
     });
 
+    expect(source).toContain("async issueWidgetToken(_label: string)");
     expect(source).toContain('return ""');
     expect(source).not.toContain("return { ok: true }");
   });
