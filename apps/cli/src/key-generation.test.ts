@@ -14,36 +14,36 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { generateApplication } from "./main.ts";
 
-const keyContractPath = new URL("../../fixtures/key-api/openapi.yaml", import.meta.url).pathname;
-
-const generatedDirectories: string[] = [];
-
-afterEach(() => {
-  for (const directory of generatedDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-function createOutputDirectory(prefix: string): string {
-  const directory = mkdtempSync(join(tmpdir(), prefix));
-  generatedDirectories.push(directory);
-  return directory;
-}
-
-async function generateInto(outputDirectory: string): Promise<void> {
-  await generateApplication(keyContractPath, outputDirectory, {
-    actions: {
-      exists: existsSync,
-      write(path: string, contents: string) {
-        mkdirSync(dirname(path), { recursive: true });
-        writeFileSync(path, contents, "utf8");
-      },
-      log() {},
-    },
-  });
-}
-
 describe("Given the key-api fixture", () => {
+  const keyContractPath = new URL("../../fixtures/key-api/openapi.yaml", import.meta.url).pathname;
+
+  const generatedDirectories: string[] = [];
+
+  afterEach(() => {
+    for (const directory of generatedDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  function createOutputDirectory(prefix: string): string {
+    const directory = mkdtempSync(join(tmpdir(), prefix));
+    generatedDirectories.push(directory);
+    return directory;
+  }
+
+  async function generateInto(outputDirectory: string): Promise<void> {
+    await generateApplication(keyContractPath, outputDirectory, {
+      actions: {
+        exists: existsSync,
+        write(path: string, contents: string) {
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, contents, "utf8");
+        },
+        log() {},
+      },
+    });
+  }
+
   it("when generated, then keyed lookup, path+body update, boolean delete, array insert, and stubs emit", async () => {
     const outputDirectory = createOutputDirectory("hexkit-key-api-");
     await generateInto(outputDirectory);

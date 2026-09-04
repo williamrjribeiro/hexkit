@@ -8,65 +8,65 @@ import type {
 import type { PersistenceModel } from "../model/derive.ts";
 import { renderRepositoryFiles } from "./repository.ts";
 
-const widgetTable = {
-  schemaName: "Widget",
-  exportName: "widgets",
-  tableName: "widgets",
-  identityPropertyName: "id",
-  identitySqlName: "id",
-  domainFilePath: "src/core/domain/widget.ts",
-  apicalModulePath: "schemas/Widget.ts",
-  columns: [
-    {
-      propertyName: "id",
-      sqlName: "id",
-      required: true,
-      isIdentity: true,
-      sqlType: "text",
-    },
-    {
-      propertyName: "sku",
-      sqlName: "sku",
-      required: true,
-      isIdentity: false,
-      sqlType: "text",
-    },
-    {
-      propertyName: "name",
-      sqlName: "name",
-      required: true,
-      isIdentity: false,
-      sqlType: "text",
-    },
-  ] satisfies readonly PersistenceColumnModel[],
-};
-
-function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
-  return {
-    aggregate: "Widget",
-    portName: "WidgetRepository",
-    factoryName: "createDrizzleWidgetRepository",
-    filePath: "src/adapters/db/widget-repository.ts",
-    runtimeKey: "widgets",
-    table: widgetTable,
-    methods: [method],
-  };
-}
-
-function render(method: PersistenceRepositoryMethodModel): string {
-  const model: PersistenceModel = {
-    applicationSlug: "key-api",
-    migrationPath: "drizzle/0000_key-api.sql",
-    schemaFilePath: "src/adapters/db/schema.ts",
-    mapperFilePath: "src/adapters/db/mappers.ts",
-    enums: [],
-    tables: [widgetTable],
-    repositories: [repository(method)],
-  };
-  return renderRepositoryFiles(model)[0]?.contents ?? "";
-}
-
 describe("Given alternate-key persistence rendering", () => {
+  const widgetTable = {
+    schemaName: "Widget",
+    exportName: "widgets",
+    tableName: "widgets",
+    identityPropertyName: "id",
+    identitySqlName: "id",
+    domainFilePath: "src/core/domain/widget.ts",
+    apicalModulePath: "schemas/Widget.ts",
+    columns: [
+      {
+        propertyName: "id",
+        sqlName: "id",
+        required: true,
+        isIdentity: true,
+        sqlType: "text",
+      },
+      {
+        propertyName: "sku",
+        sqlName: "sku",
+        required: true,
+        isIdentity: false,
+        sqlType: "text",
+      },
+      {
+        propertyName: "name",
+        sqlName: "name",
+        required: true,
+        isIdentity: false,
+        sqlType: "text",
+      },
+    ] satisfies readonly PersistenceColumnModel[],
+  };
+
+  function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
+    return {
+      aggregate: "Widget",
+      portName: "WidgetRepository",
+      factoryName: "createDrizzleWidgetRepository",
+      filePath: "src/adapters/db/widget-repository.ts",
+      runtimeKey: "widgets",
+      table: widgetTable,
+      methods: [method],
+    };
+  }
+
+  function render(method: PersistenceRepositoryMethodModel): string {
+    const model: PersistenceModel = {
+      applicationSlug: "key-api",
+      migrationPath: "drizzle/0000_key-api.sql",
+      schemaFilePath: "src/adapters/db/schema.ts",
+      mapperFilePath: "src/adapters/db/mappers.ts",
+      enums: [],
+      tables: [widgetTable],
+      repositories: [repository(method)],
+    };
+    return renderRepositoryFiles(model)[0]?.contents ?? "";
+  }
+
   it("when select looks up by a non-identity column, then the where clause uses that column", () => {
     const source = render({
       operationId: "getWidgetBySku",

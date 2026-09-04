@@ -6,37 +6,37 @@ import { afterEach, describe, expect, it } from "vite-plus/test";
 
 import { generateApplication } from "./main.ts";
 
-const headersContractPath = new URL("../../fixtures/headers-api/openapi.yaml", import.meta.url)
-  .pathname;
-
-const generatedDirectories: string[] = [];
-
-afterEach(() => {
-  for (const directory of generatedDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true });
-  }
-});
-
-function createOutputDirectory(prefix: string): string {
-  const directory = mkdtempSync(join(tmpdir(), prefix));
-  generatedDirectories.push(directory);
-  return directory;
-}
-
-async function generateInto(outputDirectory: string): Promise<void> {
-  await generateApplication(headersContractPath, outputDirectory, {
-    actions: {
-      exists: existsSync,
-      write(path: string, contents: string) {
-        mkdirSync(dirname(path), { recursive: true });
-        writeFileSync(path, contents, "utf8");
-      },
-      log() {},
-    },
-  });
-}
-
 describe("Given the headers-api fixture", () => {
+  const headersContractPath = new URL("../../fixtures/headers-api/openapi.yaml", import.meta.url)
+    .pathname;
+
+  const generatedDirectories: string[] = [];
+
+  afterEach(() => {
+    for (const directory of generatedDirectories.splice(0)) {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  function createOutputDirectory(prefix: string): string {
+    const directory = mkdtempSync(join(tmpdir(), prefix));
+    generatedDirectories.push(directory);
+    return directory;
+  }
+
+  async function generateInto(outputDirectory: string): Promise<void> {
+    await generateApplication(headersContractPath, outputDirectory, {
+      actions: {
+        exists: existsSync,
+        write(path: string, contents: string) {
+          mkdirSync(dirname(path), { recursive: true });
+          writeFileSync(path, contents, "utf8");
+        },
+        log() {},
+      },
+    });
+  }
+
   it("when generated, then success response headers envelope through use case, stub, controller, and Hono respond", async () => {
     const outputDirectory = createOutputDirectory("hexkit-headers-api-");
     await generateInto(outputDirectory);

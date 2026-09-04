@@ -5,56 +5,56 @@ import type { ContractOperation } from "@hexkit/plugin-apical";
 import { deriveHttpControllerBinding, type HttpUseCaseBindingInput } from "./controller-binding.ts";
 import type { ContractSecurityScheme } from "./media.ts";
 
-const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
-const stringType = { kind: "string", nullable: false } as const;
-
-const publicSecurity = {
-  overridesGlobal: true,
-  requirements: [] as const,
-  apicalServerHeaderNames: [] as const,
-};
-
-function operation(
-  overrides: Partial<ContractOperation> & Pick<ContractOperation, "operationId">,
-): ContractOperation {
-  return {
-    method: "get",
-    path: "/items/{itemId}",
-    modulePath: `routes/${overrides.operationId}.ts`,
-    parameters: [{ name: "itemId", location: "path", required: true, type: stringType }],
-    responses: [
-      {
-        status: "200",
-        description: "ok",
-        media: [{ mediaType: "application/json", type: itemReference }],
-      },
-    ],
-    security: publicSecurity,
-    ...overrides,
-  };
-}
-
-function useCase(
-  overrides: Partial<HttpUseCaseBindingInput> & Pick<HttpUseCaseBindingInput, "typeName">,
-): HttpUseCaseBindingInput {
-  return {
-    factoryName: `create${overrides.typeName}`,
-    filePath: "src/core/use-cases/get-item.ts",
-    repositoryParameterName: "itemRepository",
-    requiresAuth: false,
-    parameters: [{ name: "itemId" }],
-    ...overrides,
-  };
-}
-
-const apiKeyScheme: ContractSecurityScheme = {
-  name: "api_key",
-  type: "apiKey",
-  in: "header",
-  headerName: "X-API-Key",
-};
-
 describe("Given deriveHttpControllerBinding", () => {
+  const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
+  const stringType = { kind: "string", nullable: false } as const;
+
+  const publicSecurity = {
+    overridesGlobal: true,
+    requirements: [] as const,
+    apicalServerHeaderNames: [] as const,
+  };
+
+  function operation(
+    overrides: Partial<ContractOperation> & Pick<ContractOperation, "operationId">,
+  ): ContractOperation {
+    return {
+      method: "get",
+      path: "/items/{itemId}",
+      modulePath: `routes/${overrides.operationId}.ts`,
+      parameters: [{ name: "itemId", location: "path", required: true, type: stringType }],
+      responses: [
+        {
+          status: "200",
+          description: "ok",
+          media: [{ mediaType: "application/json", type: itemReference }],
+        },
+      ],
+      security: publicSecurity,
+      ...overrides,
+    };
+  }
+
+  function useCase(
+    overrides: Partial<HttpUseCaseBindingInput> & Pick<HttpUseCaseBindingInput, "typeName">,
+  ): HttpUseCaseBindingInput {
+    return {
+      factoryName: `create${overrides.typeName}`,
+      filePath: "src/core/use-cases/get-item.ts",
+      repositoryParameterName: "itemRepository",
+      requiresAuth: false,
+      parameters: [{ name: "itemId" }],
+      ...overrides,
+    };
+  }
+
+  const apiKeyScheme: ContractSecurityScheme = {
+    name: "api_key",
+    type: "apiKey",
+    in: "header",
+    headerName: "X-API-Key",
+  };
+
   it("when a public GET has JSON success, then wrapper paths and arguments are complete", () => {
     const binding = deriveHttpControllerBinding(
       operation({ operationId: "getItem" }),

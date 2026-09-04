@@ -3,127 +3,127 @@ import { request, spec } from "pactum";
 
 import { createAcceptanceIds } from "./api-fixtures.ts";
 
-const apiBaseUrl = process.env.PETSTORE_API_URL ?? "http://127.0.0.1:3000";
-const goodApiKey = process.env.AUTH_API_KEYS?.split(",")[0] ?? "test-key";
-const rejectedApiKey = "not-a-valid-key";
-const ids = createAcceptanceIds();
-const { invalidOrderId, missingPetId, orderId, petId } = ids;
-const {
-  filterAvailablePetId,
-  filterBothTagsPetId,
-  filterFriendlyPetId,
-  filterPendingPetId,
-  filterQuietPetId,
-  filterSoldPetId,
-} = ids;
+describe.sequential("Given the generated Petstore API", () => {
+  const apiBaseUrl = process.env.PETSTORE_API_URL ?? "http://127.0.0.1:3000";
+  const goodApiKey = process.env.AUTH_API_KEYS?.split(",")[0] ?? "test-key";
+  const rejectedApiKey = "not-a-valid-key";
+  const ids = createAcceptanceIds();
+  const { invalidOrderId, missingPetId, orderId, petId } = ids;
+  const {
+    filterAvailablePetId,
+    filterBothTagsPetId,
+    filterFriendlyPetId,
+    filterPendingPetId,
+    filterQuietPetId,
+    filterSoldPetId,
+  } = ids;
 
-const addedPet = {
-  id: petId,
-  name: `Hexkit dogfood pet ${String(petId)}`,
-  status: "available",
-  category: { id: 1, name: "Dogs" },
-  photoUrls: [`https://example.test/pets/${String(petId)}.jpg`],
-  tags: [{ id: 10, name: "friendly" }],
-};
-const updatedPet = {
-  ...addedPet,
-  name: `Updated Hexkit dogfood pet ${String(petId)}`,
-  status: "sold",
-  category: { id: 2, name: "Working Dogs" },
-  photoUrls: [
-    `https://example.test/pets/${String(petId)}.jpg`,
-    `https://example.test/pets/${String(petId)}-2.jpg`,
-  ],
-  tags: [
-    { id: 10, name: "friendly" },
-    { id: 11, name: "trained" },
-  ],
-};
-const minimalPet = {
-  id: ids.minimalPetId,
-  name: `Minimal Hexkit pet ${String(ids.minimalPetId)}`,
-  photoUrls: [] as string[],
-};
-const categoryOnlyPet = {
-  id: ids.categoryOnlyPetId,
-  name: `Category-only pet ${String(ids.categoryOnlyPetId)}`,
-  photoUrls: [`https://example.test/pets/${String(ids.categoryOnlyPetId)}.jpg`],
-  category: { id: 3, name: "Cats" },
-};
-const tagsOnlyPet = {
-  id: ids.tagsOnlyPetId,
-  name: `Tags-only pet ${String(ids.tagsOnlyPetId)}`,
-  photoUrls: [`https://example.test/pets/${String(ids.tagsOnlyPetId)}.jpg`],
-  tags: [{ id: 20, name: "quiet" }],
-};
-const emptyTagsPet = {
-  id: ids.emptyTagsPetId,
-  name: `Empty-tags pet ${String(ids.emptyTagsPetId)}`,
-  photoUrls: [`https://example.test/pets/${String(ids.emptyTagsPetId)}.jpg`],
-  tags: [] as Array<{ id: number; name: string }>,
-};
-const emptyCategoryPet = {
-  id: ids.emptyCategoryPetId,
-  name: `Empty-category pet ${String(ids.emptyCategoryPetId)}`,
-  photoUrls: [`https://example.test/pets/${String(ids.emptyCategoryPetId)}.jpg`],
-  category: {},
-};
-const partialCategoryPet = {
-  id: ids.partialCategoryPetId,
-  name: `Partial-category pet ${String(ids.partialCategoryPetId)}`,
-  photoUrls: [`https://example.test/pets/${String(ids.partialCategoryPetId)}.jpg`],
-  category: { name: "ユニコード犬" },
-};
-const putOmitPet = {
-  id: ids.putOmitPetId,
-  name: `Put-omit pet ${String(ids.putOmitPetId)}`,
-  status: "available" as const,
-  category: { id: 8, name: "Keep me" },
-  photoUrls: [`https://example.test/pets/${String(ids.putOmitPetId)}.jpg`],
-  tags: [{ id: 30, name: "keep" }],
-};
-const replaceUrlsPet = {
-  id: ids.replaceUrlsPetId,
-  name: `Replace-urls pet ${String(ids.replaceUrlsPetId)}`,
-  photoUrls: [
-    `https://example.test/pets/${String(ids.replaceUrlsPetId)}.jpg`,
-    `https://example.test/pets/${String(ids.replaceUrlsPetId)}-b.jpg`,
-  ],
-};
-const placedOrder = {
-  id: orderId,
-  petId,
-  quantity: 2,
-  status: "placed",
-  complete: false,
-};
+  const addedPet = {
+    id: petId,
+    name: `Hexkit dogfood pet ${String(petId)}`,
+    status: "available",
+    category: { id: 1, name: "Dogs" },
+    photoUrls: [`https://example.test/pets/${String(petId)}.jpg`],
+    tags: [{ id: 10, name: "friendly" }],
+  };
+  const updatedPet = {
+    ...addedPet,
+    name: `Updated Hexkit dogfood pet ${String(petId)}`,
+    status: "sold",
+    category: { id: 2, name: "Working Dogs" },
+    photoUrls: [
+      `https://example.test/pets/${String(petId)}.jpg`,
+      `https://example.test/pets/${String(petId)}-2.jpg`,
+    ],
+    tags: [
+      { id: 10, name: "friendly" },
+      { id: 11, name: "trained" },
+    ],
+  };
+  const minimalPet = {
+    id: ids.minimalPetId,
+    name: `Minimal Hexkit pet ${String(ids.minimalPetId)}`,
+    photoUrls: [] as string[],
+  };
+  const categoryOnlyPet = {
+    id: ids.categoryOnlyPetId,
+    name: `Category-only pet ${String(ids.categoryOnlyPetId)}`,
+    photoUrls: [`https://example.test/pets/${String(ids.categoryOnlyPetId)}.jpg`],
+    category: { id: 3, name: "Cats" },
+  };
+  const tagsOnlyPet = {
+    id: ids.tagsOnlyPetId,
+    name: `Tags-only pet ${String(ids.tagsOnlyPetId)}`,
+    photoUrls: [`https://example.test/pets/${String(ids.tagsOnlyPetId)}.jpg`],
+    tags: [{ id: 20, name: "quiet" }],
+  };
+  const emptyTagsPet = {
+    id: ids.emptyTagsPetId,
+    name: `Empty-tags pet ${String(ids.emptyTagsPetId)}`,
+    photoUrls: [`https://example.test/pets/${String(ids.emptyTagsPetId)}.jpg`],
+    tags: [] as Array<{ id: number; name: string }>,
+  };
+  const emptyCategoryPet = {
+    id: ids.emptyCategoryPetId,
+    name: `Empty-category pet ${String(ids.emptyCategoryPetId)}`,
+    photoUrls: [`https://example.test/pets/${String(ids.emptyCategoryPetId)}.jpg`],
+    category: {},
+  };
+  const partialCategoryPet = {
+    id: ids.partialCategoryPetId,
+    name: `Partial-category pet ${String(ids.partialCategoryPetId)}`,
+    photoUrls: [`https://example.test/pets/${String(ids.partialCategoryPetId)}.jpg`],
+    category: { name: "ユニコード犬" },
+  };
+  const putOmitPet = {
+    id: ids.putOmitPetId,
+    name: `Put-omit pet ${String(ids.putOmitPetId)}`,
+    status: "available" as const,
+    category: { id: 8, name: "Keep me" },
+    photoUrls: [`https://example.test/pets/${String(ids.putOmitPetId)}.jpg`],
+    tags: [{ id: 30, name: "keep" }],
+  };
+  const replaceUrlsPet = {
+    id: ids.replaceUrlsPetId,
+    name: `Replace-urls pet ${String(ids.replaceUrlsPetId)}`,
+    photoUrls: [
+      `https://example.test/pets/${String(ids.replaceUrlsPetId)}.jpg`,
+      `https://example.test/pets/${String(ids.replaceUrlsPetId)}-b.jpg`,
+    ],
+  };
+  const placedOrder = {
+    id: orderId,
+    petId,
+    quantity: 2,
+    status: "placed",
+    complete: false,
+  };
 
-request.setBaseUrl(apiBaseUrl);
-request.setDefaultTimeout(2_000);
+  request.setBaseUrl(apiBaseUrl);
+  request.setDefaultTimeout(2_000);
 
-async function runAgainstApi(assertion: () => unknown): Promise<void> {
-  try {
-    await assertion();
-  } catch (error) {
-    throw new Error(
-      `Petstore acceptance request failed against ${apiBaseUrl}. Ensure the generated Compose stack is running. ${error instanceof Error ? error.message : String(error)}`,
-      { cause: error },
+  async function runAgainstApi(assertion: () => unknown): Promise<void> {
+    try {
+      await assertion();
+    } catch (error) {
+      throw new Error(
+        `Petstore acceptance request failed against ${apiBaseUrl}. Ensure the generated Compose stack is running. ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
+      );
+    }
+  }
+
+  async function expectPersistedPet(pet: object): Promise<void> {
+    await runAgainstApi(() => spec().post("/pet").withJson(pet).expectStatus(201).expectJson(pet));
+    await runAgainstApi(() =>
+      spec()
+        .get(`/pet/${String((pet as { id: number }).id)}`)
+        .withHeaders("api_key", goodApiKey)
+        .expectStatus(200)
+        .expectJson(pet),
     );
   }
-}
 
-async function expectPersistedPet(pet: object): Promise<void> {
-  await runAgainstApi(() => spec().post("/pet").withJson(pet).expectStatus(201).expectJson(pet));
-  await runAgainstApi(() =>
-    spec()
-      .get(`/pet/${String((pet as { id: number }).id)}`)
-      .withHeaders("api_key", goodApiKey)
-      .expectStatus(200)
-      .expectJson(pet),
-  );
-}
-
-describe.sequential("Given the generated Petstore API", () => {
   describe.sequential("api_key header", () => {
     it("when GET /pet/{petId} has no api_key, then it returns 401", async () => {
       await runAgainstApi(() =>

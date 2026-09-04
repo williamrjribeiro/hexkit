@@ -3,27 +3,27 @@ import { describe, expect, it } from "vite-plus/test";
 import type { HttpControllerOperation } from "./controller-binding.ts";
 import { renderHttpControllersFile } from "./render-controllers.ts";
 
-function operation(
-  overrides: Partial<HttpControllerOperation> & Pick<HttpControllerOperation, "operationId">,
-): HttpControllerOperation {
-  return {
-    useCaseTypeName: `${overrides.operationId}UseCase`,
-    useCaseFilePath: `src/core/use-cases/${overrides.operationId}.ts`,
-    wrapperName: `${overrides.operationId}Wrapper`,
-    wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
-    hasJsonRequestBody: false,
-    hasJsonSuccessBody: true,
-    successStatus: "200",
-    successMediaType: "application/json",
-    requiresAuth: false,
-    useCaseArgumentExpressions: [],
-    arrayQueryParameterNames: [],
-    successResponseHeaders: [],
-    ...overrides,
-  };
-}
-
 describe("Given renderHttpControllersFile", () => {
+  function operation(
+    overrides: Partial<HttpControllerOperation> & Pick<HttpControllerOperation, "operationId">,
+  ): HttpControllerOperation {
+    return {
+      useCaseTypeName: `${overrides.operationId}UseCase`,
+      useCaseFilePath: `src/core/use-cases/${overrides.operationId}.ts`,
+      wrapperName: `${overrides.operationId}Wrapper`,
+      wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
+      hasJsonRequestBody: false,
+      hasJsonSuccessBody: true,
+      successStatus: "200",
+      successMediaType: "application/json",
+      requiresAuth: false,
+      useCaseArgumentExpressions: [],
+      arrayQueryParameterNames: [],
+      successResponseHeaders: [],
+      ...overrides,
+    };
+  }
+
   it("when given a complete public binding, then it emits wrappers without authenticator types", () => {
     const file = renderHttpControllersFile({
       filePath: "src/adapters/http/controllers.ts",
