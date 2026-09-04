@@ -36,6 +36,7 @@ const petstoreModules = {
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
     ["Tag", "schemas/Tag.ts"],
+    ["User", "schemas/User.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -48,6 +49,13 @@ const petstoreModules = {
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
+    ["createUser", "routes/createUser.ts"],
+    ["createUsersWithListInput", "routes/createUsersWithListInput.ts"],
+    ["loginUser", "routes/loginUser.ts"],
+    ["logoutUser", "routes/logoutUser.ts"],
+    ["getUserByName", "routes/getUserByName.ts"],
+    ["updateUser", "routes/updateUser.ts"],
+    ["deleteUser", "routes/deleteUser.ts"],
   ]),
 };
 
@@ -339,22 +347,31 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       ),
     ).toEqual([
       'app.post("/pet"',
+      'app.post("/user"',
+      'app.post("/user/createWithList"',
       'app.get("/pet/findByStatus"',
       'app.get("/pet/findByTags"',
+      'app.get("/user/login"',
+      'app.get("/user/logout"',
       'app.post("/store/order"',
       'app.put("/pet"',
       'app.delete("/store/order/:orderId"',
       'app.delete("/pet/:petId"',
+      'app.delete("/user/:username"',
       'app.get("/store/order/:orderId"',
       'app.get("/pet/:petId"',
+      'app.get("/user/:username"',
       'app.post("/pet/:petId"',
+      'app.put("/user/:username"',
     ]);
     expect(routes?.contents).toContain('app.post("/store/order", async (context) =>');
 
     expect(runtime?.contents).toContain("addPet: createAddPet(repositories.pets),");
     expect(runtime?.contents).toContain("placeOrder: createPlaceOrder(repositories.orders),");
+    expect(runtime?.contents).toContain("createUser: createCreateUser(repositories.users),");
     expect(runtime?.contents).toContain("pets: PetRepository;");
     expect(runtime?.contents).toContain("orders: OrderRepository;");
+    expect(runtime?.contents).toContain("users: UserRepository;");
 
     expect(artifact).toMatchObject({
       artifactVersion: 1,
@@ -373,19 +390,31 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
           repositoryName: "PetRepository",
           repositoryFilePath: "src/core/ports/pet-repository.ts",
         },
+        {
+          parameterName: "users",
+          repositoryName: "UserRepository",
+          repositoryFilePath: "src/core/ports/user-repository.ts",
+        },
       ],
     });
     expect(artifact.operations.map((operation) => operation.operationId)).toEqual([
       "addPet",
+      "createUser",
+      "createUsersWithListInput",
       "findPetsByStatus",
       "findPetsByTags",
+      "loginUser",
+      "logoutUser",
       "placeOrder",
       "updatePet",
       "deleteOrder",
       "deletePet",
+      "deleteUser",
       "getOrderById",
       "getPetById",
+      "getUserByName",
       "updatePetWithForm",
+      "updateUser",
     ]);
   });
 });
@@ -584,6 +613,27 @@ describe("Given real Apical output for Petstore and Library", () => {
           return undefined;
         },
         async deleteOrder() {},
+      },
+      users: {
+        async createUser(user: unknown) {
+          return user;
+        },
+        async createUsersWithListInput() {
+          return undefined;
+        },
+        async deleteUser() {
+          return false;
+        },
+        async getUserByName() {
+          return undefined;
+        },
+        async loginUser() {
+          return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } };
+        },
+        async logoutUser() {},
+        async updateUser() {
+          return undefined;
+        },
       },
     });
 

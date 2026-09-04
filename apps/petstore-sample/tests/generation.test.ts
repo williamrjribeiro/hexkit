@@ -29,68 +29,102 @@ const requiredOutputPaths = [
   "src/adapters/db/order-repository.ts",
   "src/adapters/db/pet-repository.ts",
   "src/adapters/db/schema.ts",
+  "src/adapters/db/user-repository.ts",
   "src/adapters/http/controllers.ts",
   "src/adapters/http/routes.ts",
   "src/core/application/add-pet.ts",
+  "src/core/application/create-user.ts",
+  "src/core/application/create-users-with-list-input.ts",
   "src/core/application/delete-order.ts",
   "src/core/application/delete-pet.ts",
+  "src/core/application/delete-user.ts",
   "src/core/application/find-pets-by-status.ts",
   "src/core/application/find-pets-by-tags.ts",
   "src/core/application/get-order-by-id.ts",
   "src/core/application/get-pet-by-id.ts",
+  "src/core/application/get-user-by-name.ts",
+  "src/core/application/login-user.ts",
+  "src/core/application/logout-user.ts",
   "src/core/application/place-order.ts",
   "src/core/application/update-pet-with-form.ts",
   "src/core/application/update-pet.ts",
+  "src/core/application/update-user.ts",
   "src/core/domain/auth-principal.ts",
   "src/core/domain/category.ts",
   "src/core/domain/order.ts",
   "src/core/domain/pet.ts",
   "src/core/domain/tag.ts",
+  "src/core/domain/user.ts",
   "src/core/ports/authenticator.ts",
   "src/core/ports/order-repository.ts",
   "src/core/ports/pet-repository.ts",
+  "src/core/ports/user-repository.ts",
   "src/generated/contracts/hexkit-contract.json",
   "src/generated/contracts/package.json",
   "src/generated/contracts/routes/addPet.ts",
+  "src/generated/contracts/routes/createUser.ts",
+  "src/generated/contracts/routes/createUsersWithListInput.ts",
   "src/generated/contracts/routes/deleteOrder.ts",
   "src/generated/contracts/routes/deletePet.ts",
+  "src/generated/contracts/routes/deleteUser.ts",
   "src/generated/contracts/routes/findPetsByStatus.ts",
   "src/generated/contracts/routes/findPetsByTags.ts",
   "src/generated/contracts/routes/getOrderById.ts",
   "src/generated/contracts/routes/getPetById.ts",
+  "src/generated/contracts/routes/getUserByName.ts",
   "src/generated/contracts/routes/index.ts",
+  "src/generated/contracts/routes/loginUser.ts",
+  "src/generated/contracts/routes/logoutUser.ts",
   "src/generated/contracts/routes/placeOrder.ts",
   "src/generated/contracts/routes/updatePet.ts",
   "src/generated/contracts/routes/updatePetWithForm.ts",
+  "src/generated/contracts/routes/updateUser.ts",
   "src/generated/contracts/schemas/Category.ts",
+  "src/generated/contracts/schemas/CreateUsersWithListInputRequest.ts",
   "src/generated/contracts/schemas/FindPetsByStatus200Response.ts",
   "src/generated/contracts/schemas/FindPetsByTags200Response.ts",
+  "src/generated/contracts/schemas/LoginUser200Response.ts",
   "src/generated/contracts/schemas/Order.ts",
   "src/generated/contracts/schemas/Pet.ts",
   "src/generated/contracts/schemas/Tag.ts",
+  "src/generated/contracts/schemas/User.ts",
   "src/generated/contracts/schemas/addPetParameters.ts",
+  "src/generated/contracts/schemas/createUserParameters.ts",
+  "src/generated/contracts/schemas/createUsersWithListInputParameters.ts",
   "src/generated/contracts/schemas/deleteOrderParameters.ts",
   "src/generated/contracts/schemas/deletePetParameters.ts",
+  "src/generated/contracts/schemas/deleteUserParameters.ts",
   "src/generated/contracts/schemas/findPetsByStatusParameters.ts",
   "src/generated/contracts/schemas/findPetsByTagsParameters.ts",
   "src/generated/contracts/schemas/getOrderByIdParameters.ts",
   "src/generated/contracts/schemas/getPetByIdParameters.ts",
+  "src/generated/contracts/schemas/getUserByNameParameters.ts",
   "src/generated/contracts/schemas/index.ts",
+  "src/generated/contracts/schemas/loginUserParameters.ts",
+  "src/generated/contracts/schemas/logoutUserParameters.ts",
   "src/generated/contracts/schemas/placeOrderParameters.ts",
   "src/generated/contracts/schemas/runtime.ts",
   "src/generated/contracts/schemas/updatePetParameters.ts",
   "src/generated/contracts/schemas/updatePetWithFormParameters.ts",
+  "src/generated/contracts/schemas/updateUserParameters.ts",
   "src/generated/contracts/server/addPet.ts",
+  "src/generated/contracts/server/createUser.ts",
+  "src/generated/contracts/server/createUsersWithListInput.ts",
   "src/generated/contracts/server/deleteOrder.ts",
   "src/generated/contracts/server/deletePet.ts",
+  "src/generated/contracts/server/deleteUser.ts",
   "src/generated/contracts/server/findPetsByStatus.ts",
   "src/generated/contracts/server/findPetsByTags.ts",
   "src/generated/contracts/server/getOrderById.ts",
   "src/generated/contracts/server/getPetById.ts",
+  "src/generated/contracts/server/getUserByName.ts",
   "src/generated/contracts/server/index.ts",
+  "src/generated/contracts/server/loginUser.ts",
+  "src/generated/contracts/server/logoutUser.ts",
   "src/generated/contracts/server/placeOrder.ts",
   "src/generated/contracts/server/updatePet.ts",
   "src/generated/contracts/server/updatePetWithForm.ts",
+  "src/generated/contracts/server/updateUser.ts",
   "src/generated/contracts/standard-schema.ts",
   "src/generated/contracts/tsconfig.json",
   "src/runtime/app.ts",
@@ -143,6 +177,39 @@ describe("Given the canonical Petstore contract", () => {
     expect(listFiles(outputDirectory)).toEqual(requiredOutputPaths);
     expect(readFileSync(join(outputDirectory, "src/core/application/get-pet-by-id.ts"), "utf8")).toContain(
       "principal: Principal",
+    );
+    const userRepository = readFileSync(
+      join(outputDirectory, "src/adapters/db/user-repository.ts"),
+      "utf8",
+    );
+    const routes = readFileSync(join(outputDirectory, "src/adapters/http/routes.ts"), "utf8");
+    const controllers = readFileSync(
+      join(outputDirectory, "src/adapters/http/controllers.ts"),
+      "utf8",
+    );
+    const schema = readFileSync(join(outputDirectory, "src/adapters/db/schema.ts"), "utf8");
+    const updateUser = readFileSync(
+      join(outputDirectory, "src/core/application/update-user.ts"),
+      "utf8",
+    );
+    expect(schema).toContain('export const users = pgTable("users"');
+    expect(userRepository).toContain("eq(users.username, username)");
+    expect(userRepository).toContain(".values(body).returning()");
+    expect(userRepository).toContain(
+      'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
+    );
+    expect(userRepository).toContain("return row !== undefined");
+    expect(updateUser).toContain("username: string, user: User");
+    expect(controllers).toContain("request.value.path.username, request.value.body");
+    expect(controllers).toContain("headers: result.headers");
+    expect(routes.indexOf('app.get("/user/login"')).toBeLessThan(
+      routes.indexOf('app.get("/user/:username"'),
+    );
+    expect(routes.indexOf('app.get("/user/logout"')).toBeLessThan(
+      routes.indexOf('app.get("/user/:username"'),
+    );
+    expect(routes.indexOf('app.post("/user/createWithList"')).toBeLessThan(
+      routes.indexOf('app.get("/user/:username"'),
     );
   });
 
@@ -206,15 +273,22 @@ export const protectedUseCase = "survives regeneration";
       ",
         "protectedLogs": [
           "Skipped existing protected file: src/core/application/add-pet.ts",
+          "Skipped existing protected file: src/core/application/create-user.ts",
+          "Skipped existing protected file: src/core/application/create-users-with-list-input.ts",
           "Skipped existing protected file: src/core/application/delete-order.ts",
           "Skipped existing protected file: src/core/application/delete-pet.ts",
+          "Skipped existing protected file: src/core/application/delete-user.ts",
           "Skipped existing protected file: src/core/application/find-pets-by-status.ts",
           "Skipped existing protected file: src/core/application/find-pets-by-tags.ts",
           "Skipped existing protected file: src/core/application/get-order-by-id.ts",
           "Skipped existing protected file: src/core/application/get-pet-by-id.ts",
+          "Skipped existing protected file: src/core/application/get-user-by-name.ts",
+          "Skipped existing protected file: src/core/application/login-user.ts",
+          "Skipped existing protected file: src/core/application/logout-user.ts",
           "Skipped existing protected file: src/core/application/place-order.ts",
           "Skipped existing protected file: src/core/application/update-pet.ts",
           "Skipped existing protected file: src/core/application/update-pet-with-form.ts",
+          "Skipped existing protected file: src/core/application/update-user.ts",
         ],
       }
     `);

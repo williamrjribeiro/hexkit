@@ -10,7 +10,7 @@ whenever Hono/Next OpenAPI support changes (see [Keeping this tracker current](#
 
 | Field        | Value                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| Last updated | 2026-09-01                                                                                      |
+| Last updated | 2026-09-04                                                                                      |
 | Target spec  | Full Swagger Petstore (classic 19 operations + OAS 3.1 extras in the checked-in reference)      |
 | PoC contract | [`apps/petstore-sample/openapi.poc.yaml`](../apps/petstore-sample/openapi.poc.yaml)             |
 | OAS 3.1 ref  | [`apps/petstore-sample/openapi.yaml`](../apps/petstore-sample/openapi.yaml) (Pet-focused slice) |
@@ -46,13 +46,13 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono` | 3         | 9         | 0             | 14        |
-| `@hexkit/plugin-next` | 2         | 10        | 0             | 14        |
+| `@hexkit/plugin-hono` | 3         | 16        | 0             | 7         |
+| `@hexkit/plugin-next` | 2         | 17        | 0             | 7         |
 
-Almost all PoC Pet / Order routes are **partial** (JSON-only and/or missing
-Petstore security). **Shipped:** `deleteOrder`, JSON media type, and Hono header
-`apiKey` (Petstore `getPetById` dogfood). Most of the remaining surface is still
-**missing**.
+Almost all PoC Pet / Order / User routes are **partial** (JSON-only, missing
+Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON media type, and Hono header
+`apiKey` (Petstore `getPetById` dogfood). Remaining **missing** surface: XML, form-urlencoded,
+OAuth, inventory, upload, webhooks, and mutualTLS.
 
 ## Operations
 
@@ -91,15 +91,15 @@ separate cross-cutting HTTP capability.
 
 ### User
 
-| operationId                | Method / path               | Hono    | Next    | Notes                                                                             |
-| -------------------------- | --------------------------- | ------- | ------- | --------------------------------------------------------------------------------- |
-| `createUser`               | `POST /user`                | missing | missing | User schema + persistence; JSON (+ XML / form-urlencoded in full)                 |
-| `createUsersWithListInput` | `POST /user/createWithList` | missing | missing | Array request body (`User[]`)                                                     |
-| `loginUser`                | `GET /user/login`           | missing | missing | Query `username` / `password`; response headers `X-Rate-Limit`, `X-Expires-After` |
-| `logoutUser`               | `GET /user/logout`          | missing | missing | Session-style no-body success                                                     |
-| `getUserByName`            | `GET /user/{username}`      | missing | missing | String path identity; JSON (+ XML in full Petstore)                               |
-| `updateUser`               | `PUT /user/{username}`      | missing | missing | JSON (+ XML / form-urlencoded in full Petstore)                                   |
-| `deleteUser`               | `DELETE /user/{username}`   | missing | missing |                                                                                   |
+| operationId                | Method / path               | Hono    | Next    | Notes                                                                                                                                        |
+| -------------------------- | --------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createUser`               | `POST /user`                | partial | partial | PoC JSON + `users` table; still need XML / form-urlencoded (no security in full Petstore)                                                    |
+| `createUsersWithListInput` | `POST /user/createWithList` | partial | partial | PoC JSON `User[]` insert (returns first row); still need XML                                                                                 |
+| `loginUser`                | `GET /user/login`           | partial | partial | PoC required query + JSON string + `X-Rate-Limit` / `X-Expires-After` envelope; stub (no sessions); still need XML and optional query params |
+| `logoutUser`               | `GET /user/logout`          | partial | partial | PoC empty 200 stub; not a real session logout                                                                                                |
+| `getUserByName`            | `GET /user/{username}`      | partial | partial | PoC JSON lookup by `username` column; still need XML                                                                                         |
+| `updateUser`               | `PUT /user/{username}`      | partial | partial | PoC JSON path+body update; still need XML / form-urlencoded                                                                                  |
+| `deleteUser`               | `DELETE /user/{username}`   | partial | partial | PoC boolean 204/404 by `username`; no extra full-Petstore media/security                                                                     |
 
 ## Cross-cutting capabilities
 
@@ -119,11 +119,11 @@ in that operation’s Notes.
 
 ## Contract map
 
-| Contract                                | Role                                                                                 |
-| --------------------------------------- | ------------------------------------------------------------------------------------ |
-| `apps/petstore-sample/openapi.poc.yaml` | Current generation/dogfood slice (Rich Pet + Order, JSON; `api_key` on `getPetById`) |
-| `apps/petstore-sample/openapi.yaml`     | Checked-in OAS 3.1 Pet-focused reference (leave untouched for PoC edits)             |
-| Full Swagger Petstore (classic 19 ops)  | Progress target for this tracker                                                     |
+| Contract                                | Role                                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `apps/petstore-sample/openapi.poc.yaml` | Current generation/dogfood slice (Rich Pet + Order + User JSON; `api_key` on `getPetById`) |
+| `apps/petstore-sample/openapi.yaml`     | Checked-in OAS 3.1 Pet-focused reference (leave untouched for PoC edits)                   |
+| Full Swagger Petstore (classic 19 ops)  | Progress target for this tracker                                                           |
 
 Expanding dogfood toward the full surface means growing `openapi.poc.yaml` (or
 a successor full-contract fixture) and moving rows from `missing` →

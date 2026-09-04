@@ -32,6 +32,7 @@ const petstoreModules = {
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
     ["Tag", "schemas/Tag.ts"],
+    ["User", "schemas/User.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -44,6 +45,13 @@ const petstoreModules = {
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
+    ["createUser", "routes/createUser.ts"],
+    ["createUsersWithListInput", "routes/createUsersWithListInput.ts"],
+    ["loginUser", "routes/loginUser.ts"],
+    ["logoutUser", "routes/logoutUser.ts"],
+    ["getUserByName", "routes/getUserByName.ts"],
+    ["updateUser", "routes/updateUser.ts"],
+    ["deleteUser", "routes/deleteUser.ts"],
   ]),
 };
 
@@ -135,9 +143,11 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
     const migration = files.find((file) => file.path === "drizzle/0000_hexkit-petstore-poc.sql");
 
     expect(schema?.contents).toContain('export const pets = pgTable("pets"');
+    expect(schema?.contents).toContain('export const users = pgTable("users"');
     expect(schema?.contents).toContain('export const orders = pgTable("orders"');
     expect(schema?.contents).toContain(".references(() => pets.id)");
     expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "pets"');
+    expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "users"');
     expect(migration?.contents).toContain('CREATE TABLE IF NOT EXISTS "orders"');
     expect(migration?.contents).toContain(
       'FOREIGN KEY ("pet_id") REFERENCES "public"."pets"("id")',
@@ -151,6 +161,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
       migrationPath: "drizzle/0000_hexkit-petstore-poc.sql",
       tables: [
         { schemaName: "Pet", exportName: "pets", tableName: "pets" },
+        { schemaName: "User", exportName: "users", tableName: "users" },
         { schemaName: "Order", exportName: "orders", tableName: "orders" },
       ],
       repositories: expect.arrayContaining([
@@ -165,6 +176,12 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
           factoryName: "createDrizzleOrderRepository",
           runtimeKey: "orders",
           filePath: "src/adapters/db/order-repository.ts",
+        }),
+        expect.objectContaining({
+          aggregate: "User",
+          factoryName: "createDrizzleUserRepository",
+          runtimeKey: "users",
+          filePath: "src/adapters/db/user-repository.ts",
         }),
       ]),
     });
@@ -184,6 +201,17 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
           category: jsonb("category"),
           photoUrls: jsonb("photo_urls").notNull(),
           tags: jsonb("tags"),
+        });
+
+        export const users = pgTable("users", {
+          id: integer("id").primaryKey(),
+          username: text("username").notNull(),
+          firstName: text("first_name"),
+          lastName: text("last_name"),
+          email: text("email"),
+          password: text("password"),
+          phone: text("phone"),
+          userStatus: integer("user_status"),
         });
 
         export const orders = pgTable("orders", {
@@ -292,18 +320,22 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
 
     expect(mapper?.contents).toContain("PetSchema.parse");
     expect(mapper?.contents).toContain("OrderSchema.parse");
+    expect(mapper?.contents).toContain("UserSchema.parse");
     expect(mapper?.contents).not.toMatch(/\bbigint\b|Number\(/);
     expect(mapper?.contents).not.toContain("z.object");
     expect(mapper?.contents).not.toMatch(/RequestSchema|ResponseSchema/);
     expect(mapper?.contents).toMatchInlineSnapshot(`
       "import type { Order } from "../../core/domain/order.ts";
       import type { Pet } from "../../core/domain/pet.ts";
+      import type { User } from "../../core/domain/user.ts";
       import { Order as OrderSchema } from "../../generated/contracts/schemas/Order.ts";
       import { Pet as PetSchema } from "../../generated/contracts/schemas/Pet.ts";
-      import type { orders, pets } from "./schema.ts";
+      import { User as UserSchema } from "../../generated/contracts/schemas/User.ts";
+      import type { orders, pets, users } from "./schema.ts";
 
       type OrderRow = typeof orders.$inferSelect;
       type PetRow = typeof pets.$inferSelect;
+      type UserRow = typeof users.$inferSelect;
 
       export function mapOrderRow(row: OrderRow): Order {
         return OrderSchema.parse(row);
@@ -311,6 +343,10 @@ describe("Given ContractArtifact and ApplicationArtifact for Petstore", () => {
 
       export function mapPetRow(row: PetRow): Pet {
         return PetSchema.parse({ ...row, status: row.status ?? undefined, category: row.category ?? undefined, tags: row.tags ?? undefined });
+      }
+
+      export function mapUserRow(row: UserRow): User {
+        return UserSchema.parse({ ...row, firstName: row.firstName ?? undefined, lastName: row.lastName ?? undefined, email: row.email ?? undefined, password: row.password ?? undefined, phone: row.phone ?? undefined, userStatus: row.userStatus ?? undefined });
       }
       "
     `);

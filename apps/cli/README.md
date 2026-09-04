@@ -56,7 +56,7 @@ CLI tests that import `@hexkit/plugin-next` require that package to be built fir
 
 The CLI is exercised end-to-end by:
 
-- `vp run dogfood` — Hono Rich Pet + Order (`apps/petstore-sample/scripts/dogfood.sh`)
+- `vp run dogfood` — Hono Rich Pet + Order + User (`apps/petstore-sample/scripts/dogfood.sh`)
 - `vp run dogfood-petstore-next` — Next PetShop (`apps/petstore-next/scripts/dogfood.sh`)
 - `vp run dogfood-auth` — auth fixture (`apps/fixtures/auth-api/scripts/dogfood.sh`)
 

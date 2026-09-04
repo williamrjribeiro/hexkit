@@ -570,4 +570,99 @@ describe.sequential("Given the generated Petstore API", () => {
       });
     });
   });
+
+  describe.sequential("User lifecycle", () => {
+    const createdUser = {
+      id: ids.userId,
+      username: `hexkit-user-${String(ids.userId)}`,
+      firstName: "Hex",
+      lastName: "Kit",
+      email: `user-${String(ids.userId)}@example.test`,
+      password: "unused-in-poc",
+      phone: "555-0100",
+      userStatus: 1,
+    };
+    const listUsers = [
+      {
+        id: ids.listUserId,
+        username: `hexkit-list-${String(ids.listUserId)}`,
+        email: `list-${String(ids.listUserId)}@example.test`,
+      },
+      {
+        id: ids.missingUserId,
+        username: `hexkit-list-b-${String(ids.missingUserId)}`,
+      },
+    ];
+    const missingUsername = "no-such-hexkit-user";
+    const updatedUser = {
+      ...createdUser,
+      firstName: "Updated",
+      userStatus: 2,
+    };
+
+    it("when a User is created, then it returns the persisted User", async () => {
+      await runAgainstApi(() =>
+        spec().post("/user").withJson(createdUser).expectStatus(201).expectJson(createdUser),
+      );
+    });
+
+    it("when Users are created from a list, then the first persisted User is returned", async () => {
+      await runAgainstApi(() =>
+        spec().post("/user/createWithList").withJson(listUsers).expectStatus(200).expectJson(listUsers[0]),
+      );
+    });
+
+    it("when the User is fetched by username, then the create persisted", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/user/${createdUser.username}`)
+          .expectStatus(200)
+          .expectJson(createdUser),
+      );
+    });
+
+    it("when the User is updated by username, then path identity and body persist", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .put(`/user/${createdUser.username}`)
+          .withJson(updatedUser)
+          .expectStatus(200)
+          .expectJson(updatedUser),
+      );
+    });
+
+    it("when login query credentials are present, then the stub token and headers are returned", async () => {
+      await runAgainstApi(async () => {
+        const response = await spec()
+          .get("/user/login")
+          .withQueryParams({ username: createdUser.username, password: createdUser.password })
+          .expectStatus(200)
+          .expectHeader("X-Rate-Limit", "0")
+          .expectHeader("X-Expires-After", "")
+          .returns((ctx) => ctx.res.json as unknown);
+        expect(response).toBe("");
+      });
+    });
+
+    it("when login query credentials are missing, then the API returns 400", async () => {
+      await runAgainstApi(() =>
+        spec().get("/user/login").expectStatus(400).expectJson({ error: "Bad Request" }),
+      );
+    });
+
+    it("when logout is called, then the stub succeeds with no body", async () => {
+      await runAgainstApi(() => spec().get("/user/logout").expectStatus(200));
+    });
+
+    it("when a missing User is fetched, then it returns 404", async () => {
+      await runAgainstApi(() => spec().get(`/user/${missingUsername}`).expectStatus(404));
+    });
+
+    it("when the User is deleted, then it is no longer available", async () => {
+      await runAgainstApi(async () => {
+        await spec().delete(`/user/${createdUser.username}`).expectStatus(204);
+        await spec().get(`/user/${createdUser.username}`).expectStatus(404);
+      });
+    });
+  });
 });

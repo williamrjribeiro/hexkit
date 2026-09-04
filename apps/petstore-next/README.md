@@ -51,7 +51,7 @@ PetShop fixture after merge, then `next build`. CI **Dogfood NextJS** sets
 Locally, omit that env (or set `HEXKIT_SKIP_COMPOSE=0`) to also bring up Compose.
 `HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
 
-Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order; nested
+Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order + User JSON; nested
 Pet fields persist as JSONB).
 
 CLI default `--next-surface` is `both`; this fixture dogfood generate uses

@@ -108,16 +108,52 @@ describe("Given the Petstore PoC contract", () => {
           "operationId": "deleteOrder",
           "path": "/store/order/{orderId}",
         },
+        {
+          "method": "POST",
+          "operationId": "createUser",
+          "path": "/user",
+        },
+        {
+          "method": "POST",
+          "operationId": "createUsersWithListInput",
+          "path": "/user/createWithList",
+        },
+        {
+          "method": "GET",
+          "operationId": "loginUser",
+          "path": "/user/login",
+        },
+        {
+          "method": "GET",
+          "operationId": "logoutUser",
+          "path": "/user/logout",
+        },
+        {
+          "method": "GET",
+          "operationId": "getUserByName",
+          "path": "/user/{username}",
+        },
+        {
+          "method": "PUT",
+          "operationId": "updateUser",
+          "path": "/user/{username}",
+        },
+        {
+          "method": "DELETE",
+          "operationId": "deleteUser",
+          "path": "/user/{username}",
+        },
       ]
     `);
   });
 
-  it("when media types and components are inspected, then JSON-only Pet, Order, Category, and Tag contracts remain", () => {
+  it("when media types and components are inspected, then JSON-only Pet, Order, User, Category, and Tag contracts remain", () => {
     const contract = readContract();
 
     expect(contract).toContain("application/json:");
     expect(contract).toContain("    Pet:");
     expect(contract).toContain("    Order:");
+    expect(contract).toContain("    User:");
     expect(contract).toContain("      petId:");
     expect(contract).not.toContain("application/xml");
     expect(contract).not.toMatch(/^security:/m);
@@ -149,6 +185,7 @@ describe("Given the Petstore PoC contract", () => {
           "int32",
         ],
         "persistedPropertyFormats": [
+          "int32",
           "int32",
           "int32",
           "int32",
@@ -222,7 +259,7 @@ describe("Given real Apical craft output", () => {
     {
       fixture: "Petstore",
       input: pocContract,
-      expectedSchemas: ["Category", "Order", "Pet", "Tag"],
+      expectedSchemas: ["Category", "Order", "Pet", "Tag", "User"],
       expectedOperations: [
         "addPet",
         "updatePet",
@@ -234,6 +271,13 @@ describe("Given real Apical craft output", () => {
         "placeOrder",
         "getOrderById",
         "deleteOrder",
+        "createUser",
+        "createUsersWithListInput",
+        "loginUser",
+        "logoutUser",
+        "getUserByName",
+        "updateUser",
+        "deleteUser",
       ],
     },
     {
