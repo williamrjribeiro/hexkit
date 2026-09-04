@@ -166,7 +166,7 @@ describe("Given a ContractArtifact for Petstore", () => {
           createUsersWithListInput(body: Array<User>): Promise<User>;
           deleteUser(username: string): Promise<boolean>;
           getUserByName(username: string): Promise<User | undefined>;
-          loginUser(username: string, password: string): Promise<{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }>;
+          loginUser(username: string, password: string): Promise<{ data: string; headers: { "x-rate-limit": number; "x-expires-after": string } }>;
           logoutUser(): Promise<void>;
           updateUser(username: string, user: User): Promise<User | undefined>;
         }

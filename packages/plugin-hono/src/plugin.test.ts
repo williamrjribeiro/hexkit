@@ -628,7 +628,7 @@ describe("Given real Apical output for Petstore and Library", () => {
           return undefined;
         },
         async loginUser() {
-          return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } };
+          return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } };
         },
         async logoutUser() {},
         async updateUser() {
