@@ -13,6 +13,7 @@ export type RepositoryMethodModel = {
   resultCardinality: ResultCardinality;
   persistenceKind: PersistenceKind;
   referencedSchemas: readonly string[];
+  successHeaders: readonly { name: string; typeExpression: string }[];
 };
 
 export type RepositoryModel = {
@@ -91,9 +92,10 @@ function deriveRepositoryMethod(
       operation.method,
       returnType.resultCardinality,
       parameters.parameters.length,
-      { returnTypeExpression: returnType.expression, aggregate },
+      { returnTypeExpression: returnType.payloadExpression, aggregate },
     ),
     referencedSchemas: unique([...parameters.referencedSchemas, ...returnType.referencedSchemas]),
+    successHeaders: returnType.successHeaders,
   };
 }
 

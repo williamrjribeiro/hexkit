@@ -30,6 +30,7 @@ const method: RepositoryMethodModel = {
   resultCardinality: "one",
   persistenceKind: "select",
   referencedSchemas: ["Item"],
+  successHeaders: [],
 };
 
 const repository: RepositoryModel = {

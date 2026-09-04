@@ -10,6 +10,7 @@ import type {
   ContractParameterLocation,
   ContractRequestBody,
   ContractResponse,
+  ContractResponseHeader,
   ContractSecurityRequirement,
   ContractSecurityScheme,
 } from "./types.ts";
@@ -131,10 +132,32 @@ export function normalizeResponses(
   const responses = asRecord(value, location);
   return Object.entries(responses).map(([status, responseValue]) => {
     const response = resolve(responseValue, `${location}.${status}`);
+    const headers = normalizeResponseHeaders(response.headers, `${location}.${status}.headers`);
     return {
       status,
       description: requiredString(response.description, `${location}.${status}.description`),
       media: normalizeMedia(response.content, `${location}.${status}.content`),
+      ...(headers.length === 0 ? {} : { headers }),
+    };
+  });
+}
+
+function normalizeResponseHeaders(
+  value: unknown,
+  location: string,
+): readonly ContractResponseHeader[] {
+  const headers = optionalRecord(value, location);
+  if (headers === undefined) return [];
+
+  return Object.entries(headers).map(([name, headerValue]) => {
+    const header = asRecord(headerValue, `${location}.${name}`);
+    if (header.schema === undefined) {
+      throw new Error(`${location}.${name}.schema is required.`);
+    }
+    return {
+      name,
+      required: optionalBoolean(header.required, `${location}.${name}.required`) ?? false,
+      type: normalizeContractType(header.schema, `${location}.${name}.schema`),
     };
   });
 }

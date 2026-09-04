@@ -28,6 +28,7 @@ describe("Given an unauthenticated app", () => {
     );
     expect(source).not.toContain("createAuthenticateMiddleware");
     expect(source).not.toContain("AppBindings");
+    expect(source).toContain("headers[name] = String(value)");
   });
 });
 

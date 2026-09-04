@@ -8,6 +8,7 @@ import {
   hasNotFoundResponse,
   type ContractSecurityScheme,
 } from "./media.ts";
+import { isSuccessStatus } from "./status.ts";
 import { deriveUseCaseArgumentExpressions, type UseCaseArgumentInput } from "./use-case-args.ts";
 
 /**
@@ -51,6 +52,7 @@ export type HttpControllerBinding = {
   useCaseArgumentExpressions: readonly string[];
   /** Query parameter names whose OpenAPI schema is an array (Hono/Next must keep `string[]`). */
   arrayQueryParameterNames: readonly string[];
+  successResponseHeaders: readonly string[];
 };
 
 /**
@@ -74,6 +76,7 @@ export type HttpControllerOperation = Pick<
   | "requiresAuth"
   | "useCaseArgumentExpressions"
   | "arrayQueryParameterNames"
+  | "successResponseHeaders"
 >;
 
 /**
@@ -127,5 +130,12 @@ export function deriveHttpControllerBinding(
     arrayQueryParameterNames: operation.parameters
       .filter((parameter) => parameter.location === "query" && parameter.type.kind === "array")
       .map((parameter) => parameter.name),
+    successResponseHeaders: (jsonSuccessMedia === undefined
+      ? (successResponse.headers ?? [])
+      : (operation.responses.find(
+          (response) =>
+            isSuccessStatus(response.status) && findJsonMedia(response.media) !== undefined,
+        )?.headers ?? [])
+    ).map((header) => header.name),
   };
 }

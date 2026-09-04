@@ -24,6 +24,7 @@ export type ApplicationRepositoryMethod = {
   returnTypeExpression: string;
   resultCardinality: ResultCardinality;
   persistenceKind: PersistenceKind;
+  successHeaders?: readonly { name: string; typeExpression: string }[];
 };
 
 export type ApplicationRepository = {

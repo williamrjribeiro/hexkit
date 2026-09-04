@@ -44,6 +44,7 @@ describe("renderRepositoryFile", () => {
           resultCardinality: "one",
           persistenceKind: "insert",
           referencedSchemas: ["Tag", "Pet", "Order", "Pet"],
+          successHeaders: [],
         },
       ],
     });

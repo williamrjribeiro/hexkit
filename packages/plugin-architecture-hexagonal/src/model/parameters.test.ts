@@ -320,6 +320,8 @@ describe("Given operation responses", () => {
   it("when there is no json success body, then the return type is void", () => {
     expect(deriveReturnType(operation({ operationId: "deleteItem", method: "delete" }))).toEqual({
       expression: "void",
+      payloadExpression: "void",
+      successHeaders: [],
       referencedSchemas: [],
       resultCardinality: "void",
     });
@@ -339,6 +341,8 @@ describe("Given operation responses", () => {
       ),
     ).toEqual({
       expression: "boolean",
+      payloadExpression: "boolean",
+      successHeaders: [],
       referencedSchemas: [],
       resultCardinality: "one",
     });
@@ -361,6 +365,8 @@ describe("Given operation responses", () => {
       ),
     ).toEqual({
       expression: "Item | undefined",
+      payloadExpression: "Item | undefined",
+      successHeaders: [],
       referencedSchemas: ["Item"],
       resultCardinality: "one",
     });
@@ -384,6 +390,8 @@ describe("Given operation responses", () => {
       ),
     ).toEqual({
       expression: "Item",
+      payloadExpression: "Item",
+      successHeaders: [],
       referencedSchemas: ["Item"],
       resultCardinality: "one",
     });
@@ -410,8 +418,49 @@ describe("Given operation responses", () => {
       ),
     ).toEqual({
       expression: "Array<Item>",
+      payloadExpression: "Array<Item>",
+      successHeaders: [],
       referencedSchemas: ["Item"],
       resultCardinality: "many",
+    });
+  });
+
+  it("when a json success body declares response headers, then the return type is a data/headers envelope", () => {
+    expect(
+      deriveReturnType(
+        operation({
+          operationId: "issueToken",
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [{ mediaType: "application/json", type: stringType }],
+              headers: [
+                {
+                  name: "X-Rate-Limit",
+                  required: false,
+                  type: { kind: "integer", nullable: false, format: "int32" },
+                },
+                {
+                  name: "X-Expires-After",
+                  required: true,
+                  type: { kind: "string", nullable: false },
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      expression:
+        '{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }',
+      payloadExpression: "string",
+      successHeaders: [
+        { name: "X-Rate-Limit", typeExpression: "number" },
+        { name: "X-Expires-After", typeExpression: "string" },
+      ],
+      referencedSchemas: [],
+      resultCardinality: "one",
     });
   });
 });

@@ -23,6 +23,7 @@ export type {
   ContractReferenceType,
   ContractRequestBody,
   ContractResponse,
+  ContractResponseHeader,
   ContractScalarType,
   ContractScalarValue,
   ContractSchema,

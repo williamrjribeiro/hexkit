@@ -191,17 +191,29 @@ function renderSuccess(operation: HttpControllerOperation): string[] {
   }
 
   if (!operation.hasJsonSuccessBody || operation.responseMapName === undefined) {
+    if (operation.successResponseHeaders.length > 0) {
+      lines.push("      return {");
+      lines.push(`        status: "${operation.successStatus}",`);
+      lines.push("        headers: result.headers,");
+      lines.push("      };");
+      return lines;
+    }
     lines.push(`      return { status: "${operation.successStatus}" };`);
     return lines;
   }
 
   const mediaType = operation.successMediaType ?? "application/json";
+  const dataExpression =
+    operation.successResponseHeaders.length > 0
+      ? `${operation.responseMapName}["${operation.successStatus}"]["${mediaType}"].parse(result.data)`
+      : `${operation.responseMapName}["${operation.successStatus}"]["${mediaType}"].parse(result)`;
   lines.push("      return {");
   lines.push(`        status: "${operation.successStatus}",`);
   lines.push(`        contentType: "${mediaType}",`);
-  lines.push(
-    `        data: ${operation.responseMapName}["${operation.successStatus}"]["${mediaType}"].parse(result),`,
-  );
+  lines.push(`        data: ${dataExpression},`);
+  if (operation.successResponseHeaders.length > 0) {
+    lines.push("        headers: result.headers,");
+  }
   lines.push("      };");
   return lines;
 }

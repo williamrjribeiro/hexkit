@@ -23,6 +23,7 @@ function binding(
     authSchemes: [],
     useCaseArgumentExpressions: [],
     arrayQueryParameterNames: [],
+    successResponseHeaders: [],
     ...overrides,
   };
 }

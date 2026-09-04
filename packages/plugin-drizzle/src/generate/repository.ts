@@ -172,7 +172,7 @@ function renderMethod(
     case "stub": {
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
-        renderStubReturn(method.returnTypeExpression),
+        renderStubReturn(method),
         "    }",
       ].join("\n");
     }
@@ -226,13 +226,38 @@ function renderMutationResult(
   ];
 }
 
-function renderStubReturn(returnTypeExpression: string): string {
+function renderStubReturn(method: PersistenceRepositoryMethodModel): string {
+  const headers = method.successHeaders ?? [];
+  if (headers.length > 0) {
+    const headerFields = headers
+      .map((header) => `${JSON.stringify(header.name)}: ${stubLiteral(header.typeExpression)}`)
+      .join(", ");
+    const dataType = envelopeDataType(method.returnTypeExpression);
+    return `      return { data: ${stubLiteral(dataType)}, headers: { ${headerFields} } };`;
+  }
+  return `      ${renderBareStubReturn(method.returnTypeExpression)}`;
+}
+
+function renderBareStubReturn(returnTypeExpression: string): string {
   const compact = compactType(returnTypeExpression);
-  if (compact === "void") return "      return;";
-  if (compact === "string") return '      return "";';
-  if (compact === "number") return "      return 0;";
-  if (compact === "boolean") return "      return false;";
-  return "      return { ok: true };";
+  if (compact === "void") return "return;";
+  if (compact === "string") return 'return "";';
+  if (compact === "number") return "return 0;";
+  if (compact === "boolean") return "return false;";
+  return "return { ok: true };";
+}
+
+function stubLiteral(typeExpression: string): string {
+  const compact = compactType(typeExpression);
+  if (compact === "number") return "0";
+  if (compact === "boolean") return "false";
+  if (compact === "string") return '""';
+  return "{ ok: true }";
+}
+
+function envelopeDataType(returnTypeExpression: string): string {
+  const match = /\{ data: ([^;]+);/.exec(returnTypeExpression);
+  return match?.[1]?.trim() ?? "string";
 }
 
 function compactType(returnTypeExpression: string): string {
