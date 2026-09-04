@@ -22,6 +22,7 @@ const petstoreModules = {
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
     ["Tag", "schemas/Tag.ts"],
+    ["User", "schemas/User.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -34,6 +35,13 @@ const petstoreModules = {
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
+    ["createUser", "routes/createUser.ts"],
+    ["createUsersWithListInput", "routes/createUsersWithListInput.ts"],
+    ["loginUser", "routes/loginUser.ts"],
+    ["logoutUser", "routes/logoutUser.ts"],
+    ["getUserByName", "routes/getUserByName.ts"],
+    ["updateUser", "routes/updateUser.ts"],
+    ["deleteUser", "routes/deleteUser.ts"],
   ]),
 };
 
@@ -90,20 +98,29 @@ describe("Given a ContractArtifact for Petstore", () => {
       { path: "src/core/domain/order.ts", ownership: "generated" },
       { path: "src/core/domain/pet.ts", ownership: "generated" },
       { path: "src/core/domain/tag.ts", ownership: "generated" },
+      { path: "src/core/domain/user.ts", ownership: "generated" },
       { path: "src/core/domain/auth-principal.ts", ownership: "generated" },
       { path: "src/core/ports/order-repository.ts", ownership: "generated" },
       { path: "src/core/ports/pet-repository.ts", ownership: "generated" },
+      { path: "src/core/ports/user-repository.ts", ownership: "generated" },
       { path: "src/core/ports/authenticator.ts", ownership: "generated" },
       { path: "src/core/application/add-pet.ts", ownership: "protected" },
+      { path: "src/core/application/create-user.ts", ownership: "protected" },
+      { path: "src/core/application/create-users-with-list-input.ts", ownership: "protected" },
       { path: "src/core/application/delete-order.ts", ownership: "protected" },
       { path: "src/core/application/delete-pet.ts", ownership: "protected" },
+      { path: "src/core/application/delete-user.ts", ownership: "protected" },
       { path: "src/core/application/find-pets-by-status.ts", ownership: "protected" },
       { path: "src/core/application/find-pets-by-tags.ts", ownership: "protected" },
       { path: "src/core/application/get-order-by-id.ts", ownership: "protected" },
       { path: "src/core/application/get-pet-by-id.ts", ownership: "protected" },
+      { path: "src/core/application/get-user-by-name.ts", ownership: "protected" },
+      { path: "src/core/application/login-user.ts", ownership: "protected" },
+      { path: "src/core/application/logout-user.ts", ownership: "protected" },
       { path: "src/core/application/place-order.ts", ownership: "protected" },
       { path: "src/core/application/update-pet.ts", ownership: "protected" },
       { path: "src/core/application/update-pet-with-form.ts", ownership: "protected" },
+      { path: "src/core/application/update-user.ts", ownership: "protected" },
     ]);
 
     expect(files.find((file) => file.path === "src/core/domain/pet.ts")?.contents)
@@ -140,6 +157,22 @@ describe("Given a ContractArtifact for Petstore", () => {
         "
       `);
 
+    expect(files.find((file) => file.path === "src/core/ports/user-repository.ts")?.contents)
+      .toMatchInlineSnapshot(`
+        "import type { User } from "../domain/user.ts";
+
+        export interface UserRepository {
+          createUser(user: User): Promise<User>;
+          createUsersWithListInput(body: Array<User>): Promise<User>;
+          deleteUser(username: string): Promise<boolean>;
+          getUserByName(username: string): Promise<User | undefined>;
+          loginUser(username: string, password: string): Promise<{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }>;
+          logoutUser(): Promise<void>;
+          updateUser(username: string, user: User): Promise<User | undefined>;
+        }
+        "
+      `);
+
     expect(files.find((file) => file.path === "src/core/application/add-pet.ts")?.contents)
       .toMatchInlineSnapshot(`
         "import type { Pet } from "../domain/pet.ts";
@@ -160,6 +193,7 @@ describe("Given a ContractArtifact for Petstore", () => {
         { name: "Order", filePath: "src/core/domain/order.ts" },
         { name: "Pet", filePath: "src/core/domain/pet.ts" },
         { name: "Tag", filePath: "src/core/domain/tag.ts" },
+        { name: "User", filePath: "src/core/domain/user.ts" },
       ],
       repositories: [
         {
@@ -184,6 +218,20 @@ describe("Given a ContractArtifact for Petstore", () => {
             { operationId: "getPetById", name: "getPetById" },
             { operationId: "updatePet", name: "updatePet" },
             { operationId: "updatePetWithForm", name: "updatePetWithForm" },
+          ],
+        },
+        {
+          aggregate: "User",
+          name: "UserRepository",
+          parameterName: "users",
+          methods: [
+            { operationId: "createUser", name: "createUser" },
+            { operationId: "createUsersWithListInput", name: "createUsersWithListInput" },
+            { operationId: "deleteUser", name: "deleteUser" },
+            { operationId: "getUserByName", name: "getUserByName" },
+            { operationId: "loginUser", name: "loginUser" },
+            { operationId: "logoutUser", name: "logoutUser" },
+            { operationId: "updateUser", name: "updateUser" },
           ],
         },
       ],

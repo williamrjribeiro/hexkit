@@ -1,7 +1,7 @@
 # `@hexkit/petstore-sample`
 
 Canonical Hexkit dogfooding project. It owns the PoC OpenAPI contract and the
-tests that prove Hexkit can generate a real **Rich Pet + Order** app, typecheck
+tests that prove Hexkit can generate a real **Rich Pet + Order + User** app, typecheck
 it, run it under Docker Compose, and pass HTTP acceptance checks.
 
 This package is **not** the generated application. Generated source is written
@@ -12,7 +12,7 @@ to a temporary (or caller-chosen) directory by the CLI during dogfood.
 | Path                       | Role                                                                      |
 | -------------------------- | ------------------------------------------------------------------------- |
 | `openapi.yaml`             | Checked-in Swagger Petstore 3.1 reference (leave untouched for PoC)       |
-| `openapi.poc.yaml`         | Trimmed Rich Pet + Order contract used for generation and dogfood         |
+| `openapi.poc.yaml`         | Trimmed Rich Pet + Order + User contract used for generation and dogfood  |
 | `tests/generation.test.ts` | Asserts the CLI emits the expected generated tree from `openapi.poc.yaml` |
 | `tests/api.test.ts`        | Pactum acceptance tests against a **running** generated API               |
 | `tests/api-fixtures*.ts`   | Shared IDs/helpers for acceptance tests                                   |
@@ -20,11 +20,12 @@ to a temporary (or caller-chosen) directory by the CLI during dogfood.
 
 ## What “dogfood” means
 
-`openapi.poc.yaml` is a Petstore-shaped **Rich Pet** plus Order: Pet requires
+`openapi.poc.yaml` is a Petstore-shaped **Rich Pet** plus Order and User: Pet requires
 `id`, `name`, and `photoUrls`; optional `category`, `tags`, and `status`. Nested
 `category`, `photoUrls`, and `tags` persist as JSONB on `pets`. `Category` and
 `Tag` are domain + contract types only — they have no tables. Order still
-references Pet with a scalar `petId` foreign key. `GET /pet/{petId}` requires
+references Pet with a scalar `petId` foreign key. User persists on `users` with
+identity `id` and lookup by `username`. `GET /pet/{petId}` requires
 header `api_key` (allow-list `AUTH_API_KEYS`, default `test-key`). Leave
 `openapi.yaml` untouched.
 
@@ -113,5 +114,5 @@ PETSTORE_API_URL=http://127.0.0.1:3000 vp test run tests/api.test.ts
 | Command                                         | Role                                                                 |
 | ----------------------------------------------- | -------------------------------------------------------------------- |
 | `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality) |
-| `vp run dogfood`                                | Full Rich Pet + Order generate/lint/typecheck/Compose/Pactum loop      |
+| `vp run dogfood`                                | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
 | `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)          |

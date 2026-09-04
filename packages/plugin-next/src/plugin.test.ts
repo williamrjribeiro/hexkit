@@ -24,6 +24,7 @@ const petstoreModules = {
     ["Order", "schemas/Order.ts"],
     ["Pet", "schemas/Pet.ts"],
     ["Tag", "schemas/Tag.ts"],
+    ["User", "schemas/User.ts"],
   ]),
   operations: new Map([
     ["addPet", "routes/addPet.ts"],
@@ -36,6 +37,13 @@ const petstoreModules = {
     ["placeOrder", "routes/placeOrder.ts"],
     ["getOrderById", "routes/getOrderById.ts"],
     ["deleteOrder", "routes/deleteOrder.ts"],
+    ["createUser", "routes/createUser.ts"],
+    ["createUsersWithListInput", "routes/createUsersWithListInput.ts"],
+    ["loginUser", "routes/loginUser.ts"],
+    ["logoutUser", "routes/logoutUser.ts"],
+    ["getUserByName", "routes/getUserByName.ts"],
+    ["updateUser", "routes/updateUser.ts"],
+    ["deleteUser", "routes/deleteUser.ts"],
   ]),
 };
 
@@ -338,8 +346,18 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       "app/ui/pet/findByStatus/page.tsx",
       "app/ui/pet/findByTags/page.tsx",
       "app/ui/store/order/[orderId]/page.tsx",
+      "app/ui/user/[username]/page.tsx",
+      "app/ui/user/login/page.tsx",
+      "app/ui/user/logout/page.tsx",
     ]);
-    expect(model.uiPages.every((page) => /^(get|find)/.test(page.operationId))).toBe(true);
+    expect(model.uiPages.map((page) => page.operationId)).toEqual([
+      "findPetsByStatus",
+      "findPetsByTags",
+      "getOrderById",
+      "getUserByName",
+      "loginUser",
+      "logoutUser",
+    ]);
     expect(files.some((file) => file.path === "src/adapters/http-next/server-access.ts")).toBe(
       true,
     );
@@ -363,9 +381,17 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
         "app/pet/findByStatus/route.ts",
         "app/pet/findByTags/route.ts",
         "app/store/order/[orderId]/route.ts",
+        "app/user/route.ts",
+        "app/user/createWithList/route.ts",
+        "app/user/login/route.ts",
+        "app/user/logout/route.ts",
+        "app/user/[username]/route.ts",
         "app/ui/pet/findByStatus/page.tsx",
         "app/ui/pet/findByTags/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",
+        "app/ui/user/[username]/page.tsx",
+        "app/ui/user/login/page.tsx",
+        "app/ui/user/logout/page.tsx",
         "src/adapters/http-next/helpers.ts",
         "src/adapters/http-next/controllers.ts",
         "src/adapters/http-next/runtime.ts",
@@ -476,6 +502,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       "app/pet/findByStatus/page.tsx",
       "app/pet/findByTags/page.tsx",
       "app/store/order/[orderId]/page.tsx",
+      "app/user/[username]/page.tsx",
+      "app/user/login/page.tsx",
+      "app/user/logout/page.tsx",
     ]);
     expect(files.some((file) => file.path === "src/adapters/http-next/server-access.ts")).toBe(
       true,
@@ -495,6 +524,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
         "app/pet/findByStatus/page.tsx",
         "app/pet/findByTags/page.tsx",
         "app/store/order/[orderId]/page.tsx",
+        "app/user/[username]/page.tsx",
+        "app/user/login/page.tsx",
+        "app/user/logout/page.tsx",
         "src/adapters/http-next/server-access.ts",
       ]),
     );
@@ -508,6 +540,9 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
       "app/pet/findByStatus/page.tsx",
       "app/pet/findByTags/page.tsx",
       "app/store/order/[orderId]/page.tsx",
+      "app/user/[username]/page.tsx",
+      "app/user/login/page.tsx",
+      "app/user/logout/page.tsx",
     ]);
   });
 });

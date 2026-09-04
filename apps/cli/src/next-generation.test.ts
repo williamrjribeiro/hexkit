@@ -12,45 +12,69 @@ const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", impor
 const petstoreApicalContractPaths = [
   "package.json",
   "routes/addPet.ts",
+  "routes/createUser.ts",
+  "routes/createUsersWithListInput.ts",
   "routes/deleteOrder.ts",
   "routes/deletePet.ts",
+  "routes/deleteUser.ts",
   "routes/findPetsByStatus.ts",
   "routes/findPetsByTags.ts",
   "routes/getOrderById.ts",
   "routes/getPetById.ts",
+  "routes/getUserByName.ts",
   "routes/index.ts",
+  "routes/loginUser.ts",
+  "routes/logoutUser.ts",
   "routes/placeOrder.ts",
   "routes/updatePet.ts",
   "routes/updatePetWithForm.ts",
+  "routes/updateUser.ts",
   "schemas/Category.ts",
+  "schemas/CreateUsersWithListInputRequest.ts",
+  "schemas/FindPetsByStatus200Response.ts",
+  "schemas/FindPetsByTags200Response.ts",
+  "schemas/LoginUser200Response.ts",
   "schemas/Order.ts",
   "schemas/Pet.ts",
   "schemas/Tag.ts",
+  "schemas/User.ts",
   "schemas/addPetParameters.ts",
+  "schemas/createUserParameters.ts",
+  "schemas/createUsersWithListInputParameters.ts",
   "schemas/deleteOrderParameters.ts",
   "schemas/deletePetParameters.ts",
+  "schemas/deleteUserParameters.ts",
   "schemas/findPetsByStatusParameters.ts",
-  "schemas/FindPetsByStatus200Response.ts",
   "schemas/findPetsByTagsParameters.ts",
-  "schemas/FindPetsByTags200Response.ts",
   "schemas/getOrderByIdParameters.ts",
   "schemas/getPetByIdParameters.ts",
+  "schemas/getUserByNameParameters.ts",
   "schemas/index.ts",
+  "schemas/loginUserParameters.ts",
+  "schemas/logoutUserParameters.ts",
   "schemas/placeOrderParameters.ts",
   "schemas/runtime.ts",
   "schemas/updatePetParameters.ts",
   "schemas/updatePetWithFormParameters.ts",
+  "schemas/updateUserParameters.ts",
   "server/addPet.ts",
+  "server/createUser.ts",
+  "server/createUsersWithListInput.ts",
   "server/deleteOrder.ts",
   "server/deletePet.ts",
+  "server/deleteUser.ts",
   "server/findPetsByStatus.ts",
   "server/findPetsByTags.ts",
   "server/getOrderById.ts",
   "server/getPetById.ts",
+  "server/getUserByName.ts",
   "server/index.ts",
+  "server/loginUser.ts",
+  "server/logoutUser.ts",
   "server/placeOrder.ts",
   "server/updatePet.ts",
   "server/updatePetWithForm.ts",
+  "server/updateUser.ts",
   "standard-schema.ts",
   "tsconfig.json",
 ] as const;
@@ -60,7 +84,8 @@ import { Category } from "./Category.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
 import { Tag } from "./Tag.ts";
-export { Category, Order, Pet, Tag };
+import { User } from "./User.ts";
+export { Category, Order, Pet, Tag, User };
 `;
 
 const petstoreRoutesIndex = `
@@ -74,6 +99,13 @@ import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
 import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
 import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
 import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
+import { serverRoute as createUserRoute } from "./createUser.ts";
+import { serverRoute as createUsersWithListInputRoute } from "./createUsersWithListInput.ts";
+import { serverRoute as loginUserRoute } from "./loginUser.ts";
+import { serverRoute as logoutUserRoute } from "./logoutUser.ts";
+import { serverRoute as getUserByNameRoute } from "./getUserByName.ts";
+import { serverRoute as updateUserRoute } from "./updateUser.ts";
+import { serverRoute as deleteUserRoute } from "./deleteUser.ts";
 export const routes = {
   addPet: addPetRoute,
   updatePet: updatePetRoute,
@@ -85,6 +117,13 @@ export const routes = {
   placeOrder: placeOrderRoute,
   getOrderById: getOrderByIdRoute,
   deleteOrder: deleteOrderRoute,
+  createUser: createUserRoute,
+  createUsersWithListInput: createUsersWithListInputRoute,
+  loginUser: loginUserRoute,
+  logoutUser: logoutUserRoute,
+  getUserByName: getUserByNameRoute,
+  updateUser: updateUserRoute,
+  deleteUser: deleteUserRoute,
 } as const;
 `;
 
@@ -161,6 +200,8 @@ describe("Given Next.js CLI generation", () => {
         "app/pet/[petId]/route.ts",
         "app/pet/findByStatus/route.ts",
         "app/pet/findByTags/route.ts",
+        "app/user/[username]/route.ts",
+        "app/user/login/route.ts",
         "app/ui/pet/findByStatus/page.tsx",
         "app/ui/pet/findByTags/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",

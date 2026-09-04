@@ -35,11 +35,11 @@ CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
-| Command                        | What it proves                                                   |
-| ------------------------------ | ---------------------------------------------------------------- |
-| `vp run dogfood`               | Hono Rich Pet + Order from `openapi.poc.yaml` → Compose → Pactum |
-| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only  |
-| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                   |
+| Command                        | What it proves                                                          |
+| ------------------------------ | ----------------------------------------------------------------------- |
+| `vp run dogfood`               | Hono Rich Pet + Order + User from `openapi.poc.yaml` → Compose → Pactum |
+| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only         |
+| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                          |
 
 **After PoC:** expand toward the full Petstore OpenAPI (Hono and Next.js
 progress is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md);
@@ -140,8 +140,8 @@ Run the uncached root dogfood task from the workspace root:
 vp run dogfood
 ```
 
-The task generates a Hono Rich Pet + Order app from `openapi.poc.yaml` (nested
-Pet fields as JSONB; Order `petId` FK; `GET /pet/{petId}` requires header
+The task generates a Hono Rich Pet + Order + User app from `openapi.poc.yaml` (nested
+Pet fields as JSONB; Order `petId` FK; User lookup by `username`; `GET /pet/{petId}` requires header
 `api_key`), then lints and typechecks **that generated tree**, Compose-builds
 it, and runs Pactum. It passes through `PETSTORE_API_URL`, `AUTH_API_KEYS`,
 `HEXKIT_KEEP_STACK`, and `HEXKIT_DOGFOOD_OUTPUT`. Docker is required for the
