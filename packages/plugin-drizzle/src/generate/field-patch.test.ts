@@ -76,6 +76,7 @@ function fieldPatchMethod(
     returnTypeExpression: "Widget | undefined",
     entityParameterName: "widgetId",
     identityParameterName: "widgetId",
+    lookupColumnName: "id",
     ...overrides,
   };
 }
@@ -164,6 +165,7 @@ describe("Given field-patch update rendering", () => {
       returnTypeExpression: "Widget",
       entityParameterName: "widget",
       identityParameterName: "widget",
+      lookupColumnName: "id",
     };
 
     expect(isFieldPatchUpdate(method)).toBe(false);

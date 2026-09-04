@@ -10,11 +10,12 @@ export type UseCaseArgumentInput = {
 /**
  * Build the generated controller argument list for a use-case invocation.
  *
- * Authenticated operations always receive `principal` first. JSON bodies use
- * `request.value.body`; otherwise path parameters are read from
- * `request.value.path.<name>` and query parameters from `request.value.query?.<name>`
- * (optional chaining: Apical marks the query object optional when every query
- * field is optional).
+ * Authenticated operations always receive `principal` first. Path parameters
+ * are read from `request.value.path.<name>` and query parameters from
+ * `request.value.query?.<name>` (optional chaining: Apical marks the query
+ * object optional when every query field is optional). JSON bodies append
+ * `request.value.body` after path and query arguments so keyed updates keep
+ * the path identity.
  *
  * @param useCase - Auth flag and path/body parameter names.
  * @param hasJsonRequestBody - Whether the operation's request body is JSON.
@@ -24,16 +25,15 @@ export function deriveUseCaseArgumentExpressions(
   hasJsonRequestBody: boolean,
 ): readonly string[] {
   const principalExpression = useCase.requiresAuth ? ["principal"] : [];
-  if (hasJsonRequestBody) {
-    return [...principalExpression, "request.value.body"];
-  }
-
   const pathExpressions = useCase.parameters
-    .filter((parameter) => parameter.location !== "query")
+    .filter((parameter) =>
+      hasJsonRequestBody ? parameter.location === "path" : parameter.location !== "query",
+    )
     .map((parameter) => `request.value.path.${parameter.name}`);
   const queryExpressions = useCase.parameters
     .filter((parameter) => parameter.location === "query")
     .map((parameter) => `request.value.query?.${parameter.name}`);
+  const bodyExpression = hasJsonRequestBody ? ["request.value.body"] : [];
 
-  return [...principalExpression, ...pathExpressions, ...queryExpressions];
+  return [...principalExpression, ...pathExpressions, ...queryExpressions, ...bodyExpression];
 }

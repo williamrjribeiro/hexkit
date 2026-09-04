@@ -24,6 +24,7 @@ const authOpenApi = new URL("../../../apps/fixtures/auth-api/openapi.yaml", impo
   .pathname;
 const patchOpenApi = new URL("../../../apps/fixtures/patch-api/openapi.yaml", import.meta.url)
   .pathname;
+const keyOpenApi = new URL("../../../apps/fixtures/key-api/openapi.yaml", import.meta.url).pathname;
 
 const petstoreModules = {
   schemas: new Map([
@@ -74,19 +75,36 @@ const patchModules = {
   ]),
 };
 
+const keyModules = {
+  schemas: new Map([["Widget", "schemas/Widget.ts"]]),
+  operations: new Map([
+    ["createWidget", "routes/createWidget.ts"],
+    ["createWidgets", "routes/createWidgets.ts"],
+    ["logoutWidgets", "routes/logoutWidgets.ts"],
+    ["issueWidgetToken", "routes/issueWidgetToken.ts"],
+    ["getWidgetBySku", "routes/getWidgetBySku.ts"],
+    ["updateWidgetBySku", "routes/updateWidgetBySku.ts"],
+    ["deleteWidgetBySku", "routes/deleteWidgetBySku.ts"],
+  ]),
+};
+
 let petstoreContract: ContractArtifact;
 let libraryContract: ContractArtifact;
 let authContract: ContractArtifact;
 let patchContract: ContractArtifact;
+let keyContract: ContractArtifact;
 let petstoreApplication: ApplicationArtifact;
 
 beforeAll(async () => {
-  [petstoreContract, libraryContract, authContract, patchContract] = await Promise.all([
-    loadNormalizedContract(petstoreOpenApi, petstoreModules),
-    loadNormalizedContract(libraryOpenApi, libraryModules),
-    loadNormalizedContract(authOpenApi, authModules),
-    loadNormalizedContract(patchOpenApi, patchModules),
-  ]);
+  [petstoreContract, libraryContract, authContract, patchContract, keyContract] = await Promise.all(
+    [
+      loadNormalizedContract(petstoreOpenApi, petstoreModules),
+      loadNormalizedContract(libraryOpenApi, libraryModules),
+      loadNormalizedContract(authOpenApi, authModules),
+      loadNormalizedContract(patchOpenApi, patchModules),
+      loadNormalizedContract(keyOpenApi, keyModules),
+    ],
+  );
   petstoreApplication = applicationFromContract(petstoreContract);
 });
 
@@ -337,6 +355,27 @@ describe("Given ContractArtifact and ApplicationArtifact for Patch API", () => {
     expect(repository).toContain("eq(widgets.id, widgetId)");
     expect(repository).toContain("return row ? mapWidgetRow(row) : undefined");
     expect(repository).not.toMatch(/\.set\(\{ name: /);
+  });
+});
+
+describe("Given ContractArtifact and ApplicationArtifact for Key API", () => {
+  it("when the Drizzle plugin runs, then lookup, keyed update, boolean delete, array insert, and stubs emit", async () => {
+    const { files } = await collectGeneratedFiles(
+      keyContract,
+      applicationFromContract(keyContract),
+    );
+    const repository =
+      files.find((file) => file.path === "src/adapters/db/widget-repository.ts")?.contents ?? "";
+
+    expect(repository).toContain("eq(widgets.sku, sku)");
+    expect(repository).toContain("return row !== undefined");
+    expect(repository).toContain(".values(body).returning()");
+    expect(repository).toContain("async logoutWidgets(): Promise<void>");
+    expect(repository).toContain("return;");
+    expect(repository).toContain("async issueWidgetToken(label: string): Promise<string>");
+    expect(repository).toContain('return ""');
+    expect(repository).toContain("eq(widgets.sku, sku)");
+    expect(repository).not.toContain("eq(widgets.id, sku)");
   });
 });
 

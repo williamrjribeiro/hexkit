@@ -65,6 +65,7 @@ describe("Given filtered list rendering", () => {
       returnTypeExpression: "Array<Widget>",
       entityParameterName: "status",
       identityParameterName: "status",
+      lookupColumnName: "id",
     };
 
     const rendered = renderFilteredListMethodBody(repository(method), method);
@@ -82,6 +83,7 @@ describe("Given filtered list rendering", () => {
       returnTypeExpression: "Array<Widget>",
       entityParameterName: "tags",
       identityParameterName: "tags",
+      lookupColumnName: "id",
     };
 
     const rendered = renderFilteredListMethodBody(repository(method), method);
@@ -101,6 +103,7 @@ describe("Given filtered list rendering", () => {
       returnTypeExpression: "Array<Widget>",
       entityParameterName: "ownerId",
       identityParameterName: "ownerId",
+      lookupColumnName: "id",
     };
 
     expect(() => renderFilteredListMethodBody(repository(method), method)).toThrow(

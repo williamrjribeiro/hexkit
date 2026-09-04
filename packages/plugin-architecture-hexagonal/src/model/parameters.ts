@@ -1,4 +1,4 @@
-import { toCamelCase } from "@hexkit/codegen";
+import { toCamelCase, unique } from "@hexkit/codegen";
 import type { ContractOperation, ContractParameter, ContractType } from "@hexkit/plugin-apical";
 import { findJsonMedia, isSuccessStatus } from "@hexkit/shared";
 
@@ -20,32 +20,7 @@ export function deriveParameters(operation: ContractOperation): {
 
   const requestMedia = findJsonMedia(operation.requestBody?.media);
 
-  if (requestMedia?.type !== undefined) {
-    if (requestMedia.type.kind === "reference") {
-      return {
-        parameters: [
-          {
-            name: toCamelCase(requestMedia.type.schema),
-            typeExpression: requestMedia.type.schema,
-          },
-        ],
-        referencedSchemas: [requestMedia.type.schema],
-      };
-    }
-
-    const rendered = renderContractType(requestMedia.type);
-    return {
-      parameters: [
-        {
-          name: "body",
-          typeExpression: rendered.expression,
-        },
-      ],
-      referencedSchemas: [...rendered.referencedSchemas],
-    };
-  }
-
-  if (operation.requestBody !== undefined) {
+  if (operation.requestBody !== undefined && requestMedia?.type === undefined) {
     throw new Error(
       `Operation "${operation.operationId}" declares an unsupported request body. Hexagonal generation supports application/json request bodies with a schema.`,
     );
@@ -55,18 +30,54 @@ export function deriveParameters(operation: ContractOperation): {
   const queryParameters = operation.parameters.filter(
     (parameter) => parameter.location === "query",
   );
-
-  const renderedParameters = [...pathParameters, ...queryParameters].map((parameter) =>
+  const renderedPathAndQuery = [...pathParameters, ...queryParameters].map((parameter) =>
     renderOperationParameter(parameter),
   );
 
-  if (renderedParameters.length === 0) {
+  const body = deriveBodyParameter(requestMedia?.type);
+  const parameters = [
+    ...renderedPathAndQuery.map((entry) => entry.parameter),
+    ...(body === undefined ? [] : [body.parameter]),
+  ];
+
+  if (parameters.length === 0) {
     return { parameters: [], referencedSchemas: [] };
   }
 
   return {
-    parameters: renderedParameters.map((entry) => entry.parameter),
-    referencedSchemas: renderedParameters.flatMap((entry) => entry.referencedSchemas),
+    parameters,
+    referencedSchemas: unique([
+      ...renderedPathAndQuery.flatMap((entry) => entry.referencedSchemas),
+      ...(body?.referencedSchemas ?? []),
+    ]),
+  };
+}
+
+function deriveBodyParameter(type: ContractType | undefined):
+  | {
+      parameter: ApplicationParameter;
+      referencedSchemas: readonly string[];
+    }
+  | undefined {
+  if (type === undefined) return undefined;
+
+  if (type.kind === "reference") {
+    return {
+      parameter: {
+        name: toCamelCase(type.schema),
+        typeExpression: type.schema,
+      },
+      referencedSchemas: [type.schema],
+    };
+  }
+
+  const rendered = renderContractType(type);
+  return {
+    parameter: {
+      name: "body",
+      typeExpression: rendered.expression,
+    },
+    referencedSchemas: [...rendered.referencedSchemas],
   };
 }
 
@@ -109,6 +120,10 @@ export function deriveReturnType(operation: ContractOperation): {
       referencedSchemas: rendered.referencedSchemas,
       resultCardinality,
     };
+  }
+
+  if (hasNotFound) {
+    return { expression: "boolean", referencedSchemas: [], resultCardinality: "one" };
   }
 
   return { expression: "void", referencedSchemas: [], resultCardinality: "void" };

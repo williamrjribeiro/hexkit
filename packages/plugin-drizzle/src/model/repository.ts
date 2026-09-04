@@ -17,6 +17,7 @@ export type PersistenceRepositoryMethodModel = {
   returnTypeExpression: string;
   entityParameterName: string;
   identityParameterName: string;
+  lookupColumnName: string;
 };
 
 export type PersistenceRepositoryModel = {
@@ -56,6 +57,12 @@ export function deriveRepository(
     }));
     const kind = method.persistenceKind;
     const firstParameterName = parameters[0]?.name;
+    const pathParameterName = parameters.find((parameter) => parameter.location === "path")?.name;
+    const entityParameterName =
+      parameters.find((parameter) => parameter.location === undefined)?.name ??
+      firstParameterName ??
+      table.schemaName.toLowerCase();
+    const lookupColumnName = resolveLookupColumnName(table, parameters);
 
     return {
       operationId: method.operationId,
@@ -63,8 +70,9 @@ export function deriveRepository(
       kind,
       parameters,
       returnTypeExpression: method.returnTypeExpression,
-      entityParameterName: firstParameterName ?? table.schemaName.toLowerCase(),
-      identityParameterName: firstParameterName ?? table.identityPropertyName,
+      entityParameterName,
+      identityParameterName: pathParameterName ?? firstParameterName ?? table.identityPropertyName,
+      lookupColumnName,
     };
   });
 
@@ -77,4 +85,17 @@ export function deriveRepository(
     table,
     methods,
   };
+}
+
+function resolveLookupColumnName(
+  table: PersistenceTableModel,
+  parameters: readonly { name: string; location?: "path" | "query" }[],
+): string {
+  for (const parameter of parameters) {
+    if (parameter.location !== "path") continue;
+    if (table.columns.some((column) => column.propertyName === parameter.name)) {
+      return parameter.name;
+    }
+  }
+  return table.identityPropertyName;
 }

@@ -106,7 +106,11 @@ describe("Given deriveHttpControllerBinding", () => {
           apicalServerHeaderNames: ["X-API-Key"],
         },
       }),
-      useCase({ typeName: "UpdateItem", requiresAuth: true, parameters: [{ name: "itemId" }] }),
+      useCase({
+        typeName: "UpdateItem",
+        requiresAuth: true,
+        parameters: [{ name: "itemId", location: "path" }, { name: "item" }],
+      }),
       [apiKeyScheme],
     );
 
@@ -114,7 +118,7 @@ describe("Given deriveHttpControllerBinding", () => {
       hasJsonRequestBody: true,
       notFoundStatus: "404",
       requiresAuth: true,
-      useCaseArgumentExpressions: ["principal", "request.value.body"],
+      useCaseArgumentExpressions: ["principal", "request.value.path.itemId", "request.value.body"],
       authSchemes: [{ name: "api_key", type: "apiKey", headerName: "X-API-Key" }],
     });
   });

@@ -96,6 +96,22 @@ function renderMethod(
   switch (method.kind) {
     case "insert": {
       const parameter = method.entityParameterName;
+      const entityType =
+        method.parameters.find((entry) => entry.name === parameter)?.typeExpression ?? "";
+      if (entityType.startsWith("Array<")) {
+        return [
+          `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
+          `      const rows = await db.insert(${table.exportName}).values(${parameter}).returning();`,
+          ...(compactType(method.returnTypeExpression).startsWith("Array<")
+            ? [`      return rows.map(${mapper});`]
+            : [
+                "      const [row] = rows;",
+                `      if (!row) throw new Error("Drizzle did not return the inserted ${table.schemaName.toLowerCase()}");`,
+                `      return ${mapper}(row);`,
+              ]),
+          "    }",
+        ].join("\n");
+      }
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      const [row] = await db.insert(${table.exportName}).values(${parameter}).returning();`,
@@ -116,15 +132,19 @@ function renderMethod(
         .filter((column) => !column.isIdentity)
         .map((column) => `${column.propertyName}: ${parameter}.${column.propertyName}`)
         .join(", ");
+      const pathKeyed = isPathKeyedEntityUpdate(method);
+      const whereValue = pathKeyed
+        ? method.identityParameterName
+        : `${parameter}.${table.identityPropertyName}`;
+      const whereColumn = pathKeyed ? method.lookupColumnName : table.identityPropertyName;
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         "      const [row] = await db",
         `        .update(${table.exportName})`,
         `        .set({ ${setFields} })`,
-        `        .where(eq(${table.exportName}.${table.identityPropertyName}, ${parameter}.${table.identityPropertyName}))`,
+        `        .where(eq(${table.exportName}.${whereColumn}, ${whereValue}))`,
         "        .returning();",
-        `      if (!row) throw new Error(\`${table.schemaName} \${${parameter}.${table.identityPropertyName}} was not found\`);`,
-        `      return ${mapper}(row);`,
+        ...renderMutationResult(method, table.schemaName, mapper, whereValue),
         "    }",
       ].join("\n");
     }
@@ -132,7 +152,7 @@ function renderMethod(
       const idParameter = method.identityParameterName;
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
-        `      const [row] = await db.select().from(${table.exportName}).where(eq(${table.exportName}.${table.identityPropertyName}, ${idParameter})).limit(1);`,
+        `      const [row] = await db.select().from(${table.exportName}).where(eq(${table.exportName}.${method.lookupColumnName}, ${idParameter})).limit(1);`,
         `      return row ? ${mapper}(row) : undefined;`,
         "    }",
       ].join("\n");
@@ -152,17 +172,69 @@ function renderMethod(
     case "stub": {
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
-        "      return { ok: true };",
+        renderStubReturn(method.returnTypeExpression),
         "    }",
       ].join("\n");
     }
     case "delete": {
       const idParameter = method.identityParameterName;
+      const where = `eq(${table.exportName}.${method.lookupColumnName}, ${idParameter})`;
+      if (compactType(method.returnTypeExpression) === "boolean") {
+        return [
+          `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
+          `      const [row] = await db.delete(${table.exportName}).where(${where}).returning();`,
+          "      return row !== undefined;",
+          "    }",
+        ].join("\n");
+      }
       return [
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
-        `      await db.delete(${table.exportName}).where(eq(${table.exportName}.${table.identityPropertyName}, ${idParameter}));`,
+        `      await db.delete(${table.exportName}).where(${where});`,
         "    }",
       ].join("\n");
     }
   }
+}
+
+function isPathKeyedEntityUpdate(method: PersistenceRepositoryMethodModel): boolean {
+  return (
+    method.kind === "update" &&
+    method.parameters.some((parameter) => parameter.location === "path") &&
+    method.parameters.some((parameter) => parameter.location === undefined)
+  );
+}
+
+function renderMutationResult(
+  method: PersistenceRepositoryMethodModel,
+  schemaName: string,
+  mapper: string,
+  missingKeyExpression: string,
+): string[] {
+  const compact = compactType(method.returnTypeExpression);
+  if (compact === "boolean") {
+    return ["      return row !== undefined;"];
+  }
+  if (compact === "void") {
+    return [];
+  }
+  if (compact.includes("|undefined") || compact.includes("undefined|")) {
+    return [`      return row ? ${mapper}(row) : undefined;`];
+  }
+  return [
+    `      if (!row) throw new Error(\`${schemaName} \${${missingKeyExpression}} was not found\`);`,
+    `      return ${mapper}(row);`,
+  ];
+}
+
+function renderStubReturn(returnTypeExpression: string): string {
+  const compact = compactType(returnTypeExpression);
+  if (compact === "void") return "      return;";
+  if (compact === "string") return '      return "";';
+  if (compact === "number") return "      return 0;";
+  if (compact === "boolean") return "      return false;";
+  return "      return { ok: true };";
+}
+
+function compactType(returnTypeExpression: string): string {
+  return returnTypeExpression.replaceAll(/\s+/g, "");
 }

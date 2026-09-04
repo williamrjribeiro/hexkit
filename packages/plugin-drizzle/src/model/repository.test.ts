@@ -22,6 +22,11 @@ function widgetSchema() {
         required: true,
         type: { kind: "string" as const, nullable: false },
       },
+      {
+        name: "sku",
+        required: true,
+        type: { kind: "string" as const, nullable: false },
+      },
     ],
   };
 }
@@ -98,11 +103,13 @@ describe("deriveRepository", () => {
       kind: "insert",
       entityParameterName: "widget",
       identityParameterName: "widget",
+      lookupColumnName: "id",
     });
     expect(repository.methods[1]).toMatchObject({
       kind: "select",
       entityParameterName: "widgetId",
       identityParameterName: "widgetId",
+      lookupColumnName: "id",
     });
   });
 
@@ -139,11 +146,13 @@ describe("deriveRepository", () => {
       kind: "insert",
       entityParameterName: "widget",
       identityParameterName: "id",
+      lookupColumnName: "id",
     });
     expect(repository.methods[1]).toMatchObject({
       kind: "stub",
       entityParameterName: "widget",
       identityParameterName: "id",
+      lookupColumnName: "id",
     });
   });
 
@@ -230,6 +239,64 @@ describe("deriveRepository", () => {
         location: "query",
       },
     ]);
+  });
+
+  it("when a path parameter matches a persisted column, then lookup uses that column", () => {
+    const operationsById = new Map([
+      ["getWidgetBySku", operation("getWidgetBySku", "get")],
+    ] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "getWidgetBySku",
+          name: "getWidgetBySku",
+          action: "get",
+          parameters: [{ name: "sku", typeExpression: "string", location: "path" }],
+          returnTypeExpression: "Widget | undefined",
+          persistenceKind: "select",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]).toMatchObject({
+      kind: "select",
+      identityParameterName: "sku",
+      lookupColumnName: "sku",
+    });
+  });
+
+  it("when update has a path key and a body entity, then identity is the path and entity is the body", () => {
+    const operationsById = new Map([
+      ["updateWidgetBySku", operation("updateWidgetBySku", "put")],
+    ] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "updateWidgetBySku",
+          name: "updateWidgetBySku",
+          action: "update",
+          parameters: [
+            { name: "sku", typeExpression: "string", location: "path" },
+            { name: "widget", typeExpression: "Widget" },
+          ],
+          returnTypeExpression: "Widget",
+          persistenceKind: "update",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]).toMatchObject({
+      kind: "update",
+      entityParameterName: "widget",
+      identityParameterName: "sku",
+      lookupColumnName: "sku",
+    });
   });
 
   it("when the aggregate has no persisted table, then deriveRepository throws", () => {

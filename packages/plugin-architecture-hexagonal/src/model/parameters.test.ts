@@ -240,6 +240,59 @@ describe("Given operation inputs", () => {
     });
   });
 
+  it("when the json body is an array of schema references, then the parameter is named body", () => {
+    expect(
+      deriveParameters(
+        operation({
+          operationId: "createItems",
+          method: "post",
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/json",
+                type: { kind: "array", nullable: false, items: itemReference },
+              },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      parameters: [{ name: "body", typeExpression: "Array<Item>" }],
+      referencedSchemas: ["Item"],
+    });
+  });
+
+  it("when a json body is present with path parameters, then path parameters are kept before the body", () => {
+    expect(
+      deriveParameters(
+        operation({
+          operationId: "updateItem",
+          method: "put",
+          path: "/items/{sku}",
+          parameters: [
+            {
+              name: "sku",
+              location: "path",
+              required: true,
+              type: stringType,
+            },
+          ],
+          requestBody: {
+            required: true,
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        }),
+      ),
+    ).toEqual({
+      parameters: [
+        { name: "sku", typeExpression: "string", location: "path" },
+        { name: "item", typeExpression: "Item" },
+      ],
+      referencedSchemas: ["Item"],
+    });
+  });
+
   it("when a path parameter references a schema, then that schema is collected", () => {
     expect(
       deriveParameters(
@@ -269,6 +322,25 @@ describe("Given operation responses", () => {
       expression: "void",
       referencedSchemas: [],
       resultCardinality: "void",
+    });
+  });
+
+  it("when there is no json success body but a 404 exists, then the return type is boolean", () => {
+    expect(
+      deriveReturnType(
+        operation({
+          operationId: "deleteItem",
+          method: "delete",
+          responses: [
+            { status: "204", description: "gone", media: [] },
+            { status: "404", description: "missing", media: [] },
+          ],
+        }),
+      ),
+    ).toEqual({
+      expression: "boolean",
+      referencedSchemas: [],
+      resultCardinality: "one",
     });
   });
 

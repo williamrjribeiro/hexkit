@@ -23,17 +23,40 @@ export type RepositoryModel = {
   methods: readonly RepositoryMethodModel[];
 };
 
+export type PersistenceKindOptions = {
+  returnTypeExpression?: string;
+  aggregate?: string;
+};
+
 export function persistenceKindFromAction(
   action: string,
   httpMethod: ContractHttpMethod,
   resultCardinality: ResultCardinality,
   parameterCount: number,
+  options: PersistenceKindOptions = {},
 ): PersistenceKind {
   const kind = kindFromActionOrHttp(action, httpMethod);
   if (kind !== "select") return kind;
   if (resultCardinality === "many") return "list";
   if (parameterCount === 0) return "stub";
+  if (
+    options.aggregate !== undefined &&
+    options.returnTypeExpression !== undefined &&
+    !isAggregateEntityReturn(options.returnTypeExpression, options.aggregate)
+  ) {
+    return "stub";
+  }
   return "select";
+}
+
+export function isAggregateEntityReturn(returnTypeExpression: string, aggregate: string): boolean {
+  const compact = returnTypeExpression.replaceAll(/\s+/g, "");
+  return (
+    compact === aggregate ||
+    compact === `${aggregate}|undefined` ||
+    compact === `undefined|${aggregate}` ||
+    compact === `Array<${aggregate}>`
+  );
 }
 
 export function deriveRepository(
@@ -45,11 +68,14 @@ export function deriveRepository(
     name: `${aggregate}Repository`,
     filePath: `src/core/ports/${toKebabCase(aggregate)}-repository.ts`,
     parameterName: pluralizeCamelCase(aggregate),
-    methods: operations.map((operation) => deriveRepositoryMethod(operation)),
+    methods: operations.map((operation) => deriveRepositoryMethod(aggregate, operation)),
   };
 }
 
-function deriveRepositoryMethod(operation: ContractOperation): RepositoryMethodModel {
+function deriveRepositoryMethod(
+  aggregate: string,
+  operation: ContractOperation,
+): RepositoryMethodModel {
   const parameters = deriveParameters(operation);
   const returnType = deriveReturnType(operation);
   const action = operation.extension?.action ?? operation.operationId;
@@ -65,6 +91,7 @@ function deriveRepositoryMethod(operation: ContractOperation): RepositoryMethodM
       operation.method,
       returnType.resultCardinality,
       parameters.parameters.length,
+      { returnTypeExpression: returnType.expression, aggregate },
     ),
     referencedSchemas: unique([...parameters.referencedSchemas, ...returnType.referencedSchemas]),
   };
