@@ -18,6 +18,7 @@ export type PersistenceRepositoryMethodModel = {
   entityParameterName: string;
   identityParameterName: string;
   lookupColumnName: string;
+  successHeaders?: readonly { name: string; typeExpression: string }[];
 };
 
 export type PersistenceRepositoryModel = {
@@ -73,6 +74,9 @@ export function deriveRepository(
       entityParameterName,
       identityParameterName: pathParameterName ?? firstParameterName ?? table.identityPropertyName,
       lookupColumnName,
+      ...(method.successHeaders === undefined || method.successHeaders.length === 0
+        ? {}
+        : { successHeaders: method.successHeaders }),
     };
   });
 

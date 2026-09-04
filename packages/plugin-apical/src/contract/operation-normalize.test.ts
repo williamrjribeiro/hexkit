@@ -116,6 +116,42 @@ describe("Given request bodies, media, and responses", () => {
       ),
     ).toEqual([{ status: "404", description: "Missing", media: [] }]);
   });
+
+  it("when a success response declares headers, then those headers are kept with their schemas", () => {
+    expect(
+      normalizeResponses(
+        resolve,
+        {
+          "200": {
+            description: "ok",
+            headers: {
+              "X-Rate-Limit": { schema: { type: "integer", format: "int32" } },
+              "X-Expires-After": { required: true, schema: { type: "string" } },
+            },
+          },
+        },
+        "responses",
+      ),
+    ).toEqual([
+      {
+        status: "200",
+        description: "ok",
+        media: [],
+        headers: [
+          {
+            name: "X-Rate-Limit",
+            required: false,
+            type: { kind: "integer", nullable: false, format: "int32" },
+          },
+          {
+            name: "X-Expires-After",
+            required: true,
+            type: { kind: "string", nullable: false },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe("Given OpenAPI operations", () => {

@@ -168,4 +168,26 @@ describe("Given alternate-key persistence rendering", () => {
     expect(source).toContain('return ""');
     expect(source).not.toContain("return { ok: true }");
   });
+
+  it("when a stub returns a data/headers envelope, then defaults are emitted for data and headers", () => {
+    const source = render({
+      operationId: "issueWidgetToken",
+      name: "issueWidgetToken",
+      kind: "stub",
+      parameters: [{ name: "label", typeExpression: "string", location: "query" }],
+      returnTypeExpression:
+        '{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }',
+      entityParameterName: "label",
+      identityParameterName: "label",
+      lookupColumnName: "id",
+      successHeaders: [
+        { name: "X-Rate-Limit", typeExpression: "number" },
+        { name: "X-Expires-After", typeExpression: "string" },
+      ],
+    });
+
+    expect(source).toContain(
+      'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
+    );
+  });
 });

@@ -85,6 +85,7 @@ export function toApplicationArtifact(model: ApplicationModel): ApplicationArtif
       returnTypeExpression: method.returnTypeExpression,
       resultCardinality: method.resultCardinality,
       persistenceKind: method.persistenceKind,
+      ...(method.successHeaders.length === 0 ? {} : { successHeaders: method.successHeaders }),
     })),
   }));
 

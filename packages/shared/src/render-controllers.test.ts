@@ -18,6 +18,7 @@ function operation(
     requiresAuth: false,
     useCaseArgumentExpressions: [],
     arrayQueryParameterNames: [],
+    successResponseHeaders: [],
     ...overrides,
   };
 }
@@ -65,6 +66,26 @@ describe("Given renderHttpControllersFile", () => {
     expect(file.contents).toContain('if (!result) return { status: "404" };');
     expect(file.contents).toContain('return { status: "204" };');
     expect(file.contents).not.toContain("ResponseMap");
+  });
+
+  it("when a JSON success binding declares response headers, then the controller parses result.data and forwards headers", () => {
+    const file = renderHttpControllersFile({
+      filePath: "src/adapters/http/controllers.ts",
+      hasAuthenticator: false,
+      operations: [
+        operation({
+          operationId: "issueToken",
+          responseMapName: "issueTokenResponseMap",
+          responseMapImportPath: "src/generated/contracts/routes/issueToken.ts",
+          successResponseHeaders: ["X-Rate-Limit", "X-Expires-After"],
+        }),
+      ],
+    });
+
+    expect(file.contents).toContain(
+      'data: issueTokenResponseMap["200"]["application/json"].parse(result.data),',
+    );
+    expect(file.contents).toContain("headers: result.headers,");
   });
 
   it("when a JSON body operation requires auth, then validation and invocation use the binding", () => {

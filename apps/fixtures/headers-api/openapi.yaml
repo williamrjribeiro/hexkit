@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Headers API Fixture
+  version: 1.0.0
+paths:
+  /widgets/token:
+    get:
+      operationId: issueWidgetToken
+      parameters:
+        - name: label
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: token
+          headers:
+            X-Rate-Limit:
+              schema:
+                type: integer
+                format: int32
+            X-Expires-After:
+              required: true
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: string
+  /widgets/{id}:
+    get:
+      operationId: getWidgetById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "404":
+          description: missing
+components:
+  schemas:
+    Widget:
+      type: object
+      x-hexkit:
+        persistence:
+          table: widgets
+          identity: id
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }

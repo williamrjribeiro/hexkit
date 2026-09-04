@@ -85,10 +85,17 @@ export type ContractRequestBody = {
   description?: string;
 };
 
+export type ContractResponseHeader = {
+  name: string;
+  required: boolean;
+  type: ContractType;
+};
+
 export type ContractResponse = {
   status: string;
   description: string;
   media: readonly ContractMedia[];
+  headers?: readonly ContractResponseHeader[];
 };
 
 export type ContractOperationExtension = {

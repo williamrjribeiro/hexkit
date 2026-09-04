@@ -101,6 +101,8 @@ function renderOperationParameter(parameter: ContractParameter): {
 
 export function deriveReturnType(operation: ContractOperation): {
   expression: string;
+  payloadExpression: string;
+  successHeaders: readonly { name: string; typeExpression: string }[];
   referencedSchemas: readonly string[];
   resultCardinality: ResultCardinality;
 } {
@@ -115,18 +117,61 @@ export function deriveReturnType(operation: ContractOperation): {
 
     const rendered = renderTypeExpression(media.type);
     const resultCardinality: ResultCardinality = media.type.kind === "array" ? "many" : "one";
+    const successHeaders = renderSuccessHeaders(response.headers ?? []);
+    const payloadExpression = hasNotFound
+      ? `${rendered.expression} | undefined`
+      : rendered.expression;
     return {
-      expression: hasNotFound ? `${rendered.expression} | undefined` : rendered.expression,
+      expression: wrapReturnExpression(rendered.expression, successHeaders, hasNotFound),
+      payloadExpression,
+      successHeaders,
       referencedSchemas: rendered.referencedSchemas,
       resultCardinality,
     };
   }
 
   if (hasNotFound) {
-    return { expression: "boolean", referencedSchemas: [], resultCardinality: "one" };
+    return {
+      expression: "boolean",
+      payloadExpression: "boolean",
+      successHeaders: [],
+      referencedSchemas: [],
+      resultCardinality: "one",
+    };
   }
 
-  return { expression: "void", referencedSchemas: [], resultCardinality: "void" };
+  return {
+    expression: "void",
+    payloadExpression: "void",
+    successHeaders: [],
+    referencedSchemas: [],
+    resultCardinality: "void",
+  };
+}
+
+function renderSuccessHeaders(
+  headers: readonly { name: string; type: ContractType }[],
+): readonly { name: string; typeExpression: string }[] {
+  return headers.map((header) => ({
+    name: header.name,
+    typeExpression: renderContractType(header.type).expression,
+  }));
+}
+
+function wrapReturnExpression(
+  innerExpression: string,
+  successHeaders: readonly { name: string; typeExpression: string }[],
+  hasNotFound: boolean,
+): string {
+  if (successHeaders.length === 0) {
+    return hasNotFound ? `${innerExpression} | undefined` : innerExpression;
+  }
+
+  const headerFields = successHeaders
+    .map((header) => `${JSON.stringify(header.name)}: ${header.typeExpression}`)
+    .join("; ");
+  const envelope = `{ data: ${innerExpression}; headers: { ${headerFields} } }`;
+  return hasNotFound ? `${envelope} | undefined` : envelope;
 }
 
 function renderTypeExpression(type: ContractType): {
