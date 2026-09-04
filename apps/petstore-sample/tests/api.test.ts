@@ -582,17 +582,16 @@ describe.sequential("Given the generated Petstore API", () => {
       phone: "555-0100",
       userStatus: 1,
     };
-    const listUsers = [
-      {
-        id: ids.listUserId,
-        username: `hexkit-list-${String(ids.listUserId)}`,
-        email: `list-${String(ids.listUserId)}@example.test`,
-      },
-      {
-        id: ids.missingUserId,
-        username: `hexkit-list-b-${String(ids.missingUserId)}`,
-      },
-    ];
+    const listUserA = {
+      id: ids.listUserId,
+      username: `hexkit-list-${String(ids.listUserId)}`,
+      email: `list-${String(ids.listUserId)}@example.test`,
+    };
+    const listUserB = {
+      id: ids.missingUserId,
+      username: `hexkit-list-b-${String(ids.missingUserId)}`,
+    };
+    const listUsers = [listUserA, listUserB];
     const missingUsername = "no-such-hexkit-user";
     const updatedUser = {
       ...createdUser,
@@ -608,16 +607,26 @@ describe.sequential("Given the generated Petstore API", () => {
 
     it("when Users are created from a list, then the first persisted User is returned", async () => {
       await runAgainstApi(() =>
-        spec().post("/user/createWithList").withJson(listUsers).expectStatus(200).expectJson(listUsers[0]),
+        spec()
+          .post("/user/createWithList")
+          .withJson(listUsers)
+          .expectStatus(200)
+          .expectJson(listUserA),
+      );
+    });
+
+    it("when list Users are fetched by username, then every inserted row persisted", async () => {
+      await runAgainstApi(() =>
+        spec().get(`/user/${listUserA.username}`).expectStatus(200).expectJson(listUserA),
+      );
+      await runAgainstApi(() =>
+        spec().get(`/user/${listUserB.username}`).expectStatus(200).expectJson(listUserB),
       );
     });
 
     it("when the User is fetched by username, then the create persisted", async () => {
       await runAgainstApi(() =>
-        spec()
-          .get(`/user/${createdUser.username}`)
-          .expectStatus(200)
-          .expectJson(createdUser),
+        spec().get(`/user/${createdUser.username}`).expectStatus(200).expectJson(createdUser),
       );
     });
 
@@ -628,6 +637,12 @@ describe.sequential("Given the generated Petstore API", () => {
           .withJson(updatedUser)
           .expectStatus(200)
           .expectJson(updatedUser),
+      );
+    });
+
+    it("when the updated User is fetched by username, then the path-keyed write persisted", async () => {
+      await runAgainstApi(() =>
+        spec().get(`/user/${createdUser.username}`).expectStatus(200).expectJson(updatedUser),
       );
     });
 
@@ -644,13 +659,23 @@ describe.sequential("Given the generated Petstore API", () => {
       });
     });
 
-    it("when login query credentials are missing, then the API returns 400", async () => {
+    it("when GET /user/login omits required query params, then it is loginUser (400), not getUserByName (404)", async () => {
       await runAgainstApi(() =>
         spec().get("/user/login").expectStatus(400).expectJson({ error: "Bad Request" }),
       );
     });
 
-    it("when logout is called, then the stub succeeds with no body", async () => {
+    it("when login omits password, then the API returns 400", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get("/user/login")
+          .withQueryParams({ username: createdUser.username })
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
+
+    it("when GET /user/logout is requested, then it is logoutUser (200), not getUserByName (404)", async () => {
       await runAgainstApi(() => spec().get("/user/logout").expectStatus(200));
     });
 
@@ -658,11 +683,30 @@ describe.sequential("Given the generated Petstore API", () => {
       await runAgainstApi(() => spec().get(`/user/${missingUsername}`).expectStatus(404));
     });
 
+    it("when a missing User is updated, then it returns 404", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .put(`/user/${missingUsername}`)
+          .withJson({ ...createdUser, username: missingUsername })
+          .expectStatus(404),
+      );
+    });
+
+    it("when a missing User is deleted, then it returns 404", async () => {
+      await runAgainstApi(() => spec().delete(`/user/${missingUsername}`).expectStatus(404));
+    });
+
     it("when the User is deleted, then it is no longer available", async () => {
       await runAgainstApi(async () => {
         await spec().delete(`/user/${createdUser.username}`).expectStatus(204);
         await spec().get(`/user/${createdUser.username}`).expectStatus(404);
       });
+    });
+
+    it("when another User still exists after delete, then username lookup finds it", async () => {
+      await runAgainstApi(() =>
+        spec().get(`/user/${listUserB.username}`).expectStatus(200).expectJson(listUserB),
+      );
     });
   });
 });
