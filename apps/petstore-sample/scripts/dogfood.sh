@@ -135,5 +135,5 @@ done
 
 (
   cd "$SAMPLE_DIR"
-  PETSTORE_API_URL="$API_BASE_URL" vp test run tests/api.test.ts
+  PETSTORE_API_URL="$API_BASE_URL" vp test run tests/api/
 )
