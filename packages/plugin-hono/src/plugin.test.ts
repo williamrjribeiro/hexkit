@@ -333,6 +333,22 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     );
     expect(routes?.contents).toContain('app.get("/pet/findByStatus", async (context) =>');
     expect(routes?.contents).toContain('app.get("/pet/findByTags", async (context) =>');
+    expect(
+      [...(routes?.contents.matchAll(/app\.(?:get|post|put|delete)\("[^"]+"/g) ?? [])].map(
+        (match) => match[0],
+      ),
+    ).toEqual([
+      'app.post("/pet"',
+      'app.get("/pet/findByStatus"',
+      'app.get("/pet/findByTags"',
+      'app.post("/store/order"',
+      'app.put("/pet"',
+      'app.delete("/store/order/:orderId"',
+      'app.delete("/pet/:petId"',
+      'app.get("/store/order/:orderId"',
+      'app.get("/pet/:petId"',
+      'app.post("/pet/:petId"',
+    ]);
     expect(routes?.contents).toContain('app.post("/store/order", async (context) =>');
 
     expect(runtime?.contents).toContain("addPet: createAddPet(repositories.pets),");
@@ -361,14 +377,14 @@ describe("Given ContractArtifact + ApplicationArtifact for Petstore", () => {
     });
     expect(artifact.operations.map((operation) => operation.operationId)).toEqual([
       "addPet",
-      "deleteOrder",
-      "deletePet",
       "findPetsByStatus",
       "findPetsByTags",
-      "getOrderById",
-      "getPetById",
       "placeOrder",
       "updatePet",
+      "deleteOrder",
+      "deletePet",
+      "getOrderById",
+      "getPetById",
       "updatePetWithForm",
     ]);
   });

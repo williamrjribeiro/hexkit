@@ -1,3 +1,5 @@
+import { compareText } from "@hexkit/codegen";
+
 /**
  * Collect `{param}` names from an OpenAPI path template, in path order.
  *
@@ -7,6 +9,28 @@
  */
 export function extractOpenApiPathParamNames(openApiPath: string): readonly string[] {
   return [...openApiPath.matchAll(/\{([^}]+)\}/g)].map((match) => match[1]!);
+}
+
+export type OpenApiRouteRegistrationKey = {
+  path: string;
+  operationId: string;
+};
+
+/**
+ * Sort OpenAPI operations for first-match HTTP routers (Hono).
+ *
+ * Fewer `{param}` segments register first so `/user/login` is not captured by
+ * `/user/{username}`. Equal specificity falls back to `operationId`.
+ */
+export function compareOpenApiRouteRegistrationOrder(
+  left: OpenApiRouteRegistrationKey,
+  right: OpenApiRouteRegistrationKey,
+): number {
+  const byParamCount =
+    extractOpenApiPathParamNames(left.path).length -
+    extractOpenApiPathParamNames(right.path).length;
+  if (byParamCount !== 0) return byParamCount;
+  return compareText(left.operationId, right.operationId);
 }
 
 /**
