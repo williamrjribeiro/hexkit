@@ -7,189 +7,192 @@ import { loadValidatedOpenApi } from "@hexkit/plugin-apical";
 
 import { main } from "./main.ts";
 
-const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", import.meta.url);
-
-const petstoreApicalContractPaths = [
-  "package.json",
-  "routes/addPet.ts",
-  "routes/createUser.ts",
-  "routes/createUsersWithListInput.ts",
-  "routes/deleteOrder.ts",
-  "routes/deletePet.ts",
-  "routes/deleteUser.ts",
-  "routes/findPetsByStatus.ts",
-  "routes/findPetsByTags.ts",
-  "routes/getOrderById.ts",
-  "routes/getPetById.ts",
-  "routes/getUserByName.ts",
-  "routes/index.ts",
-  "routes/loginUser.ts",
-  "routes/logoutUser.ts",
-  "routes/placeOrder.ts",
-  "routes/updatePet.ts",
-  "routes/updatePetWithForm.ts",
-  "routes/updateUser.ts",
-  "schemas/Category.ts",
-  "schemas/CreateUsersWithListInputRequest.ts",
-  "schemas/FindPetsByStatus200Response.ts",
-  "schemas/FindPetsByTags200Response.ts",
-  "schemas/LoginUser200Response.ts",
-  "schemas/Order.ts",
-  "schemas/Pet.ts",
-  "schemas/Tag.ts",
-  "schemas/User.ts",
-  "schemas/addPetParameters.ts",
-  "schemas/createUserParameters.ts",
-  "schemas/createUsersWithListInputParameters.ts",
-  "schemas/deleteOrderParameters.ts",
-  "schemas/deletePetParameters.ts",
-  "schemas/deleteUserParameters.ts",
-  "schemas/findPetsByStatusParameters.ts",
-  "schemas/findPetsByTagsParameters.ts",
-  "schemas/getOrderByIdParameters.ts",
-  "schemas/getPetByIdParameters.ts",
-  "schemas/getUserByNameParameters.ts",
-  "schemas/index.ts",
-  "schemas/loginUserParameters.ts",
-  "schemas/logoutUserParameters.ts",
-  "schemas/placeOrderParameters.ts",
-  "schemas/runtime.ts",
-  "schemas/updatePetParameters.ts",
-  "schemas/updatePetWithFormParameters.ts",
-  "schemas/updateUserParameters.ts",
-  "server/addPet.ts",
-  "server/createUser.ts",
-  "server/createUsersWithListInput.ts",
-  "server/deleteOrder.ts",
-  "server/deletePet.ts",
-  "server/deleteUser.ts",
-  "server/findPetsByStatus.ts",
-  "server/findPetsByTags.ts",
-  "server/getOrderById.ts",
-  "server/getPetById.ts",
-  "server/getUserByName.ts",
-  "server/index.ts",
-  "server/loginUser.ts",
-  "server/logoutUser.ts",
-  "server/placeOrder.ts",
-  "server/updatePet.ts",
-  "server/updatePetWithForm.ts",
-  "server/updateUser.ts",
-  "standard-schema.ts",
-  "tsconfig.json",
-] as const;
-
-const petstoreSchemasIndex = `
-import { Category } from "./Category.ts";
-import { Order } from "./Order.ts";
-import { Pet } from "./Pet.ts";
-import { Tag } from "./Tag.ts";
-import { User } from "./User.ts";
-export { Category, Order, Pet, Tag, User };
-`;
-
-const petstoreRoutesIndex = `
-import { serverRoute as addPetRoute } from "./addPet.ts";
-import { serverRoute as updatePetRoute } from "./updatePet.ts";
-import { serverRoute as updatePetWithFormRoute } from "./updatePetWithForm.ts";
-import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
-import { serverRoute as deletePetRoute } from "./deletePet.ts";
-import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
-import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
-import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
-import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
-import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
-import { serverRoute as createUserRoute } from "./createUser.ts";
-import { serverRoute as createUsersWithListInputRoute } from "./createUsersWithListInput.ts";
-import { serverRoute as loginUserRoute } from "./loginUser.ts";
-import { serverRoute as logoutUserRoute } from "./logoutUser.ts";
-import { serverRoute as getUserByNameRoute } from "./getUserByName.ts";
-import { serverRoute as updateUserRoute } from "./updateUser.ts";
-import { serverRoute as deleteUserRoute } from "./deleteUser.ts";
-export const routes = {
-  addPet: addPetRoute,
-  updatePet: updatePetRoute,
-  updatePetWithForm: updatePetWithFormRoute,
-  getPetById: getPetByIdRoute,
-  deletePet: deletePetRoute,
-  findPetsByStatus: findPetsByStatusRoute,
-  findPetsByTags: findPetsByTagsRoute,
-  placeOrder: placeOrderRoute,
-  getOrderById: getOrderByIdRoute,
-  deleteOrder: deleteOrderRoute,
-  createUser: createUserRoute,
-  createUsersWithListInput: createUsersWithListInputRoute,
-  loginUser: loginUserRoute,
-  logoutUser: logoutUserRoute,
-  getUserByName: getUserByNameRoute,
-  updateUser: updateUserRoute,
-  deleteUser: deleteUserRoute,
-} as const;
-`;
-
-async function runPetstoreNextGeneration(arguments_: readonly string[]): Promise<{
-  exitCode: number;
-  files: Map<string, string>;
-  outputDirectory: string;
-}> {
-  const outputDirectory = "/virtual/generated-next-petstore";
-  const files = new Map<string, string>();
-  const actions: FileWriterActions = {
-    exists(path: string) {
-      return files.has(path);
-    },
-    write(path: string, contents: string) {
-      files.set(path, contents);
-    },
-    log() {},
-  };
-
-  const exitCode = await main(["generate", "petstore.yaml", outputDirectory, ...arguments_], {
-    actions,
-    inputExists: (path: string) => path === "petstore.yaml",
-    log() {},
-    apical: {
-      async runCraft(craftArguments: readonly string[]) {
-        const outputFlag = craftArguments.indexOf("-o");
-        const contractsDirectory = craftArguments[outputFlag + 1];
-        if (!contractsDirectory) throw new Error("Craft output argument is missing");
-
-        for (const path of petstoreApicalContractPaths) {
-          const contents =
-            path === "schemas/index.ts"
-              ? petstoreSchemasIndex
-              : path === "routes/index.ts"
-                ? petstoreRoutesIndex
-                : "";
-          actions.write(join(contractsDirectory, path), contents);
-        }
-      },
-      loadOpenApi: () => loadValidatedOpenApi(petstoreContract.pathname),
-      async readGeneratedFile(path) {
-        const contents = files.get(path);
-        if (contents === undefined) {
-          throw new Error(`Missing virtual Apical output: ${path}`);
-        }
-        return contents;
-      },
-    },
-  });
-
-  return { exitCode, files, outputDirectory };
-}
-
-function generatedPaths(result: { files: Map<string, string>; outputDirectory: string }): string[] {
-  return [...result.files.keys()].map((path) => relative(result.outputDirectory, path)).sort();
-}
-
-function generatedFile(
-  result: { files: Map<string, string>; outputDirectory: string },
-  path: string,
-): string {
-  return result.files.get(join(result.outputDirectory, path)) ?? "";
-}
-
 describe("Given Next.js CLI generation", () => {
+  const petstoreContract = new URL("../../petstore-sample/openapi.poc.yaml", import.meta.url);
+
+  const petstoreApicalContractPaths = [
+    "package.json",
+    "routes/addPet.ts",
+    "routes/createUser.ts",
+    "routes/createUsersWithListInput.ts",
+    "routes/deleteOrder.ts",
+    "routes/deletePet.ts",
+    "routes/deleteUser.ts",
+    "routes/findPetsByStatus.ts",
+    "routes/findPetsByTags.ts",
+    "routes/getOrderById.ts",
+    "routes/getPetById.ts",
+    "routes/getUserByName.ts",
+    "routes/index.ts",
+    "routes/loginUser.ts",
+    "routes/logoutUser.ts",
+    "routes/placeOrder.ts",
+    "routes/updatePet.ts",
+    "routes/updatePetWithForm.ts",
+    "routes/updateUser.ts",
+    "schemas/Category.ts",
+    "schemas/CreateUsersWithListInputRequest.ts",
+    "schemas/FindPetsByStatus200Response.ts",
+    "schemas/FindPetsByTags200Response.ts",
+    "schemas/LoginUser200Response.ts",
+    "schemas/Order.ts",
+    "schemas/Pet.ts",
+    "schemas/Tag.ts",
+    "schemas/User.ts",
+    "schemas/addPetParameters.ts",
+    "schemas/createUserParameters.ts",
+    "schemas/createUsersWithListInputParameters.ts",
+    "schemas/deleteOrderParameters.ts",
+    "schemas/deletePetParameters.ts",
+    "schemas/deleteUserParameters.ts",
+    "schemas/findPetsByStatusParameters.ts",
+    "schemas/findPetsByTagsParameters.ts",
+    "schemas/getOrderByIdParameters.ts",
+    "schemas/getPetByIdParameters.ts",
+    "schemas/getUserByNameParameters.ts",
+    "schemas/index.ts",
+    "schemas/loginUserParameters.ts",
+    "schemas/logoutUserParameters.ts",
+    "schemas/placeOrderParameters.ts",
+    "schemas/runtime.ts",
+    "schemas/updatePetParameters.ts",
+    "schemas/updatePetWithFormParameters.ts",
+    "schemas/updateUserParameters.ts",
+    "server/addPet.ts",
+    "server/createUser.ts",
+    "server/createUsersWithListInput.ts",
+    "server/deleteOrder.ts",
+    "server/deletePet.ts",
+    "server/deleteUser.ts",
+    "server/findPetsByStatus.ts",
+    "server/findPetsByTags.ts",
+    "server/getOrderById.ts",
+    "server/getPetById.ts",
+    "server/getUserByName.ts",
+    "server/index.ts",
+    "server/loginUser.ts",
+    "server/logoutUser.ts",
+    "server/placeOrder.ts",
+    "server/updatePet.ts",
+    "server/updatePetWithForm.ts",
+    "server/updateUser.ts",
+    "standard-schema.ts",
+    "tsconfig.json",
+  ] as const;
+
+  const petstoreSchemasIndex = `
+  import { Category } from "./Category.ts";
+  import { Order } from "./Order.ts";
+  import { Pet } from "./Pet.ts";
+  import { Tag } from "./Tag.ts";
+  import { User } from "./User.ts";
+  export { Category, Order, Pet, Tag, User };
+  `;
+
+  const petstoreRoutesIndex = `
+  import { serverRoute as addPetRoute } from "./addPet.ts";
+  import { serverRoute as updatePetRoute } from "./updatePet.ts";
+  import { serverRoute as updatePetWithFormRoute } from "./updatePetWithForm.ts";
+  import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
+  import { serverRoute as deletePetRoute } from "./deletePet.ts";
+  import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
+  import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
+  import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
+  import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
+  import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
+  import { serverRoute as createUserRoute } from "./createUser.ts";
+  import { serverRoute as createUsersWithListInputRoute } from "./createUsersWithListInput.ts";
+  import { serverRoute as loginUserRoute } from "./loginUser.ts";
+  import { serverRoute as logoutUserRoute } from "./logoutUser.ts";
+  import { serverRoute as getUserByNameRoute } from "./getUserByName.ts";
+  import { serverRoute as updateUserRoute } from "./updateUser.ts";
+  import { serverRoute as deleteUserRoute } from "./deleteUser.ts";
+  export const routes = {
+    addPet: addPetRoute,
+    updatePet: updatePetRoute,
+    updatePetWithForm: updatePetWithFormRoute,
+    getPetById: getPetByIdRoute,
+    deletePet: deletePetRoute,
+    findPetsByStatus: findPetsByStatusRoute,
+    findPetsByTags: findPetsByTagsRoute,
+    placeOrder: placeOrderRoute,
+    getOrderById: getOrderByIdRoute,
+    deleteOrder: deleteOrderRoute,
+    createUser: createUserRoute,
+    createUsersWithListInput: createUsersWithListInputRoute,
+    loginUser: loginUserRoute,
+    logoutUser: logoutUserRoute,
+    getUserByName: getUserByNameRoute,
+    updateUser: updateUserRoute,
+    deleteUser: deleteUserRoute,
+  } as const;
+  `;
+
+  async function runPetstoreNextGeneration(arguments_: readonly string[]): Promise<{
+    exitCode: number;
+    files: Map<string, string>;
+    outputDirectory: string;
+  }> {
+    const outputDirectory = "/virtual/generated-next-petstore";
+    const files = new Map<string, string>();
+    const actions: FileWriterActions = {
+      exists(path: string) {
+        return files.has(path);
+      },
+      write(path: string, contents: string) {
+        files.set(path, contents);
+      },
+      log() {},
+    };
+
+    const exitCode = await main(["generate", "petstore.yaml", outputDirectory, ...arguments_], {
+      actions,
+      inputExists: (path: string) => path === "petstore.yaml",
+      log() {},
+      apical: {
+        async runCraft(craftArguments: readonly string[]) {
+          const outputFlag = craftArguments.indexOf("-o");
+          const contractsDirectory = craftArguments[outputFlag + 1];
+          if (!contractsDirectory) throw new Error("Craft output argument is missing");
+
+          for (const path of petstoreApicalContractPaths) {
+            const contents =
+              path === "schemas/index.ts"
+                ? petstoreSchemasIndex
+                : path === "routes/index.ts"
+                  ? petstoreRoutesIndex
+                  : "";
+            actions.write(join(contractsDirectory, path), contents);
+          }
+        },
+        loadOpenApi: () => loadValidatedOpenApi(petstoreContract.pathname),
+        async readGeneratedFile(path) {
+          const contents = files.get(path);
+          if (contents === undefined) {
+            throw new Error(`Missing virtual Apical output: ${path}`);
+          }
+          return contents;
+        },
+      },
+    });
+
+    return { exitCode, files, outputDirectory };
+  }
+
+  function generatedPaths(result: {
+    files: Map<string, string>;
+    outputDirectory: string;
+  }): string[] {
+    return [...result.files.keys()].map((path) => relative(result.outputDirectory, path)).sort();
+  }
+
+  function generatedFile(
+    result: { files: Map<string, string>; outputDirectory: string },
+    path: string,
+  ): string {
+    return result.files.get(join(result.outputDirectory, path)) ?? "";
+  }
+
   it("when --http next is passed without a surface, then both route handlers and UI pages are emitted", async () => {
     const result = await runPetstoreNextGeneration(["--http", "next"]);
     const paths = generatedPaths(result);

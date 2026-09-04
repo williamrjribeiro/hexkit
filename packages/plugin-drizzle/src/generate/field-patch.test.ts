@@ -9,79 +9,79 @@ import type { PersistenceModel } from "../model/derive.ts";
 import { renderRepositoryFiles } from "./repository.ts";
 import { isFieldPatchUpdate, renderFieldPatchUpdateMethod } from "./field-patch.ts";
 
-const widgetTable = {
-  schemaName: "Widget",
-  exportName: "widgets",
-  tableName: "widgets",
-  identityPropertyName: "id",
-  identitySqlName: "id",
-  domainFilePath: "src/core/domain/widget.ts",
-  apicalModulePath: "schemas/Widget.ts",
-  columns: [
-    {
-      propertyName: "id",
-      sqlName: "id",
-      required: true,
-      isIdentity: true,
-      sqlType: "text",
-    },
-    {
-      propertyName: "name",
-      sqlName: "name",
-      required: true,
-      isIdentity: false,
-      sqlType: "text",
-    },
-    {
-      propertyName: "status",
-      sqlName: "status",
-      required: true,
-      isIdentity: false,
-      sqlType: "enum",
-      enumExportName: "widgetStatus",
-      enumSqlName: "widget_status",
-      enumValues: ["active", "inactive"],
-    },
-  ] satisfies readonly PersistenceColumnModel[],
-};
-
-function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
-  return {
-    aggregate: "Widget",
-    portName: "WidgetRepository",
-    factoryName: "createDrizzleWidgetRepository",
-    filePath: "src/adapters/db/widget-repository.ts",
-    runtimeKey: "widgets",
-    table: widgetTable,
-    methods: [method],
-  };
-}
-
-function fieldPatchMethod(
-  overrides: Partial<PersistenceRepositoryMethodModel> = {},
-): PersistenceRepositoryMethodModel {
-  return {
-    operationId: "updateWidgetWithForm",
-    name: "updateWidgetWithForm",
-    kind: "update",
-    parameters: [
-      { name: "widgetId", typeExpression: "string", location: "path" },
-      { name: "name", typeExpression: "string | undefined", location: "query" },
-      {
-        name: "status",
-        typeExpression: '"active" | "inactive" | undefined',
-        location: "query",
-      },
-    ],
-    returnTypeExpression: "Widget | undefined",
-    entityParameterName: "widgetId",
-    identityParameterName: "widgetId",
-    lookupColumnName: "id",
-    ...overrides,
-  };
-}
-
 describe("Given field-patch update rendering", () => {
+  const widgetTable = {
+    schemaName: "Widget",
+    exportName: "widgets",
+    tableName: "widgets",
+    identityPropertyName: "id",
+    identitySqlName: "id",
+    domainFilePath: "src/core/domain/widget.ts",
+    apicalModulePath: "schemas/Widget.ts",
+    columns: [
+      {
+        propertyName: "id",
+        sqlName: "id",
+        required: true,
+        isIdentity: true,
+        sqlType: "text",
+      },
+      {
+        propertyName: "name",
+        sqlName: "name",
+        required: true,
+        isIdentity: false,
+        sqlType: "text",
+      },
+      {
+        propertyName: "status",
+        sqlName: "status",
+        required: true,
+        isIdentity: false,
+        sqlType: "enum",
+        enumExportName: "widgetStatus",
+        enumSqlName: "widget_status",
+        enumValues: ["active", "inactive"],
+      },
+    ] satisfies readonly PersistenceColumnModel[],
+  };
+
+  function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
+    return {
+      aggregate: "Widget",
+      portName: "WidgetRepository",
+      factoryName: "createDrizzleWidgetRepository",
+      filePath: "src/adapters/db/widget-repository.ts",
+      runtimeKey: "widgets",
+      table: widgetTable,
+      methods: [method],
+    };
+  }
+
+  function fieldPatchMethod(
+    overrides: Partial<PersistenceRepositoryMethodModel> = {},
+  ): PersistenceRepositoryMethodModel {
+    return {
+      operationId: "updateWidgetWithForm",
+      name: "updateWidgetWithForm",
+      kind: "update",
+      parameters: [
+        { name: "widgetId", typeExpression: "string", location: "path" },
+        { name: "name", typeExpression: "string | undefined", location: "query" },
+        {
+          name: "status",
+          typeExpression: '"active" | "inactive" | undefined',
+          location: "query",
+        },
+      ],
+      returnTypeExpression: "Widget | undefined",
+      entityParameterName: "widgetId",
+      identityParameterName: "widgetId",
+      lookupColumnName: "id",
+      ...overrides,
+    };
+  }
+
   it("when update has path + query params, then it emits a conditional field patch", () => {
     const method = fieldPatchMethod();
     const body = renderFieldPatchUpdateMethod(repository(method), method);

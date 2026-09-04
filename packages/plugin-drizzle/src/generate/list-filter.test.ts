@@ -7,55 +7,55 @@ import type {
 } from "../model/repository.ts";
 import { findListFilterColumn, renderFilteredListMethodBody } from "./list-filter.ts";
 
-const widgetTable = {
-  schemaName: "Widget",
-  exportName: "widgets",
-  tableName: "widgets",
-  identityPropertyName: "id",
-  identitySqlName: "id",
-  domainFilePath: "src/core/domain/widget.ts",
-  apicalModulePath: "schemas/Widget.ts",
-  columns: [
-    {
-      propertyName: "id",
-      sqlName: "id",
-      required: true,
-      isIdentity: true,
-      sqlType: "text",
-    },
-    {
-      propertyName: "status",
-      sqlName: "status",
-      required: true,
-      isIdentity: false,
-      sqlType: "enum",
-      enumExportName: "widgetStatus",
-      enumSqlName: "widget_status",
-      enumValues: ["active", "inactive"],
-    },
-    {
-      propertyName: "tags",
-      sqlName: "tags",
-      required: false,
-      isIdentity: false,
-      sqlType: "jsonb",
-    },
-  ] satisfies readonly PersistenceColumnModel[],
-};
-
-function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
-  return {
-    aggregate: "Widget",
-    portName: "WidgetRepository",
-    factoryName: "createDrizzleWidgetRepository",
-    filePath: "src/adapters/db/widget-repository.ts",
-    runtimeKey: "widgets",
-    table: widgetTable,
-    methods: [method],
-  };
-}
-
 describe("Given filtered list rendering", () => {
+  const widgetTable = {
+    schemaName: "Widget",
+    exportName: "widgets",
+    tableName: "widgets",
+    identityPropertyName: "id",
+    identitySqlName: "id",
+    domainFilePath: "src/core/domain/widget.ts",
+    apicalModulePath: "schemas/Widget.ts",
+    columns: [
+      {
+        propertyName: "id",
+        sqlName: "id",
+        required: true,
+        isIdentity: true,
+        sqlType: "text",
+      },
+      {
+        propertyName: "status",
+        sqlName: "status",
+        required: true,
+        isIdentity: false,
+        sqlType: "enum",
+        enumExportName: "widgetStatus",
+        enumSqlName: "widget_status",
+        enumValues: ["active", "inactive"],
+      },
+      {
+        propertyName: "tags",
+        sqlName: "tags",
+        required: false,
+        isIdentity: false,
+        sqlType: "jsonb",
+      },
+    ] satisfies readonly PersistenceColumnModel[],
+  };
+
+  function repository(method: PersistenceRepositoryMethodModel): PersistenceRepositoryModel {
+    return {
+      aggregate: "Widget",
+      portName: "WidgetRepository",
+      factoryName: "createDrizzleWidgetRepository",
+      filePath: "src/adapters/db/widget-repository.ts",
+      runtimeKey: "widgets",
+      table: widgetTable,
+      methods: [method],
+    };
+  }
+
   it("when the query parameter maps to an enum column, then inArray is emitted", () => {
     const method: PersistenceRepositoryMethodModel = {
       operationId: "findWidgetsByStatus",

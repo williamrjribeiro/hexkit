@@ -6,67 +6,70 @@ import type { ApplicationRepository } from "@hexkit/plugin-architecture-hexagona
 import { deriveRepository } from "./repository.ts";
 import { deriveTable } from "./table.ts";
 
-function widgetSchema() {
-  return {
-    name: "Widget",
-    modulePath: "schemas/Widget.ts",
-    persistence: { table: "widgets", identity: "id" },
-    properties: [
-      {
-        name: "id",
-        required: true,
-        type: { kind: "integer" as const, nullable: false, format: "int32" },
-      },
-      {
-        name: "name",
-        required: true,
-        type: { kind: "string" as const, nullable: false },
-      },
-      {
-        name: "sku",
-        required: true,
-        type: { kind: "string" as const, nullable: false },
-      },
-    ],
-  };
-}
-
-function operation(operationId: string, method: ContractOperation["method"]): ContractOperation {
-  return {
-    operationId,
-    method,
-    path: "/widgets",
-    modulePath: `routes/${operationId}.ts`,
-    parameters: [],
-    responses: [],
-    security: { overridesGlobal: false, requirements: [], apicalServerHeaderNames: [] },
-  };
-}
-
-function applicationRepository(methods: ApplicationRepository["methods"]): ApplicationRepository {
-  return {
-    aggregate: "Widget",
-    name: "WidgetRepository",
-    filePath: "src/core/ports/widget-repository.ts",
-    parameterName: "widgets",
-    methods,
-  };
-}
-
-function repositoryMethod(
-  method: Omit<ApplicationRepository["methods"][number], "resultCardinality" | "persistenceKind"> &
-    Partial<
-      Pick<ApplicationRepository["methods"][number], "resultCardinality" | "persistenceKind">
-    >,
-): ApplicationRepository["methods"][number] {
-  return {
-    resultCardinality: "one",
-    persistenceKind: "insert",
-    ...method,
-  };
-}
-
 describe("deriveRepository", () => {
+  function widgetSchema() {
+    return {
+      name: "Widget",
+      modulePath: "schemas/Widget.ts",
+      persistence: { table: "widgets", identity: "id" },
+      properties: [
+        {
+          name: "id",
+          required: true,
+          type: { kind: "integer" as const, nullable: false, format: "int32" },
+        },
+        {
+          name: "name",
+          required: true,
+          type: { kind: "string" as const, nullable: false },
+        },
+        {
+          name: "sku",
+          required: true,
+          type: { kind: "string" as const, nullable: false },
+        },
+      ],
+    };
+  }
+
+  function operation(operationId: string, method: ContractOperation["method"]): ContractOperation {
+    return {
+      operationId,
+      method,
+      path: "/widgets",
+      modulePath: `routes/${operationId}.ts`,
+      parameters: [],
+      responses: [],
+      security: { overridesGlobal: false, requirements: [], apicalServerHeaderNames: [] },
+    };
+  }
+
+  function applicationRepository(methods: ApplicationRepository["methods"]): ApplicationRepository {
+    return {
+      aggregate: "Widget",
+      name: "WidgetRepository",
+      filePath: "src/core/ports/widget-repository.ts",
+      parameterName: "widgets",
+      methods,
+    };
+  }
+
+  function repositoryMethod(
+    method: Omit<
+      ApplicationRepository["methods"][number],
+      "resultCardinality" | "persistenceKind"
+    > &
+      Partial<
+        Pick<ApplicationRepository["methods"][number], "resultCardinality" | "persistenceKind">
+      >,
+  ): ApplicationRepository["methods"][number] {
+    return {
+      resultCardinality: "one",
+      persistenceKind: "insert",
+      ...method,
+    };
+  }
+
   const table = deriveTable(widgetSchema(), new Map());
   const tablesBySchema = new Map([["Widget", table]]);
 

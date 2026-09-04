@@ -3,48 +3,48 @@ import { describe, expect, it } from "vite-plus/test";
 import type { NextHttpModel, NextMethodBinding } from "../artifact.ts";
 import { renderControllersFile } from "./controllers.ts";
 
-function binding(
-  overrides: Partial<NextMethodBinding> & Pick<NextMethodBinding, "operationId">,
-): NextMethodBinding {
-  return {
-    method: "get",
-    openApiPath: "/items",
-    useCaseTypeName: `${overrides.operationId}UseCase`,
-    useCaseFactoryName: `create${overrides.operationId}UseCase`,
-    useCaseFilePath: `src/core/use-cases/${overrides.operationId}.ts`,
-    repositoryParameterName: "itemRepository",
-    wrapperName: `${overrides.operationId}Wrapper`,
-    wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
-    hasJsonRequestBody: false,
-    hasJsonSuccessBody: true,
-    successStatus: "200",
-    successMediaType: "application/json",
-    requiresAuth: false,
-    authSchemes: [],
-    useCaseArgumentExpressions: [],
-    arrayQueryParameterNames: [],
-    successResponseHeaders: [],
-    ...overrides,
-  };
-}
-
-function model(overrides: Partial<NextHttpModel> = {}): NextHttpModel {
-  return {
-    surface: "routes",
-    routes: [
-      {
-        filePath: "app/items/route.ts",
-        openApiPath: "/items",
-        methods: [binding({ operationId: "getItem" })],
-      },
-    ],
-    uiPages: [],
-    repositories: [],
-    ...overrides,
-  };
-}
-
 describe("Given renderControllersFile", () => {
+  function binding(
+    overrides: Partial<NextMethodBinding> & Pick<NextMethodBinding, "operationId">,
+  ): NextMethodBinding {
+    return {
+      method: "get",
+      openApiPath: "/items",
+      useCaseTypeName: `${overrides.operationId}UseCase`,
+      useCaseFactoryName: `create${overrides.operationId}UseCase`,
+      useCaseFilePath: `src/core/use-cases/${overrides.operationId}.ts`,
+      repositoryParameterName: "itemRepository",
+      wrapperName: `${overrides.operationId}Wrapper`,
+      wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
+      hasJsonRequestBody: false,
+      hasJsonSuccessBody: true,
+      successStatus: "200",
+      successMediaType: "application/json",
+      requiresAuth: false,
+      authSchemes: [],
+      useCaseArgumentExpressions: [],
+      arrayQueryParameterNames: [],
+      successResponseHeaders: [],
+      ...overrides,
+    };
+  }
+
+  function model(overrides: Partial<NextHttpModel> = {}): NextHttpModel {
+    return {
+      surface: "routes",
+      routes: [
+        {
+          filePath: "app/items/route.ts",
+          openApiPath: "/items",
+          methods: [binding({ operationId: "getItem" })],
+        },
+      ],
+      uiPages: [],
+      repositories: [],
+      ...overrides,
+    };
+  }
+
   it("when given a complete HTTP model, then it emits wrappers from bindings without contract lookup", () => {
     const file = renderControllersFile(
       model({
