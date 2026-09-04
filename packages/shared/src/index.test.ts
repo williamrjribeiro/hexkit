@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import {
   collectApiKeyHeaderNames,
+  compareOpenApiRouteRegistrationOrder,
   deriveAuthSchemes,
   deriveHttpControllerBinding,
   deriveUseCaseArgumentExpressions,
@@ -31,6 +32,7 @@ describe("Given the @hexkit/shared public API", () => {
     expect(typeof extractOpenApiPathParamNames).toBe("function");
     expect(typeof openApiPathToHonoPath).toBe("function");
     expect(typeof openApiPathToNextSegments).toBe("function");
+    expect(typeof compareOpenApiRouteRegistrationOrder).toBe("function");
     expect(typeof deriveAuthSchemes).toBe("function");
     expect(typeof deriveUseCaseArgumentExpressions).toBe("function");
     expect(typeof deriveHttpControllerBinding).toBe("function");

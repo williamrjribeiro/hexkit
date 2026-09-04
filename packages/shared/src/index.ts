@@ -14,10 +14,12 @@ export {
 } from "./media.ts";
 export type { ContractSecurityScheme } from "./media.ts";
 export {
+  compareOpenApiRouteRegistrationOrder,
   extractOpenApiPathParamNames,
   openApiPathToHonoPath,
   openApiPathToNextSegments,
 } from "./openapi-path.ts";
+export type { OpenApiRouteRegistrationKey } from "./openapi-path.ts";
 export { renderInMemoryAuthAdapterFile } from "./render-auth-adapter.ts";
 export { renderHttpControllersFile } from "./render-controllers.ts";
 export {

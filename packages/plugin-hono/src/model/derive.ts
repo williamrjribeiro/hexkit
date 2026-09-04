@@ -2,6 +2,7 @@ import { compareText } from "@hexkit/codegen";
 import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal";
 import type { ContractArtifact } from "@hexkit/plugin-apical";
 import {
+  compareOpenApiRouteRegistrationOrder,
   deriveHttpControllerBinding,
   IN_MEMORY_AUTH_ADAPTER_PATH,
   openApiPathToHonoPath,
@@ -34,7 +35,7 @@ export function deriveHttpModel(
   );
 
   const operations = contract.operations
-    .toSorted((left, right) => compareText(left.operationId, right.operationId))
+    .toSorted(compareOpenApiRouteRegistrationOrder)
     .map((operation) => {
       const useCase = useCasesByOperationId.get(operation.operationId);
       if (useCase === undefined) {

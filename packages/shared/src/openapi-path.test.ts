@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 
 import {
+  compareOpenApiRouteRegistrationOrder,
   extractOpenApiPathParamNames,
   openApiPathToHonoPath,
   openApiPathToNextSegments,
@@ -22,6 +23,20 @@ describe("Given OpenAPI path templates", () => {
       "/items/:itemId/photos/:photoId",
     );
     expect(openApiPathToHonoPath("/items")).toBe("/items");
+  });
+
+  it("when registration order is compared, then static paths sort before parameterized siblings", () => {
+    const login = { path: "/user/login", operationId: "loginUser" };
+    const byName = { path: "/user/{username}", operationId: "getUserByName" };
+    const logout = { path: "/user/logout", operationId: "logoutUser" };
+
+    expect(compareOpenApiRouteRegistrationOrder(login, byName)).toBeLessThan(0);
+    expect(compareOpenApiRouteRegistrationOrder(byName, login)).toBeGreaterThan(0);
+    expect(
+      [byName, logout, login]
+        .toSorted(compareOpenApiRouteRegistrationOrder)
+        .map((operation) => operation.operationId),
+    ).toEqual(["loginUser", "logoutUser", "getUserByName"]);
   });
 
   it("when split for Next.js, then dynamic segments are bracketed", () => {
