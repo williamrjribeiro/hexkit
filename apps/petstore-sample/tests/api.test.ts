@@ -637,8 +637,8 @@ describe.sequential("Given the generated Petstore API", () => {
           .get("/user/login")
           .withQueryParams({ username: createdUser.username, password: createdUser.password })
           .expectStatus(200)
-          .expectHeader("X-Rate-Limit", "0")
-          .expectHeader("X-Expires-After", "")
+          .expectHeader("x-rate-limit", "0")
+          .expectHeader("x-expires-after", "")
           .returns((ctx) => ctx.res.json as unknown);
         expect(response).toBe("");
       });

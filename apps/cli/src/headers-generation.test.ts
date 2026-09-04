@@ -57,11 +57,11 @@ describe("Given the headers-api fixture", () => {
     );
 
     expect(port).toContain(
-      'issueWidgetToken(label: string): Promise<{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }>',
+      'issueWidgetToken(label: string): Promise<{ data: string; headers: { "x-rate-limit": number; "x-expires-after": string } }>',
     );
     expect(port).toContain("getWidgetById(id: string): Promise<Widget | undefined>");
     expect(repository).toContain(
-      'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
+      'return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } }',
     );
     expect(controllers).toContain(
       'data: issueWidgetTokenResponseMap["200"]["application/json"].parse(result.data),',

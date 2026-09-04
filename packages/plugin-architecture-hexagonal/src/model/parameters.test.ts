@@ -453,11 +453,11 @@ describe("Given operation responses", () => {
       ),
     ).toEqual({
       expression:
-        '{ data: string; headers: { "X-Rate-Limit": number; "X-Expires-After": string } }',
+        '{ data: string; headers: { "x-rate-limit": number; "x-expires-after": string } }',
       payloadExpression: "string",
       successHeaders: [
-        { name: "X-Rate-Limit", typeExpression: "number" },
-        { name: "X-Expires-After", typeExpression: "string" },
+        { name: "x-rate-limit", typeExpression: "number" },
+        { name: "x-expires-after", typeExpression: "string" },
       ],
       referencedSchemas: [],
       resultCardinality: "one",

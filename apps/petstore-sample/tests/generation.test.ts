@@ -196,7 +196,7 @@ describe("Given the canonical Petstore contract", () => {
     expect(userRepository).toContain("eq(users.username, username)");
     expect(userRepository).toContain(".values(body).returning()");
     expect(userRepository).toContain(
-      'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
+      'return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } }',
     );
     expect(userRepository).toContain("return row !== undefined");
     expect(updateUser).toContain("username: string, user: User");

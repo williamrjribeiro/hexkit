@@ -153,7 +153,8 @@ function renderSuccessHeaders(
   headers: readonly { name: string; type: ContractType }[],
 ): readonly { name: string; typeExpression: string }[] {
   return headers.map((header) => ({
-    name: header.name,
+    // Apical Craft lowercases response header keys in generated TypeScript types.
+    name: header.name.toLowerCase(),
     typeExpression: renderContractType(header.type).expression,
   }));
 }
