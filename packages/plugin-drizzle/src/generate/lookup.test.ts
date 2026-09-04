@@ -187,6 +187,7 @@ describe("Given alternate-key persistence rendering", () => {
       ],
     });
 
+    expect(source).toContain("async issueWidgetToken(_label: string)");
     expect(source).toContain(
       'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
     );
