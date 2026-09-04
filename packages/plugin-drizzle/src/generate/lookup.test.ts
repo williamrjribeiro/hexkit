@@ -165,7 +165,8 @@ describe("Given alternate-key persistence rendering", () => {
       lookupColumnName: "id",
     });
 
-    expect(source).toContain("async issueWidgetToken(_label: string)");
+    expect(source).toContain("async issueWidgetToken(): Promise<string>");
+    expect(source).not.toContain("_label");
     expect(source).toContain('return ""');
     expect(source).not.toContain("return { ok: true }");
   });
@@ -187,7 +188,8 @@ describe("Given alternate-key persistence rendering", () => {
       ],
     });
 
-    expect(source).toContain("async issueWidgetToken(_label: string)");
+    expect(source).toContain("async issueWidgetToken(): Promise<");
+    expect(source).not.toContain("_label");
     expect(source).toContain(
       'return { data: "", headers: { "X-Rate-Limit": 0, "X-Expires-After": "" } }',
     );

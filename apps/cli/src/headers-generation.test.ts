@@ -59,7 +59,7 @@ describe("Given the headers-api fixture", () => {
     expect(port).toContain(
       'issueWidgetToken(label: string): Promise<{ data: string; headers: { "x-rate-limit": number; "x-expires-after": string } }>',
     );
-    expect(repository).toContain("async issueWidgetToken(_label: string)");
+    expect(repository).toContain("async issueWidgetToken()");
     expect(port).toContain("getWidgetById(id: string): Promise<Widget | undefined>");
     expect(repository).toContain(
       'return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } }',
