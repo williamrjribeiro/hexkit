@@ -9,14 +9,15 @@ to a temporary (or caller-chosen) directory by the CLI during dogfood.
 
 ## What’s in this package
 
-| Path                       | Role                                                                      |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `openapi.yaml`             | Checked-in Swagger Petstore 3.1 reference (leave untouched for PoC)       |
-| `openapi.poc.yaml`         | Trimmed Rich Pet + Order + User contract used for generation and dogfood  |
-| `tests/generation.test.ts` | Asserts the CLI emits the expected generated tree from `openapi.poc.yaml` |
-| `tests/api.test.ts`        | Pactum acceptance tests against a **running** generated API               |
-| `tests/api-fixtures*.ts`   | Shared IDs/helpers for acceptance tests                                   |
-| `scripts/dogfood.sh`       | End-to-end generate → Compose → API acceptance loop                       |
+| Path                       | Role                                                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| `openapi.yaml`             | Checked-in Swagger Petstore 3.1 reference (leave untouched for PoC)                            |
+| `openapi.poc.yaml`         | Trimmed Rich Pet + Order + User contract used for generation and dogfood                       |
+| `tests/generation.test.ts` | Asserts the CLI emits the expected generated tree from `openapi.poc.yaml`                      |
+| `tests/api/**/*.test.ts`   | Pactum acceptance tests against a **running** generated API, split by resource and HTTP method |
+| `tests/api/helpers.ts`     | Shared Pactum client setup for the acceptance suite                                            |
+| `tests/api-fixtures*.ts`   | Shared IDs/helpers for acceptance tests                                                        |
+| `scripts/dogfood.sh`       | End-to-end generate → Compose → API acceptance loop                                            |
 
 ## What “dogfood” means
 
@@ -31,7 +32,7 @@ header `api_key` (allow-list `AUTH_API_KEYS`, default `test-key`). Leave
 
 Dogfood means Hexkit eats its own cooking: the real `@hexkit/cli` generates an
 app from `openapi.poc.yaml`, the generated app is installed and typechecked,
-Docker Compose brings up Hono + Postgres, and `tests/api.test.ts` hits the live
+Docker Compose brings up Hono + Postgres, and `tests/api/**/*.test.ts` hits the live
 HTTP API (including nested Pet create / get / update round-trips, optional JSONB
 omits vs empty arrays, validation failures, and PUT-does-not-clear-omitted-nests).
 
@@ -60,7 +61,7 @@ apps/petstore-sample/scripts/dogfood.sh
 4. Installs, lints (`vp lint src` / Oxlint), and typechecks (`tsc --noEmit`) the **generated** app
 5. Starts Docker Compose for that app (`up --build` is the image build)
 6. Waits until the API responds
-7. Runs `tests/api.test.ts` against it
+7. Runs `tests/api/**/*.test.ts` against it
 8. Tears down Compose (and deletes the temp dir) unless you keep the stack
 
 Docker is required for steps 5–7.
@@ -104,15 +105,17 @@ With Compose already up (for example after dogfood with `HEXKIT_KEEP_STACK=1`):
 
 ```bash
 cd apps/petstore-sample
-PETSTORE_API_URL=http://127.0.0.1:3000 vp test run tests/api.test.ts
+PETSTORE_API_URL=http://127.0.0.1:3000 vp test run tests/api/
 ```
+
+Cases live under `tests/api/<resource>/<method>.test.ts` (for example `tests/api/user/get.test.ts`, `tests/api/pet/post.test.ts`) so they follow the OpenAPI path groups. Trailing slash on `tests/api/` keeps Vitest from also matching `tests/api-fixtures.test.ts`.
 
 `PETSTORE_API_URL` defaults to `http://127.0.0.1:3000` if unset.
 
 ## Related workspace commands
 
-| Command                                         | Role                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------- |
-| `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality) |
+| Command                                         | Role                                                                     |
+| ----------------------------------------------- | ------------------------------------------------------------------------ |
+| `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality)  |
 | `vp run dogfood`                                | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
-| `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)          |
+| `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)              |

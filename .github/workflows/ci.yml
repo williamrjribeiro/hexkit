@@ -61,7 +61,7 @@ jobs:
 
       - name: Generate Hono Pet Shop, lint, typecheck, build, and Pactum
         # hexkit generate → generated app `vp lint` + `tsc` → Compose image build
-        # → Pactum (`apps/petstore-sample/tests/api.test.ts`).
+        # → Pactum (`apps/petstore-sample/tests/api/**/*.test.ts`).
         run: vp run dogfood
 
   dogfood-nextjs:
