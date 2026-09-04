@@ -408,7 +408,7 @@ describe("Given ContractArtifact and ApplicationArtifact for Key API", () => {
     expect(repository).toContain(".values(body).returning()");
     expect(repository).toContain("async logoutWidgets(): Promise<void>");
     expect(repository).toContain("return;");
-    expect(repository).toContain("async issueWidgetToken(label: string): Promise<string>");
+    expect(repository).toContain("async issueWidgetToken(_label: string): Promise<string>");
     expect(repository).toContain('return ""');
     expect(repository).toContain("eq(widgets.sku, sku)");
     expect(repository).not.toContain("eq(widgets.id, sku)");

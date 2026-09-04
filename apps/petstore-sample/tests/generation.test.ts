@@ -194,6 +194,7 @@ describe("Given the canonical Petstore contract", () => {
     );
     expect(schema).toContain('export const users = pgTable("users"');
     expect(userRepository).toContain("eq(users.username, username)");
+    expect(userRepository).toContain("async loginUser(_username: string, _password: string)");
     expect(userRepository).toContain(".values(body).returning()");
     expect(userRepository).toContain(
       'return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } }',

@@ -92,6 +92,10 @@ function renderMethod(
   const signatureParameters = method.parameters
     .map((parameter) => `${parameter.name}: ${parameter.typeExpression}`)
     .join(", ");
+  // Stub bodies ignore inputs; prefix so generated adapters pass `--max-warnings 0`.
+  const stubSignatureParameters = method.parameters
+    .map((parameter) => `_${parameter.name}: ${parameter.typeExpression}`)
+    .join(", ");
 
   switch (method.kind) {
     case "insert": {
@@ -171,7 +175,7 @@ function renderMethod(
     }
     case "stub": {
       return [
-        `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
+        `    async ${method.name}(${stubSignatureParameters}): Promise<${method.returnTypeExpression}> {`,
         renderStubReturn(method),
         "    }",
       ].join("\n");
