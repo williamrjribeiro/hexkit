@@ -13,6 +13,17 @@ export const pets = pgTable("pets", {
   tags: jsonb("tags"),
 });
 
+export const users = pgTable("users", {
+  id: integer("id").primaryKey(),
+  username: text("username").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  password: text("password"),
+  phone: text("phone"),
+  userStatus: integer("user_status"),
+});
+
 export const orders = pgTable("orders", {
   id: integer("id").primaryKey(),
   petId: integer("pet_id")

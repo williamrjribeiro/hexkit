@@ -188,6 +188,83 @@
         "table": "orders",
         "identity": "id"
       }
+    },
+    {
+      "name": "User",
+      "modulePath": "schemas/User.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "username",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "firstName",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "lastName",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "email",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "password",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "phone",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "userStatus",
+          "required": false,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          },
+          "description": "User Status"
+        }
+      ],
+      "persistence": {
+        "table": "users",
+        "identity": "id"
+      }
     }
   ],
   "securitySchemes": [
@@ -656,6 +733,314 @@
         {
           "status": "204",
           "description": "Order deleted",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "createUser",
+      "method": "post",
+      "path": "/user",
+      "modulePath": "routes/createUser.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "201",
+          "description": "User created",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "User"
+              }
+            }
+          ]
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "User"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "createUsersWithListInput",
+      "method": "post",
+      "path": "/user/createWithList",
+      "modulePath": "routes/createUsersWithListInput.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "200",
+          "description": "First created user",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "User"
+              }
+            }
+          ]
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "array",
+              "nullable": false,
+              "items": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "User"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "loginUser",
+      "method": "get",
+      "path": "/user/login",
+      "modulePath": "routes/loginUser.ts",
+      "parameters": [
+        {
+          "name": "username",
+          "location": "query",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "password",
+          "location": "query",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Login token",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "string",
+                "nullable": false
+              }
+            }
+          ],
+          "headers": [
+            {
+              "name": "X-Rate-Limit",
+              "required": false,
+              "type": {
+                "kind": "integer",
+                "nullable": false,
+                "format": "int32"
+              }
+            },
+            {
+              "name": "X-Expires-After",
+              "required": false,
+              "type": {
+                "kind": "string",
+                "nullable": false
+              }
+            }
+          ]
+        },
+        {
+          "status": "400",
+          "description": "Invalid username or password",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "logoutUser",
+      "method": "get",
+      "path": "/user/logout",
+      "modulePath": "routes/logoutUser.ts",
+      "parameters": [],
+      "responses": [
+        {
+          "status": "200",
+          "description": "Logged out",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "getUserByName",
+      "method": "get",
+      "path": "/user/{username}",
+      "modulePath": "routes/getUserByName.ts",
+      "parameters": [
+        {
+          "name": "username",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "User found",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "User"
+              }
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "description": "User not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      }
+    },
+    {
+      "operationId": "updateUser",
+      "method": "put",
+      "path": "/user/{username}",
+      "modulePath": "routes/updateUser.ts",
+      "parameters": [
+        {
+          "name": "username",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "User updated",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "User"
+              }
+            }
+          ]
+        },
+        {
+          "status": "404",
+          "description": "User not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/json",
+            "type": {
+              "kind": "reference",
+              "nullable": false,
+              "schema": "User"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "operationId": "deleteUser",
+      "method": "delete",
+      "path": "/user/{username}",
+      "modulePath": "routes/deleteUser.ts",
+      "parameters": [
+        {
+          "name": "username",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "204",
+          "description": "User deleted",
+          "media": []
+        },
+        {
+          "status": "404",
+          "description": "User not found",
           "media": []
         }
       ],
