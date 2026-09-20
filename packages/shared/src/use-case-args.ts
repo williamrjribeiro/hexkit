@@ -6,7 +6,7 @@ export type UseCaseArgumentInput = {
   requiresAuth: boolean;
   parameters: readonly {
     readonly name: string;
-    readonly location?: "path" | "query" | "body";
+    readonly location?: "path" | "query" | "contentType" | "body";
   }[];
 };
 
