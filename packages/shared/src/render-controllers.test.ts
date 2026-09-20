@@ -13,6 +13,7 @@ describe("Given renderHttpControllersFile", () => {
       wrapperName: `${overrides.operationId}Wrapper`,
       wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
       hasJsonRequestBody: false,
+      hasBinaryRequestBody: false,
       hasJsonSuccessBody: true,
       successStatus: "200",
       successMediaType: "application/json",
@@ -111,6 +112,27 @@ describe("Given renderHttpControllersFile", () => {
       'throw new RequestValidationError(request.isValid ? "body-error" : request.kind);',
     );
     expect(file.contents).toContain("await useCases.createItem(principal, request.value.body)");
+  });
+
+  it("when a binary body operation is rendered, then the validated Blob is converted to bytes", () => {
+    const file = renderHttpControllersFile({
+      filePath: "src/adapters/http/controllers.ts",
+      hasAuthenticator: false,
+      operations: [
+        operation({
+          operationId: "uploadDocument",
+          hasBinaryRequestBody: true,
+          useCaseArgumentExpressions: ["new Uint8Array(await request.value.body.arrayBuffer())"],
+        }),
+      ],
+    });
+
+    expect(file.contents).toContain(
+      'throw new RequestValidationError(request.isValid ? "body-error" : request.kind);',
+    );
+    expect(file.contents).toContain(
+      "await useCases.uploadDocument(new Uint8Array(await request.value.body.arrayBuffer()))",
+    );
   });
 
   it("when a secured operation has no JSON body, then header errors become AuthenticationError", () => {

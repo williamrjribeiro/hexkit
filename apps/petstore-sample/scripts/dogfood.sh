@@ -7,6 +7,7 @@ API_BASE_URL=${PETSTORE_API_URL:-http://127.0.0.1:3000}
 KEEP_STACK=${HEXKIT_KEEP_STACK:-0}
 REMOVE_OUTPUT=0
 COMPOSE_STARTED=0
+COMPOSE_OVERRIDE=
 
 # `vp run` prepends workspace node_modules/.bin, whose local `vp` lacks managed
 # runtime commands like `vp node`. Prefer the global Vite+ CLI when present.
@@ -35,6 +36,14 @@ else
   REMOVE_OUTPUT=1
 fi
 
+compose() {
+  if [ -n "$COMPOSE_OVERRIDE" ]; then
+    docker compose -f "$OUTPUT_DIR/docker-compose.yml" -f "$COMPOSE_OVERRIDE" "$@"
+  else
+    docker compose -f "$OUTPUT_DIR/docker-compose.yml" "$@"
+  fi
+}
+
 cleanup() {
   status=$?
   trap - EXIT
@@ -43,7 +52,7 @@ cleanup() {
     if [ "$KEEP_STACK" = "1" ]; then
       printf 'Retaining dogfood Compose stack in %s\n' "$OUTPUT_DIR"
     else
-      docker compose -f "$OUTPUT_DIR/docker-compose.yml" down --volumes || true
+      compose down --volumes || true
     fi
   fi
 
@@ -96,6 +105,14 @@ services:
 volumes:
   postgres-data:
 EOF
+else
+  COMPOSE_OVERRIDE="$OUTPUT_DIR/docker-compose.dogfood.yml"
+  cat > "$COMPOSE_OVERRIDE" <<'EOF'
+services:
+  postgres:
+    ports:
+      - "127.0.0.1::5432"
+EOF
 fi
 
 (
@@ -112,7 +129,14 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 COMPOSE_STARTED=1
-docker compose -f "$OUTPUT_DIR/docker-compose.yml" up --build -d --wait
+compose up --build -d --wait
+
+DATABASE_HOST_PORT=5432
+if [ "${HEXKIT_DOGFOOD_HOST_NETWORK:-0}" != "1" ]; then
+  DATABASE_ADDRESS=$(compose port postgres 5432)
+  DATABASE_HOST_PORT=${DATABASE_ADDRESS##*:}
+fi
+DATABASE_URL="postgres://${POSTGRES_USER:-hexkit_petstore_poc}:${POSTGRES_PASSWORD:-hexkit_petstore_poc}@127.0.0.1:${DATABASE_HOST_PORT}/${POSTGRES_DB:-hexkit_petstore_poc}"
 
 attempt=1
 # GET /pet/{petId} requires header api_key; a missing pet still returns 404 after auth.
@@ -125,7 +149,7 @@ fetch(`${baseUrl}/pet/2147483647`, { headers: { api_key: apiKey } })
 '; do
   if [ "$attempt" -ge 30 ]; then
     printf 'Error: generated Petstore did not become ready at %s.\n' "$API_BASE_URL" >&2
-    docker compose -f "$OUTPUT_DIR/docker-compose.yml" logs
+    compose logs
     exit 1
   fi
 
@@ -135,5 +159,5 @@ done
 
 (
   cd "$SAMPLE_DIR"
-  PETSTORE_API_URL="$API_BASE_URL" vp test run tests/api/
+  DATABASE_URL="$DATABASE_URL" PETSTORE_API_URL="$API_BASE_URL" vp test run tests/api/
 )

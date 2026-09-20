@@ -237,6 +237,34 @@ describe("normalizeContractArtifact", () => {
     );
   });
 
+  it("matches an OpenAPI schema to Apical's collision-safe Schema export", () => {
+    const document = createDocument();
+    const components = document.components as {
+      schemas: Record<string, Record<string, unknown>>;
+    };
+    components.schemas.ApiResponse = {
+      type: "object",
+      properties: {
+        message: { type: "string" },
+      },
+    };
+
+    const artifact = normalizeContractArtifact(document, {
+      schemas: new Map([
+        ...generatedModules.schemas,
+        ["ApiResponseSchema", "schemas/ApiResponseSchema.ts"],
+      ]),
+      operations: generatedModules.operations,
+    });
+
+    expect(artifact.schemas).toContainEqual(
+      expect.objectContaining({
+        name: "ApiResponse",
+        modulePath: "schemas/ApiResponseSchema.ts",
+      }),
+    );
+  });
+
   it("fails when OpenAPI schemas or operations do not match Apical modules", () => {
     expect(() =>
       normalizeContractArtifact(createDocument(), {

@@ -46,6 +46,8 @@ describe("CLI generate command", () => {
     "routes/updatePet.ts",
     "routes/updatePetWithForm.ts",
     "routes/updateUser.ts",
+    "routes/uploadFile.ts",
+    "schemas/ApiResponseSchema.ts",
     "schemas/Category.ts",
     "schemas/CreateUsersWithListInputRequest.ts",
     "schemas/FindPetsByStatus200Response.ts",
@@ -53,7 +55,9 @@ describe("CLI generate command", () => {
     "schemas/LoginUser200Response.ts",
     "schemas/Order.ts",
     "schemas/Pet.ts",
+    "schemas/PetImage.ts",
     "schemas/Tag.ts",
+    "schemas/UploadFileRequest.ts",
     "schemas/User.ts",
     "schemas/addPetParameters.ts",
     "schemas/createUserParameters.ts",
@@ -74,6 +78,7 @@ describe("CLI generate command", () => {
     "schemas/updatePetParameters.ts",
     "schemas/updatePetWithFormParameters.ts",
     "schemas/updateUserParameters.ts",
+    "schemas/uploadFileParameters.ts",
     "server/addPet.ts",
     "server/createUser.ts",
     "server/createUsersWithListInput.ts",
@@ -92,6 +97,7 @@ describe("CLI generate command", () => {
     "server/updatePet.ts",
     "server/updatePetWithForm.ts",
     "server/updateUser.ts",
+    "server/uploadFile.ts",
     "standard-schema.ts",
     "tsconfig.json",
   ] as const;
@@ -118,12 +124,15 @@ describe("CLI generate command", () => {
   const libraryContract = new URL("../../fixtures/library-api/openapi.yaml", import.meta.url);
 
   const petstoreSchemasIndex = `
+  import { ApiResponseSchema } from "./ApiResponseSchema.ts";
   import { Category } from "./Category.ts";
   import { Order } from "./Order.ts";
   import { Pet } from "./Pet.ts";
+  import { PetImage } from "./PetImage.ts";
   import { Tag } from "./Tag.ts";
+  import { UploadFileRequest } from "./UploadFileRequest.ts";
   import { User } from "./User.ts";
-  export { Category, Order, Pet, Tag, User };
+  export { ApiResponseSchema, Category, Order, Pet, PetImage, Tag, UploadFileRequest, User };
   `;
 
   const petstoreRoutesIndex = `
@@ -134,6 +143,7 @@ describe("CLI generate command", () => {
   import { serverRoute as deletePetRoute } from "./deletePet.ts";
   import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
   import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
+  import { serverRoute as uploadFileRoute } from "./uploadFile.ts";
   import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
   import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
   import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
@@ -152,6 +162,7 @@ describe("CLI generate command", () => {
     deletePet: deletePetRoute,
     findPetsByStatus: findPetsByStatusRoute,
     findPetsByTags: findPetsByTagsRoute,
+    uploadFile: uploadFileRoute,
     placeOrder: placeOrderRoute,
     getOrderById: getOrderByIdRoute,
     deleteOrder: deleteOrderRoute,
@@ -574,11 +585,13 @@ describe("CLI generate command", () => {
           "src/adapters/auth/in-memory-authenticator.ts",
           "src/adapters/db/mappers.ts",
           "src/adapters/db/order-repository.ts",
+          "src/adapters/db/pet-image-repository.ts",
           "src/adapters/db/pet-repository.ts",
           "src/adapters/db/schema.ts",
           "src/adapters/db/user-repository.ts",
           "src/adapters/http/controllers.ts",
           "src/adapters/http/routes.ts",
+          "src/adapters/persistence/drizzle-blob-store.ts",
           "src/core/application/add-pet.ts",
           "src/core/application/create-user.ts",
           "src/core/application/create-users-with-list-input.ts",
@@ -596,14 +609,19 @@ describe("CLI generate command", () => {
           "src/core/application/update-pet-with-form.ts",
           "src/core/application/update-pet.ts",
           "src/core/application/update-user.ts",
+          "src/core/application/upload-file.ts",
+          "src/core/domain/api-response.ts",
           "src/core/domain/auth-principal.ts",
           "src/core/domain/category.ts",
           "src/core/domain/order.ts",
+          "src/core/domain/pet-image.ts",
           "src/core/domain/pet.ts",
           "src/core/domain/tag.ts",
           "src/core/domain/user.ts",
           "src/core/ports/authenticator.ts",
+          "src/core/ports/blob-store.ts",
           "src/core/ports/order-repository.ts",
+          "src/core/ports/pet-image-repository.ts",
           "src/core/ports/pet-repository.ts",
           "src/core/ports/user-repository.ts",
           "src/generated/contracts/hexkit-contract.json",
@@ -626,6 +644,8 @@ describe("CLI generate command", () => {
           "src/generated/contracts/routes/updatePet.ts",
           "src/generated/contracts/routes/updatePetWithForm.ts",
           "src/generated/contracts/routes/updateUser.ts",
+          "src/generated/contracts/routes/uploadFile.ts",
+          "src/generated/contracts/schemas/ApiResponseSchema.ts",
           "src/generated/contracts/schemas/Category.ts",
           "src/generated/contracts/schemas/CreateUsersWithListInputRequest.ts",
           "src/generated/contracts/schemas/FindPetsByStatus200Response.ts",
@@ -633,7 +653,9 @@ describe("CLI generate command", () => {
           "src/generated/contracts/schemas/LoginUser200Response.ts",
           "src/generated/contracts/schemas/Order.ts",
           "src/generated/contracts/schemas/Pet.ts",
+          "src/generated/contracts/schemas/PetImage.ts",
           "src/generated/contracts/schemas/Tag.ts",
+          "src/generated/contracts/schemas/UploadFileRequest.ts",
           "src/generated/contracts/schemas/User.ts",
           "src/generated/contracts/schemas/addPetParameters.ts",
           "src/generated/contracts/schemas/createUserParameters.ts",
@@ -654,6 +676,7 @@ describe("CLI generate command", () => {
           "src/generated/contracts/schemas/updatePetParameters.ts",
           "src/generated/contracts/schemas/updatePetWithFormParameters.ts",
           "src/generated/contracts/schemas/updateUserParameters.ts",
+          "src/generated/contracts/schemas/uploadFileParameters.ts",
           "src/generated/contracts/server/addPet.ts",
           "src/generated/contracts/server/createUser.ts",
           "src/generated/contracts/server/createUsersWithListInput.ts",
@@ -672,6 +695,7 @@ describe("CLI generate command", () => {
           "src/generated/contracts/server/updatePet.ts",
           "src/generated/contracts/server/updatePetWithForm.ts",
           "src/generated/contracts/server/updateUser.ts",
+          "src/generated/contracts/server/uploadFile.ts",
           "src/generated/contracts/standard-schema.ts",
           "src/generated/contracts/tsconfig.json",
           "src/runtime/app.ts",

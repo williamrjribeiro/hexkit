@@ -23,9 +23,11 @@ describe("@hexkit/plugin-next", () => {
 
   const petstoreModules = {
     schemas: new Map([
+      ["ApiResponseSchema", "schemas/ApiResponseSchema.ts"],
       ["Category", "schemas/Category.ts"],
       ["Order", "schemas/Order.ts"],
       ["Pet", "schemas/Pet.ts"],
+      ["PetImage", "schemas/PetImage.ts"],
       ["Tag", "schemas/Tag.ts"],
       ["User", "schemas/User.ts"],
     ]),
@@ -47,6 +49,7 @@ describe("@hexkit/plugin-next", () => {
       ["getUserByName", "routes/getUserByName.ts"],
       ["updateUser", "routes/updateUser.ts"],
       ["deleteUser", "routes/deleteUser.ts"],
+      ["uploadFile", "routes/uploadFile.ts"],
     ]),
   };
 
@@ -588,10 +591,8 @@ describe("@hexkit/plugin-next", () => {
       expect(helpers?.contents).toContain(
         'contentType.toLowerCase().startsWith("application/octet-stream")',
       );
-      expect(helpers?.contents).toContain(
-        "const body = new Uint8Array(await request.arrayBuffer())",
-      );
-      expect(helpers?.contents).toContain("if (body.byteLength === 0)");
+      expect(helpers?.contents).toContain("const body = new Blob([await request.arrayBuffer()])");
+      expect(helpers?.contents).toContain("if (body.size === 0)");
       expect(runtime?.contents).toContain(
         'import type { BlobStore } from "../../core/ports/blob-store.ts";',
       );

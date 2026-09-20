@@ -11,7 +11,7 @@ export function renderDrizzleBlobStoreFile(): GeneratedFile {
       names: ["NodePgDatabase"],
       typeOnly: true,
     },
-    { from: "drizzle-orm/pg-core", names: ["bytea", "pgTable", "text"] },
+    { from: "drizzle-orm/pg-core", names: ["customType", "pgTable", "text"] },
     {
       from: "../../core/ports/blob-store.ts",
       names: ["BlobStore"],
@@ -20,10 +20,13 @@ export function renderDrizzleBlobStoreFile(): GeneratedFile {
   ];
 
   const statements = [
+    ["const bytea = customType<{ data: Buffer }>({", '  dataType: () => "bytea",', "});"].join(
+      "\n",
+    ),
     [
       'export const hexkitBlobs = pgTable("hexkit_blobs", {',
       '  key: text("key").primaryKey(),',
-      '  content: bytea("content", { mode: "buffer" }).notNull(),',
+      '  content: bytea("content").notNull(),',
       "});",
     ].join("\n"),
     [

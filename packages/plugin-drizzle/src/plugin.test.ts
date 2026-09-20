@@ -32,9 +32,11 @@ describe("@hexkit/plugin-drizzle", () => {
 
   const petstoreModules = {
     schemas: new Map([
+      ["ApiResponseSchema", "schemas/ApiResponseSchema.ts"],
       ["Category", "schemas/Category.ts"],
       ["Order", "schemas/Order.ts"],
       ["Pet", "schemas/Pet.ts"],
+      ["PetImage", "schemas/PetImage.ts"],
       ["Tag", "schemas/Tag.ts"],
       ["User", "schemas/User.ts"],
     ]),
@@ -56,6 +58,7 @@ describe("@hexkit/plugin-drizzle", () => {
       ["getUserByName", "routes/getUserByName.ts"],
       ["updateUser", "routes/updateUser.ts"],
       ["deleteUser", "routes/deleteUser.ts"],
+      ["uploadFile", "routes/uploadFile.ts"],
     ]),
   };
 
@@ -183,6 +186,7 @@ describe("@hexkit/plugin-drizzle", () => {
           { schemaName: "Pet", exportName: "pets", tableName: "pets" },
           { schemaName: "User", exportName: "users", tableName: "users" },
           { schemaName: "Order", exportName: "orders", tableName: "orders" },
+          { schemaName: "PetImage", exportName: "pet_images", tableName: "pet_images" },
         ],
         repositories: expect.arrayContaining([
           expect.objectContaining({
@@ -242,6 +246,15 @@ describe("@hexkit/plugin-drizzle", () => {
             quantity: integer("quantity").notNull(),
             status: orderStatus("status").notNull(),
             complete: boolean("complete").notNull(),
+          });
+
+          export const pet_images = pgTable("pet_images", {
+            id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+            petId: integer("pet_id")
+              .notNull()
+              .references(() => pets.id),
+            storageKey: text("storage_key").notNull(),
+            additionalMetadata: text("additional_metadata"),
           });
           "
         `);
@@ -346,15 +359,18 @@ describe("@hexkit/plugin-drizzle", () => {
       expect(mapper?.contents).not.toMatch(/RequestSchema|ResponseSchema/);
       expect(mapper?.contents).toMatchInlineSnapshot(`
         "import type { Order } from "../../core/domain/order.ts";
+        import type { PetImage } from "../../core/domain/pet-image.ts";
         import type { Pet } from "../../core/domain/pet.ts";
         import type { User } from "../../core/domain/user.ts";
         import { Order as OrderSchema } from "../../generated/contracts/schemas/Order.ts";
         import { Pet as PetSchema } from "../../generated/contracts/schemas/Pet.ts";
+        import { PetImage as PetImageSchema } from "../../generated/contracts/schemas/PetImage.ts";
         import { User as UserSchema } from "../../generated/contracts/schemas/User.ts";
-        import type { orders, pets, users } from "./schema.ts";
+        import type { orders, pet_images, pets, users } from "./schema.ts";
 
         type OrderRow = typeof orders.$inferSelect;
         type PetRow = typeof pets.$inferSelect;
+        type PetImageRow = typeof pet_images.$inferSelect;
         type UserRow = typeof users.$inferSelect;
 
         export function mapOrderRow(row: OrderRow): Order {
@@ -363,6 +379,10 @@ describe("@hexkit/plugin-drizzle", () => {
 
         export function mapPetRow(row: PetRow): Pet {
           return PetSchema.parse({ ...row, status: row.status ?? undefined, category: row.category ?? undefined, tags: row.tags ?? undefined });
+        }
+
+        export function mapPetImageRow(row: PetImageRow): PetImage {
+          return PetImageSchema.parse({ ...row, additionalMetadata: row.additionalMetadata ?? undefined });
         }
 
         export function mapUserRow(row: UserRow): User {
@@ -448,7 +468,8 @@ describe("@hexkit/plugin-drizzle", () => {
         files.find((file) => file.path === "drizzle/0000_upload-api-fixture.sql")?.contents ?? "";
 
       expect(adapter).toContain('pgTable("hexkit_blobs"');
-      expect(adapter).toContain('bytea("content", { mode: "buffer" }).notNull()');
+      expect(adapter).toContain("customType<{ data: Buffer }>");
+      expect(adapter).toContain('bytea("content").notNull()');
       expect(adapter).toContain("export function createDrizzleBlobStore(");
       expect(adapter).toContain("Buffer.from(bytes)");
       expect(adapter).toContain("new Uint8Array(row.content)");

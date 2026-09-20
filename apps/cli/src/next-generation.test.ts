@@ -30,6 +30,8 @@ describe("Given Next.js CLI generation", () => {
     "routes/updatePet.ts",
     "routes/updatePetWithForm.ts",
     "routes/updateUser.ts",
+    "routes/uploadFile.ts",
+    "schemas/ApiResponseSchema.ts",
     "schemas/Category.ts",
     "schemas/CreateUsersWithListInputRequest.ts",
     "schemas/FindPetsByStatus200Response.ts",
@@ -37,7 +39,9 @@ describe("Given Next.js CLI generation", () => {
     "schemas/LoginUser200Response.ts",
     "schemas/Order.ts",
     "schemas/Pet.ts",
+    "schemas/PetImage.ts",
     "schemas/Tag.ts",
+    "schemas/UploadFileRequest.ts",
     "schemas/User.ts",
     "schemas/addPetParameters.ts",
     "schemas/createUserParameters.ts",
@@ -58,6 +62,7 @@ describe("Given Next.js CLI generation", () => {
     "schemas/updatePetParameters.ts",
     "schemas/updatePetWithFormParameters.ts",
     "schemas/updateUserParameters.ts",
+    "schemas/uploadFileParameters.ts",
     "server/addPet.ts",
     "server/createUser.ts",
     "server/createUsersWithListInput.ts",
@@ -76,17 +81,21 @@ describe("Given Next.js CLI generation", () => {
     "server/updatePet.ts",
     "server/updatePetWithForm.ts",
     "server/updateUser.ts",
+    "server/uploadFile.ts",
     "standard-schema.ts",
     "tsconfig.json",
   ] as const;
 
   const petstoreSchemasIndex = `
+  import { ApiResponseSchema } from "./ApiResponseSchema.ts";
   import { Category } from "./Category.ts";
   import { Order } from "./Order.ts";
   import { Pet } from "./Pet.ts";
+  import { PetImage } from "./PetImage.ts";
   import { Tag } from "./Tag.ts";
+  import { UploadFileRequest } from "./UploadFileRequest.ts";
   import { User } from "./User.ts";
-  export { Category, Order, Pet, Tag, User };
+  export { ApiResponseSchema, Category, Order, Pet, PetImage, Tag, UploadFileRequest, User };
   `;
 
   const petstoreRoutesIndex = `
@@ -97,6 +106,7 @@ describe("Given Next.js CLI generation", () => {
   import { serverRoute as deletePetRoute } from "./deletePet.ts";
   import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
   import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
+  import { serverRoute as uploadFileRoute } from "./uploadFile.ts";
   import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
   import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
   import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
@@ -115,6 +125,7 @@ describe("Given Next.js CLI generation", () => {
     deletePet: deletePetRoute,
     findPetsByStatus: findPetsByStatusRoute,
     findPetsByTags: findPetsByTagsRoute,
+    uploadFile: uploadFileRoute,
     placeOrder: placeOrderRoute,
     getOrderById: getOrderByIdRoute,
     deleteOrder: deleteOrderRoute,

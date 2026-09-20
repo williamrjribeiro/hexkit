@@ -143,7 +143,7 @@ function renderSecuredControllerEntry(operation: HttpControllerOperation): strin
 }
 
 function renderValidation(operation: HttpControllerOperation): string[] {
-  if (operation.hasJsonRequestBody) {
+  if (operation.hasJsonRequestBody || operation.hasBinaryRequestBody) {
     return [
       "      if (!request.isValid || !request.value.body) {",
       ...renderAuthenticationValidation(operation),
