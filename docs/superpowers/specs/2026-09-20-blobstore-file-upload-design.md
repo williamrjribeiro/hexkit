@@ -1,8 +1,9 @@
 # Design: BlobStore port + Petstore `uploadFile`
 
-**Status:** Approved for planning  
+**Status:** Approved — implementation plan ready  
 **Date:** 2026-09-20  
 **Tracker:** [docs/petstore-openapi-progress.md](../../petstore-openapi-progress.md) (Pet row: `uploadFile`)  
+**Implementation plan:** [2026-09-20-blobstore-file-upload.md](../plans/2026-09-20-blobstore-file-upload.md)  
 **Companions:** [PRD.md](../../../PRD.md) §5.0 / §11, [updatePetWithForm design](./2026-09-01-update-pet-with-form-design.md), [OpenAPI auth design](./2026-08-05-openapi-auth-design.md) (port pattern precedent), [RFC.md](../../../RFC.md)
 
 ## 1. Problem
