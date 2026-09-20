@@ -1,6 +1,7 @@
 import { toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { ContractOperation } from "@hexkit/plugin-apical";
 import type { ApplicationRepository } from "@hexkit/plugin-architecture-hexagonal";
+import { hasBinaryRequestBody } from "@hexkit/shared";
 
 import type { PersistenceMethodKind } from "./method-kind.ts";
 import type { PersistenceTableModel } from "./table.ts";
@@ -75,7 +76,7 @@ export function deriveRepository(
       entityParameterName,
       identityParameterName: pathParameterName ?? firstParameterName ?? table.identityPropertyName,
       lookupColumnName,
-      usesBlobStore: isBinaryUploadOperation(operation),
+      usesBlobStore: hasBinaryRequestBody(operation),
       ...(method.successHeaders === undefined || method.successHeaders.length === 0
         ? {}
         : { successHeaders: method.successHeaders }),
@@ -91,19 +92,6 @@ export function deriveRepository(
     table,
     methods,
   };
-}
-
-function isBinaryUploadOperation(operation: ContractOperation): boolean {
-  return (
-    operation.requestBody?.media.some((media) => {
-      const type = media.type;
-      return (
-        media.mediaType.toLowerCase().split(";", 1)[0]?.trim() === "application/octet-stream" &&
-        type?.kind === "string" &&
-        type.format === "binary"
-      );
-    }) ?? false
-  );
 }
 
 function resolveLookupColumnName(
