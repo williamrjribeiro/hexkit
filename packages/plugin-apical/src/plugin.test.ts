@@ -88,6 +88,11 @@ describe("@hexkit/plugin-apical", () => {
             "path": "/pet/{petId}",
           },
           {
+            "method": "POST",
+            "operationId": "uploadFile",
+            "path": "/pet/{petId}/uploadImage",
+          },
+          {
             "method": "GET",
             "operationId": "findPetsByStatus",
             "path": "/pet/findByStatus",
@@ -151,11 +156,14 @@ describe("@hexkit/plugin-apical", () => {
       `);
     });
 
-    it("when media types and components are inspected, then JSON-only Pet, Order, User, Category, and Tag contracts remain", () => {
+    it("when media types and components are inspected, then Petstore schemas and upload media remain", () => {
       const contract = readContract();
 
       expect(contract).toContain("application/json:");
+      expect(contract).toContain("application/octet-stream:");
       expect(contract).toContain("    Pet:");
+      expect(contract).toContain("    PetImage:");
+      expect(contract).toContain("    ApiResponse:");
       expect(contract).toContain("    Order:");
       expect(contract).toContain("    User:");
       expect(contract).toContain("      petId:");
@@ -185,6 +193,8 @@ describe("@hexkit/plugin-apical", () => {
       }).toMatchInlineSnapshot(`
         {
           "pathParameterFormats": [
+            "int32",
+            "int32",
             "int32",
             "int32",
           ],
@@ -263,13 +273,14 @@ describe("@hexkit/plugin-apical", () => {
       {
         fixture: "Petstore",
         input: pocContract,
-        expectedSchemas: ["Category", "Order", "Pet", "Tag", "User"],
+        expectedSchemas: ["ApiResponse", "Category", "Order", "Pet", "PetImage", "Tag", "User"],
         expectedOperations: [
           "addPet",
           "updatePet",
           "getPetById",
           "deletePet",
           "updatePetWithForm",
+          "uploadFile",
           "findPetsByStatus",
           "findPetsByTags",
           "placeOrder",
