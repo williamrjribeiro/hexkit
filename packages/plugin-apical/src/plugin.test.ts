@@ -195,10 +195,10 @@ describe("@hexkit/plugin-apical", () => {
           "pathParameterFormats": [
             "int32",
             "int32",
-            "int32",
-            "int32",
           ],
           "persistedPropertyFormats": [
+            "int32",
+            "int32",
             "int32",
             "int32",
             "int32",
