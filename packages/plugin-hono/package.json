@@ -43,9 +43,13 @@
     "@hexkit/shared": "workspace:*"
   },
   "devDependencies": {
+    "@hexkit/plugin-drizzle": "workspace:*",
     "@standard-schema/spec": "catalog:",
     "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "drizzle-orm": "catalog:",
     "hono": "catalog:",
+    "pg": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

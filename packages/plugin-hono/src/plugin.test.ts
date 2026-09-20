@@ -18,6 +18,7 @@ import {
   type GeneratedFile,
   type GenerationContext,
 } from "@hexkit/plugin-api";
+import { createDrizzlePlugin } from "@hexkit/plugin-drizzle";
 import { collectPluginOutput, loadNormalizedContract } from "@hexkit/shared/testing";
 
 import { HTTP_ARTIFACT, type HttpArtifact } from "./artifact.ts";
@@ -144,6 +145,7 @@ describe("@hexkit/plugin-hono", () => {
 
     await createApicalPlugin().generate(context);
     await createHexagonalPlugin().generate(context);
+    await createDrizzlePlugin().generate(context);
     await createHonoPlugin().generate(context);
 
     return outputDirectory;
@@ -383,6 +385,7 @@ describe("@hexkit/plugin-hono", () => {
         'app.get("/user/:username"',
         'app.post("/pet/:petId"',
         'app.put("/user/:username"',
+        'app.post("/pet/:petId/uploadImage"',
       ]);
       expect(routes?.contents).toContain('app.post("/store/order", async (context) =>');
 
@@ -390,6 +393,7 @@ describe("@hexkit/plugin-hono", () => {
       expect(runtime?.contents).toContain("placeOrder: createPlaceOrder(repositories.orders),");
       expect(runtime?.contents).toContain("createUser: createCreateUser(repositories.users),");
       expect(runtime?.contents).toContain("pets: PetRepository;");
+      expect(runtime?.contents).toContain("petImages: PetImageRepository;");
       expect(runtime?.contents).toContain("orders: OrderRepository;");
       expect(runtime?.contents).toContain("users: UserRepository;");
 
@@ -404,6 +408,11 @@ describe("@hexkit/plugin-hono", () => {
             parameterName: "orders",
             repositoryName: "OrderRepository",
             repositoryFilePath: "src/core/ports/order-repository.ts",
+          },
+          {
+            parameterName: "petImages",
+            repositoryName: "PetImageRepository",
+            repositoryFilePath: "src/core/ports/pet-image-repository.ts",
           },
           {
             parameterName: "pets",
@@ -435,6 +444,7 @@ describe("@hexkit/plugin-hono", () => {
         "getUserByName",
         "updatePetWithForm",
         "updateUser",
+        "uploadFile",
       ]);
     });
   });
@@ -634,59 +644,82 @@ describe("@hexkit/plugin-hono", () => {
       const outputDirectory = await materializeGeneratedApp(petstoreOpenApi);
       const runtimeUrl = pathToFileURL(join(outputDirectory, "src/runtime/app.ts")).href;
       const { createApp } = (await import(/* @vite-ignore */ runtimeUrl)) as {
-        createApp: (repositories: unknown) => {
+        createApp: (
+          repositories: unknown,
+          authenticator: unknown,
+          blobStore: unknown,
+        ) => {
           request(input: string | Request, init?: RequestInit): Promise<Response>;
         };
       };
       let addCalls = 0;
       let databaseReads = 0;
       const malformedRepositoryResult = { id: 1, name: 42 };
-      const app = createApp({
-        pets: {
-          async addPet(pet: unknown) {
-            addCalls += 1;
-            return pet;
+      const app = createApp(
+        {
+          pets: {
+            async addPet(pet: unknown) {
+              addCalls += 1;
+              return pet;
+            },
+            async updatePet(pet: unknown) {
+              return pet;
+            },
+            async getPetById() {
+              databaseReads += 1;
+              return malformedRepositoryResult;
+            },
+            async deletePet() {},
           },
-          async updatePet(pet: unknown) {
-            return pet;
+          orders: {
+            async placeOrder(order: unknown) {
+              return order;
+            },
+            async getOrderById() {
+              return undefined;
+            },
+            async deleteOrder() {},
           },
-          async getPetById() {
-            databaseReads += 1;
-            return malformedRepositoryResult;
+          users: {
+            async createUser(user: unknown) {
+              return user;
+            },
+            async createUsersWithListInput() {
+              return undefined;
+            },
+            async deleteUser() {
+              return false;
+            },
+            async getUserByName() {
+              return undefined;
+            },
+            async loginUser() {
+              return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } };
+            },
+            async logoutUser() {},
+            async updateUser() {
+              return undefined;
+            },
           },
-          async deletePet() {},
+          petImages: {
+            async uploadFile() {
+              return undefined;
+            },
+          },
         },
-        orders: {
-          async placeOrder(order: unknown) {
-            return order;
+        undefined,
+        {
+          async put() {
+            return { key: "test" };
           },
-          async getOrderById() {
+          async get() {
             return undefined;
           },
-          async deleteOrder() {},
-        },
-        users: {
-          async createUser(user: unknown) {
-            return user;
-          },
-          async createUsersWithListInput() {
-            return undefined;
-          },
-          async deleteUser() {
+          async delete() {
             return false;
           },
-          async getUserByName() {
-            return undefined;
-          },
-          async loginUser() {
-            return { data: "", headers: { "x-rate-limit": 0, "x-expires-after": "" } };
-          },
-          async logoutUser() {},
-          async updateUser() {
-            return undefined;
-          },
         },
-      });
+      );
 
       const invalidRequest = await app.request("http://hexkit.test/pet", {
         method: "POST",
