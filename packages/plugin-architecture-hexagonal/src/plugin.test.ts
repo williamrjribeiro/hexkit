@@ -21,9 +21,11 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
 
   const petstoreModules = {
     schemas: new Map([
+      ["ApiResponseSchema", "schemas/ApiResponseSchema.ts"],
       ["Category", "schemas/Category.ts"],
       ["Order", "schemas/Order.ts"],
       ["Pet", "schemas/Pet.ts"],
+      ["PetImage", "schemas/PetImage.ts"],
       ["Tag", "schemas/Tag.ts"],
       ["User", "schemas/User.ts"],
     ]),
@@ -45,6 +47,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
       ["getUserByName", "routes/getUserByName.ts"],
       ["updateUser", "routes/updateUser.ts"],
       ["deleteUser", "routes/deleteUser.ts"],
+      ["uploadFile", "routes/uploadFile.ts"],
     ]),
   };
 
