@@ -4,11 +4,10 @@ import { deriveAuthSchemes, type HttpAuthSchemeBinding } from "./auth-schemes.ts
 import {
   findJsonMedia,
   findSuccessResponse,
-  hasBinaryRequestBody,
-  hasJsonRequestBody,
   hasNotFoundResponse,
   type ContractSecurityScheme,
 } from "./media.ts";
+import { deriveRequestBodyTransport, type RequestBodyTransport } from "./request-body-transport.ts";
 import { isSuccessStatus } from "./status.ts";
 import { deriveUseCaseArgumentExpressions, type UseCaseArgumentInput } from "./use-case-args.ts";
 
@@ -47,6 +46,7 @@ export type HttpControllerBinding = {
   notFoundStatus?: string;
   hasJsonRequestBody: boolean;
   hasBinaryRequestBody: boolean;
+  requestBodyTransport: RequestBodyTransport;
   hasJsonSuccessBody: boolean;
   successMediaType?: string;
   requiresAuth: boolean;
@@ -101,13 +101,9 @@ export function deriveHttpControllerBinding(
   }
 
   const jsonSuccessMedia = findJsonMedia(successResponse.media);
-  const jsonRequestBody = hasJsonRequestBody(operation);
-  const binaryRequestBody = hasBinaryRequestBody(operation);
-  if (jsonRequestBody && binaryRequestBody) {
-    throw new Error(
-      `Operation "${operation.operationId}" cannot declare both JSON and binary request bodies.`,
-    );
-  }
+  const requestBodyTransport = deriveRequestBodyTransport(operation);
+  const jsonRequestBody = requestBodyTransport.kind === "json";
+  const binaryRequestBody = requestBodyTransport.kind === "binary";
   const wrapperName = `${operation.operationId}Wrapper`;
   const responseMapName =
     jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
@@ -132,6 +128,7 @@ export function deriveHttpControllerBinding(
     ...(hasNotFoundResponse(operation) ? { notFoundStatus: "404" } : {}),
     hasJsonRequestBody: jsonRequestBody,
     hasBinaryRequestBody: binaryRequestBody,
+    requestBodyTransport,
     hasJsonSuccessBody: jsonSuccessMedia !== undefined,
     ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
     requiresAuth: useCase.requiresAuth,
