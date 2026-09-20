@@ -116,6 +116,9 @@ describe("Given use-case argument derivation", () => {
         },
         { hasJsonRequestBody: false, hasBinaryRequestBody: true },
       ),
-    ).toEqual(["request.value.path.widgetId", "request.value.body"]);
+    ).toEqual([
+      "request.value.path.widgetId",
+      "new Uint8Array(await request.value.body.arrayBuffer())",
+    ]);
   });
 });

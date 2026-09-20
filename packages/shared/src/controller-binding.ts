@@ -71,6 +71,7 @@ export type HttpControllerOperation = Pick<
   | "responseMapName"
   | "responseMapImportPath"
   | "hasJsonRequestBody"
+  | "hasBinaryRequestBody"
   | "hasJsonSuccessBody"
   | "successStatus"
   | "notFoundStatus"

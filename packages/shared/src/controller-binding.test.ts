@@ -178,7 +178,10 @@ describe("Given deriveHttpControllerBinding", () => {
       hasJsonRequestBody: false,
       hasBinaryRequestBody: true,
       successStatus: "201",
-      useCaseArgumentExpressions: ["request.value.path.widgetId", "request.value.body"],
+      useCaseArgumentExpressions: [
+        "request.value.path.widgetId",
+        "new Uint8Array(await request.value.body.arrayBuffer())",
+      ],
     });
   });
 

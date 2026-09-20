@@ -588,10 +588,8 @@ describe("@hexkit/plugin-next", () => {
       expect(helpers?.contents).toContain(
         'contentType.toLowerCase().startsWith("application/octet-stream")',
       );
-      expect(helpers?.contents).toContain(
-        "const body = new Uint8Array(await request.arrayBuffer())",
-      );
-      expect(helpers?.contents).toContain("if (body.byteLength === 0)");
+      expect(helpers?.contents).toContain("const body = new Blob([await request.arrayBuffer()])");
+      expect(helpers?.contents).toContain("if (body.size === 0)");
       expect(runtime?.contents).toContain(
         'import type { BlobStore } from "../../core/ports/blob-store.ts";',
       );

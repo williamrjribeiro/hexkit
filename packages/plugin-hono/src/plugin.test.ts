@@ -473,9 +473,9 @@ describe("@hexkit/plugin-hono", () => {
         'contentType.toLowerCase().startsWith("application/octet-stream")',
       );
       expect(routes?.contents).toContain(
-        "const body = new Uint8Array(await context.req.arrayBuffer())",
+        "const body = new Blob([await context.req.arrayBuffer()])",
       );
-      expect(routes?.contents).toContain("if (body.byteLength === 0)");
+      expect(routes?.contents).toContain("if (body.size === 0)");
       expect(routes?.contents).toContain('contentType: "application/octet-stream"');
       expect(runtime?.contents).toContain(
         'import type { BlobStore } from "../core/ports/blob-store.ts";',

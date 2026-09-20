@@ -448,7 +448,8 @@ describe("@hexkit/plugin-drizzle", () => {
         files.find((file) => file.path === "drizzle/0000_upload-api-fixture.sql")?.contents ?? "";
 
       expect(adapter).toContain('pgTable("hexkit_blobs"');
-      expect(adapter).toContain('bytea("content", { mode: "buffer" }).notNull()');
+      expect(adapter).toContain("customType<{ data: Buffer }>");
+      expect(adapter).toContain('bytea("content").notNull()');
       expect(adapter).toContain("export function createDrizzleBlobStore(");
       expect(adapter).toContain("Buffer.from(bytes)");
       expect(adapter).toContain("new Uint8Array(row.content)");
