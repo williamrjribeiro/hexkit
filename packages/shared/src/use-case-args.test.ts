@@ -118,7 +118,7 @@ describe("Given use-case argument derivation", () => {
       ),
     ).toEqual([
       "request.value.path.widgetId",
-      "request.value.contentType",
+      "apicalRequest.contentType!",
       "new Uint8Array(await request.value.body.arrayBuffer())",
     ]);
   });

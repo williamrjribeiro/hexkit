@@ -122,17 +122,24 @@ describe("Given renderHttpControllersFile", () => {
         operation({
           operationId: "uploadDocument",
           hasBinaryRequestBody: true,
-          useCaseArgumentExpressions: ["new Uint8Array(await request.value.body.arrayBuffer())"],
+          useCaseArgumentExpressions: [
+            "apicalRequest.contentType!",
+            "new Uint8Array(await request.value.body.arrayBuffer())",
+          ],
         }),
       ],
     });
 
     expect(file.contents).toContain(
+      "uploadDocument: (apicalRequest: ControllerRequest<ReturnType<typeof uploadDocumentWrapper>>) =>",
+    );
+    expect(file.contents).toContain(
       'throw new RequestValidationError(request.isValid ? "body-error" : request.kind);',
     );
     expect(file.contents).toContain(
-      "await useCases.uploadDocument(new Uint8Array(await request.value.body.arrayBuffer()))",
+      "await useCases.uploadDocument(apicalRequest.contentType!, new Uint8Array(await request.value.body.arrayBuffer()))",
     );
+    expect(file.contents).toContain("})(apicalRequest)");
   });
 
   it("when a secured operation has no JSON body, then header errors become AuthenticationError", () => {

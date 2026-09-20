@@ -20,6 +20,8 @@ export function renderHttpControllersFile(options: {
     compareText(left.operationId, right.operationId),
   );
   const hasAuthenticator = options.hasAuthenticator;
+  const hasControllerRequestType =
+    hasAuthenticator || operations.some((operation) => operation.hasBinaryRequestBody);
   const imports: ImportDeclaration[] = [
     ...operations.map((operation) => ({
       from: relativeImportPath(options.filePath, operation.useCaseFilePath),
@@ -76,9 +78,13 @@ export function renderHttpControllersFile(options: {
       "  }",
       "}",
     ].join("\n"),
-    ...(hasAuthenticator
+    ...(hasControllerRequestType
       ? [
           "type ControllerRequest<TController> = TController extends (request: infer Request) => Promise<unknown> ? Request : never;",
+        ]
+      : []),
+    ...(hasAuthenticator
+      ? [
           [
             "export class AuthenticationError extends Error {",
             "  constructor(kind: string) {",
@@ -117,6 +123,7 @@ export function renderHttpControllersFile(options: {
 
 function renderControllerEntry(operation: HttpControllerOperation): string {
   if (operation.requiresAuth) return renderSecuredControllerEntry(operation);
+  if (operation.hasBinaryRequestBody) return renderBinaryControllerEntry(operation);
 
   const lines = [
     `    ${operation.operationId}: ${operation.wrapperName}(async (request) => {`,
@@ -128,16 +135,29 @@ function renderControllerEntry(operation: HttpControllerOperation): string {
   return lines.join("\n");
 }
 
+function renderBinaryControllerEntry(operation: HttpControllerOperation): string {
+  const lines = [
+    `    ${operation.operationId}: (apicalRequest: ControllerRequest<ReturnType<typeof ${operation.wrapperName}>>) =>`,
+    `      ${operation.wrapperName}(async (request) => {`,
+    ...renderValidation(operation),
+    ...renderInvocation(operation),
+    ...renderSuccess(operation),
+    "      })(apicalRequest)",
+  ];
+  return lines.join("\n");
+}
+
 function renderSecuredControllerEntry(operation: HttpControllerOperation): string {
+  const apicalRequestName = operation.hasBinaryRequestBody ? "apicalRequest" : "request";
   const lines = [
     `    ${operation.operationId}: async (`,
-    `      request: ControllerRequest<ReturnType<typeof ${operation.wrapperName}>>,`,
+    `      ${apicalRequestName}: ControllerRequest<ReturnType<typeof ${operation.wrapperName}>>,`,
     "      principal: Principal,",
     `    ) => ${operation.wrapperName}(async (request) => {`,
     ...renderValidation(operation),
     ...renderInvocation(operation),
     ...renderSuccess(operation),
-    "    })(request)",
+    `    })(${apicalRequestName})`,
   ];
   return lines.join("\n");
 }

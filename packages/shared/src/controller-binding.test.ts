@@ -187,7 +187,7 @@ describe("Given deriveHttpControllerBinding", () => {
       successStatus: "201",
       useCaseArgumentExpressions: [
         "request.value.path.widgetId",
-        "request.value.contentType",
+        "apicalRequest.contentType!",
         "new Uint8Array(await request.value.body.arrayBuffer())",
       ],
     });

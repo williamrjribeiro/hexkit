@@ -474,22 +474,29 @@ describe("@hexkit/plugin-hono", () => {
   });
 
   describe("Given ContractArtifact + ApplicationArtifact for Upload API", () => {
-    it("when Hono generation runs, then binary uploads use the octet-stream request helper", async () => {
+    it("when Hono generation runs, then binary uploads allow declared content types", async () => {
       const { files } = await collectGeneratedFiles(uploadContract);
       const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+      const controllers = files.find((file) => file.path === "src/adapters/http/controllers.ts");
       const runtime = files.find((file) => file.path === "src/runtime/app.ts");
 
       expect(routes?.contents).toContain(
-        "respond(await controllers.uploadDocument(await binaryRequest(context, [])))",
+        'respond(await controllers.uploadDocument(await binaryRequest(context, ["application/octet-stream","image/png","image/jpeg"], [])))',
       );
       expect(routes?.contents).toContain(
-        'contentType.toLowerCase().startsWith("application/octet-stream")',
+        'const normalizedContentType = context.req.header("content-type")?.split(";", 1)[0]?.trim().toLowerCase()',
       );
+      expect(routes?.contents).toContain(
+        "const contentType = contentTypes.find((declared) => declared.toLowerCase() === normalizedContentType)",
+      );
+      expect(routes?.contents).toContain("if (contentType === undefined)");
       expect(routes?.contents).toContain(
         "const body = new Blob([await context.req.arrayBuffer()])",
       );
       expect(routes?.contents).toContain("if (body.size === 0)");
-      expect(routes?.contents).toContain('contentType: "application/octet-stream"');
+      expect(routes?.contents).toContain("contentType,");
+      expect(routes?.contents).not.toContain('startsWith("application/octet-stream")');
+      expect(controllers?.contents).toContain("apicalRequest.contentType!");
       expect(runtime?.contents).toContain(
         'import type { BlobStore } from "../core/ports/blob-store.ts";',
       );

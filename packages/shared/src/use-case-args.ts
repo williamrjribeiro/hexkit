@@ -45,7 +45,7 @@ export function deriveUseCaseArgumentExpressions(
     .filter((parameter) => parameter.location === "query")
     .map((parameter) => `request.value.query?.${parameter.name}`);
   const bodyExpressions = hasBinaryRequestBody
-    ? ["request.value.contentType", "new Uint8Array(await request.value.body.arrayBuffer())"]
+    ? ["apicalRequest.contentType!", "new Uint8Array(await request.value.body.arrayBuffer())"]
     : hasJsonRequestBody
       ? ["request.value.body"]
       : [];
