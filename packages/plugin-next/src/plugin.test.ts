@@ -18,6 +18,8 @@ describe("@hexkit/plugin-next", () => {
     .pathname;
   const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
     .pathname;
+  const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -59,15 +61,29 @@ describe("@hexkit/plugin-next", () => {
     ]),
   };
 
+  const uploadModules = {
+    schemas: new Map([
+      ["Document", "schemas/Document.ts"],
+      ["UploadReceipt", "schemas/UploadReceipt.ts"],
+      ["Widget", "schemas/Widget.ts"],
+    ]),
+    operations: new Map([
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["uploadDocument", "routes/uploadDocument.ts"],
+    ]),
+  };
+
   const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
+  let uploadContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
+      loadNormalizedContract(uploadOpenApi, uploadModules),
     ]);
   });
 
@@ -553,6 +569,44 @@ describe("@hexkit/plugin-next", () => {
         "app/user/login/page.tsx",
         "app/user/logout/page.tsx",
       ]);
+    });
+  });
+
+  describe("Given ContractArtifact + ApplicationArtifact for Upload API", () => {
+    it("when route generation runs, then binary requests and BlobStore are bound", async () => {
+      const { files } = await collectGeneratedFiles(uploadContract, "routes");
+      const filesByPath = fileMap(files);
+      const route = filesByPath.get("app/widgets/[widgetId]/documents/route.ts");
+      const helpers = filesByPath.get("src/adapters/http-next/helpers.ts");
+      const runtime = filesByPath.get("src/adapters/http-next/runtime.ts");
+      const serverAccess = filesByPath.get("src/adapters/http-next/server-access.ts");
+
+      expect(route?.contents).toContain(
+        "toApicalRequest(request, params, { jsonBody: false, binaryBody: true, arrayQueryKeys: [] })",
+      );
+      expect(helpers?.contents).toContain("binaryBody?: boolean");
+      expect(helpers?.contents).toContain(
+        'contentType.toLowerCase().startsWith("application/octet-stream")',
+      );
+      expect(helpers?.contents).toContain(
+        "const body = new Uint8Array(await request.arrayBuffer())",
+      );
+      expect(helpers?.contents).toContain("if (body.byteLength === 0)");
+      expect(runtime?.contents).toContain(
+        'import type { BlobStore } from "../../core/ports/blob-store.ts";',
+      );
+      expect(runtime?.contents).toContain(
+        'import { createDrizzleBlobStore } from "../persistence/drizzle-blob-store.ts";',
+      );
+      expect(runtime?.contents).toContain(
+        "blobStore: BlobStore = createDrizzleBlobStore(getDatabase())",
+      );
+      expect(runtime?.contents).toContain(
+        "uploadDocument: createUploadDocument(blobStore, repositories.documents),",
+      );
+      expect(serverAccess?.contents).toContain(
+        "uploadDocument: createUploadDocument(blobStore, repositories.documents)",
+      );
     });
   });
 

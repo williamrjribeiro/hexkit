@@ -11,6 +11,7 @@ import {
 import type {
   HttpArtifact,
   HttpAuthenticatorBinding,
+  HttpBlobStoreBinding,
   HttpOperationBinding,
   HttpRepositoryBinding,
 } from "../artifact.ts";
@@ -24,6 +25,7 @@ export type HttpModel = {
   repositories: readonly HttpRepositoryBinding[];
   operations: readonly HttpOperationBinding[];
   authenticator?: HttpAuthenticatorBinding;
+  blobStore?: HttpBlobStoreBinding;
 };
 
 export function deriveHttpModel(
@@ -47,6 +49,7 @@ export function deriveHttpModel(
       return {
         ...binding,
         honoPath: openApiPathToHonoPath(operation.path),
+        ...(useCase.usesBlobStore ? { usesBlobStore: true } : {}),
         ...(useCase.requiresAuth ? { authMiddlewareName: `authenticate${useCase.typeName}` } : {}),
       } satisfies HttpOperationBinding;
     });
@@ -69,10 +72,21 @@ export function deriveHttpModel(
           adapterFactoryName: "createInMemoryAuthenticator",
         } satisfies HttpAuthenticatorBinding);
 
+  const blobStore =
+    application.blobStorePort === undefined
+      ? undefined
+      : ({
+          portName: application.blobStorePort.name,
+          portFilePath: application.blobStorePort.filePath,
+          adapterFilePath: "src/adapters/persistence/drizzle-blob-store.ts",
+          adapterFactoryName: "createDrizzleBlobStore",
+        } satisfies HttpBlobStoreBinding);
+
   return {
     repositories,
     operations,
     ...(authenticator === undefined ? {} : { authenticator }),
+    ...(blobStore === undefined ? {} : { blobStore }),
   };
 }
 
@@ -88,5 +102,6 @@ export function toHttpArtifact(model: HttpModel): HttpArtifact {
     repositories: model.repositories,
     operations: model.operations,
     ...(model.authenticator === undefined ? {} : { authenticator: model.authenticator }),
+    ...(model.blobStore === undefined ? {} : { blobStore: model.blobStore }),
   };
 }

@@ -14,6 +14,7 @@ export function renderRuntimeFile(
 ): GeneratedFile {
   const authenticator = model.authenticator;
   const hasAuth = authenticator !== undefined;
+  const hasBlobStore = application.blobStorePort !== undefined;
   const useCases = routeUseCases(model, application);
   const imports: ImportDeclaration[] = [
     ...useCases.map((useCase) => ({
@@ -45,6 +46,22 @@ export function renderRuntimeFile(
           },
         ]
       : []),
+    ...(application.blobStorePort === undefined
+      ? []
+      : [
+          {
+            from: relativeImportPath(RUNTIME_FILE_PATH, application.blobStorePort.filePath),
+            names: [application.blobStorePort.name],
+            typeOnly: true,
+          },
+          {
+            from: relativeImportPath(
+              RUNTIME_FILE_PATH,
+              "src/adapters/persistence/drizzle-blob-store.ts",
+            ),
+            names: ["createDrizzleBlobStore"],
+          },
+        ]),
     {
       from: relativeImportPath(RUNTIME_FILE_PATH, "src/adapters/db/database.ts"),
       names: ["getDatabase"],
@@ -72,7 +89,7 @@ export function renderRuntimeFile(
   const controllerBindings = useCases
     .map(
       (useCase) =>
-        `    ${useCase.operationId}: ${useCase.factoryName}(repositories.${useCase.repositoryParameterName}),`,
+        `    ${useCase.operationId}: ${useCase.factoryName}(${useCase.usesBlobStore ? "blobStore, " : ""}repositories.${useCase.repositoryParameterName}),`,
     )
     .join("\n");
 
@@ -83,6 +100,7 @@ export function renderRuntimeFile(
       "  controllers: HttpControllers;",
       "  repositories: RuntimeRepositories;",
       ...(hasAuth ? ["  authenticator: Authenticator;"] : []),
+      ...(hasBlobStore ? ["  blobStore: BlobStore;"] : []),
       "};",
     ].join("\n"),
     "let cachedRepositories: RuntimeRepositories | undefined;",
@@ -115,9 +133,7 @@ export function renderRuntimeFile(
         ]
       : []),
     [
-      hasAuth
-        ? "function composeRuntime(repositories: RuntimeRepositories, authenticator: Authenticator = createDefaultAuthenticator()): NextRuntime {"
-        : "function composeRuntime(repositories: RuntimeRepositories): NextRuntime {",
+      renderComposeRuntimeSignature({ hasAuth, hasBlobStore }),
       "  return {",
       hasAuth
         ? "    controllers: createHttpControllers({"
@@ -126,6 +142,7 @@ export function renderRuntimeFile(
       hasAuth ? "    }, authenticator)," : "    }),",
       "    repositories,",
       ...(hasAuth ? ["    authenticator,"] : []),
+      ...(hasBlobStore ? ["    blobStore,"] : []),
       "  };",
       "}",
     ].join("\n"),
@@ -144,6 +161,20 @@ export function renderRuntimeFile(
     contents: renderSourceFile({ imports, statements }),
     ownership: "generated",
   };
+}
+
+function renderComposeRuntimeSignature(options: {
+  hasAuth: boolean;
+  hasBlobStore: boolean;
+}): string {
+  const parameters = ["repositories: RuntimeRepositories"];
+  if (options.hasAuth) {
+    parameters.push("authenticator: Authenticator = createDefaultAuthenticator()");
+  }
+  if (options.hasBlobStore) {
+    parameters.push("blobStore: BlobStore = createDrizzleBlobStore(getDatabase())");
+  }
+  return `function composeRuntime(${parameters.join(", ")}): NextRuntime {`;
 }
 
 function routeUseCases(
