@@ -90,6 +90,38 @@ paths:
           description: Invalid input
         "404":
           description: Pet not found
+  /pet/{petId}/uploadImage:
+    post:
+      operationId: uploadFile
+      x-hexkit:
+        operation:
+          aggregate: PetImage
+          action: insert
+      parameters:
+        - $ref: "#/components/parameters/PetId"
+        - name: additionalMetadata
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "400":
+          description: No file uploaded / invalid input
+        "404":
+          description: Pet not found
   /pet/findByStatus:
     get:
       operationId: findPetsByStatus
@@ -434,3 +466,38 @@ components:
           type: integer
           format: int32
           description: User Status
+    PetImage:
+      type: object
+      x-hexkit:
+        persistence:
+          table: pet_images
+          identity: id
+      required:
+        - id
+        - petId
+        - storageKey
+      properties:
+        id:
+          type: integer
+          format: int64
+        petId:
+          type: integer
+          format: int64
+          x-hexkit:
+            reference:
+              schema: Pet
+              property: id
+        storageKey:
+          type: string
+        additionalMetadata:
+          type: string
+    ApiResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        type:
+          type: string
+        message:
+          type: string
