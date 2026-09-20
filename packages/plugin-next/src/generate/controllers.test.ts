@@ -17,6 +17,7 @@ describe("Given renderControllersFile", () => {
       wrapperName: `${overrides.operationId}Wrapper`,
       wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
       hasJsonRequestBody: false,
+      hasBinaryRequestBody: false,
       hasJsonSuccessBody: true,
       successStatus: "200",
       successMediaType: "application/json",
