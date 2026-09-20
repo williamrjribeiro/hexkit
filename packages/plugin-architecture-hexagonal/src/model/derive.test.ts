@@ -124,4 +124,79 @@ describe("Given a contract with public operations", () => {
       }),
     ]);
   });
+
+  it("when a binary upload aggregate is not persisted, then derivation rejects it", () => {
+    const contract = baseContract([
+      {
+        operationId: "uploadDocument",
+        method: "post",
+        path: "/documents",
+        modulePath: "routes/uploadDocument.ts",
+        parameters: [],
+        requestBody: {
+          required: true,
+          media: [
+            {
+              mediaType: "application/octet-stream",
+              type: { kind: "string", nullable: false, format: "binary" },
+            },
+          ],
+        },
+        responses: [{ status: "200", description: "ok", media: [] }],
+        security: publicSecurity,
+        extension: { aggregate: "Item", action: "upload" },
+      },
+    ]);
+
+    expect(() => deriveApplicationModel(contract)).toThrow(
+      'Binary upload operation "uploadDocument" requires persisted aggregate "Item".',
+    );
+  });
+
+  it("when a binary upload aggregate contains binary bytes, then derivation directs storage to BlobStore", () => {
+    const contract = baseContract([
+      {
+        operationId: "uploadDocument",
+        method: "post",
+        path: "/documents",
+        modulePath: "routes/uploadDocument.ts",
+        parameters: [],
+        requestBody: {
+          required: true,
+          media: [
+            {
+              mediaType: "application/octet-stream",
+              type: { kind: "string", nullable: false, format: "binary" },
+            },
+          ],
+        },
+        responses: [{ status: "200", description: "ok", media: [] }],
+        security: publicSecurity,
+        extension: { aggregate: "Item", action: "upload" },
+      },
+    ]);
+    const schema = contract.schemas[0];
+    if (schema === undefined) throw new Error("Missing Item schema.");
+    const aggregateWithBinaryProperty = {
+      ...contract,
+      schemas: [
+        {
+          ...schema,
+          persistence: { table: "items", identity: "id" },
+          properties: [
+            ...schema.properties,
+            {
+              name: "content",
+              required: true,
+              type: { kind: "string", nullable: false, format: "binary" } as const,
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(() => deriveApplicationModel(aggregateWithBinaryProperty)).toThrow(
+      /Aggregate "Item".*binary.*BlobStore/,
+    );
+  });
 });

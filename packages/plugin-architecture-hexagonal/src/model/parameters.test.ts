@@ -183,6 +183,30 @@ describe("operation parameter derivation", () => {
       ).toThrow(/unsupported request body/);
     });
 
+    it("when request body is octet-stream binary, then body param is Uint8Array", () => {
+      const { parameters } = deriveParameters(
+        operation({
+          operationId: "uploadDocument",
+          method: "post",
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/octet-stream",
+                type: { kind: "string", nullable: false, format: "binary" },
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(parameters).toContainEqual({
+        name: "body",
+        typeExpression: "Uint8Array",
+        location: "body",
+      });
+    });
+
     it("when a query parameter is optional, then the type expression includes undefined", () => {
       expect(
         deriveParameters(

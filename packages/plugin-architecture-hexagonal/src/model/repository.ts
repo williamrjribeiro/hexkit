@@ -1,5 +1,6 @@
 import { pluralizeCamelCase, toKebabCase, unique } from "@hexkit/codegen";
 import type { ContractHttpMethod, ContractOperation } from "@hexkit/plugin-apical";
+import { hasBinaryRequestBody, hasNotFoundResponse } from "@hexkit/shared";
 
 import type { ApplicationParameter, PersistenceKind, ResultCardinality } from "../artifact.ts";
 import { deriveParameters, deriveReturnType } from "./parameters.ts";
@@ -80,6 +81,30 @@ function deriveRepositoryMethod(
   const parameters = deriveParameters(operation);
   const returnType = deriveReturnType(operation);
   const action = operation.extension?.action ?? operation.operationId;
+  if (hasBinaryRequestBody(operation)) {
+    const pathParameters = parameters.parameters.filter(
+      (parameter) => parameter.location === "path",
+    );
+    const queryParameters = parameters.parameters.filter(
+      (parameter) => parameter.location === "query",
+    );
+    return {
+      operationId: operation.operationId,
+      name: operation.operationId,
+      action,
+      parameters: [
+        ...pathParameters,
+        { name: "storageKey", typeExpression: "string" },
+        ...queryParameters,
+      ],
+      returnTypeExpression: hasNotFoundResponse(operation) ? `${aggregate} | undefined` : aggregate,
+      resultCardinality: "one",
+      persistenceKind: "insert",
+      referencedSchemas: [aggregate],
+      successHeaders: [],
+    };
+  }
+
   return {
     operationId: operation.operationId,
     name: operation.operationId,

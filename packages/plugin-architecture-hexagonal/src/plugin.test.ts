@@ -299,6 +299,61 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
     });
   });
 
+  describe("Given the upload API contract", () => {
+    it("when the hexagonal plugin runs, then it emits the BlobStore port and two-port upload use case", async () => {
+      const { files, artifact } = await collectGeneratedFiles(createUploadContract());
+
+      expect(files.find((file) => file.path === "src/core/ports/blob-store.ts")).toMatchObject({
+        ownership: "generated",
+        contents: `export type BlobPutResult = { key: string };
+
+export type BlobStore = {
+  put(bytes: Uint8Array): Promise<BlobPutResult>;
+  get(key: string): Promise<Uint8Array | undefined>;
+  delete(key: string): Promise<boolean>;
+};
+`,
+      });
+      expect(
+        files.find((file) => file.path === "src/core/ports/document-repository.ts")?.contents,
+      ).toContain(
+        "uploadDocument(widgetId: string, storageKey: string, additionalMetadata: string | undefined): Promise<Document | undefined>;",
+      );
+      expect(
+        files.find((file) => file.path === "src/core/application/upload-document.ts")?.contents,
+      ).toMatchInlineSnapshot(`
+        "import type { UploadReceipt } from "../domain/upload-receipt.ts";
+        import type { BlobStore } from "../ports/blob-store.ts";
+        import type { DocumentRepository } from "../ports/document-repository.ts";
+
+        export type UploadDocument = (widgetId: string, additionalMetadata: string | undefined, body: Uint8Array) => Promise<UploadReceipt | undefined>;
+
+        export function createUploadDocument(
+          blobs: BlobStore,
+          documents: DocumentRepository,
+        ): UploadDocument {
+          return async (widgetId, additionalMetadata, body) => {
+            const { key } = await blobs.put(body);
+            const saved = await documents.uploadDocument(widgetId, key, additionalMetadata);
+            if (saved === undefined) return undefined;
+            return { code: 200, type: "unknown", message: additionalMetadata ?? "" };
+          };
+        }
+        "
+      `);
+      expect(artifact.blobStorePort).toEqual({
+        name: "BlobStore",
+        filePath: "src/core/ports/blob-store.ts",
+      });
+      expect(artifact.useCases).toContainEqual(
+        expect.objectContaining({
+          operationId: "uploadDocument",
+          usesBlobStore: true,
+        }),
+      );
+    });
+  });
+
   describe("Given a ContractArtifact with secured and public operations", () => {
     it("when an operation requires security, then the use case type accepts Principal first", async () => {
       const { files } = await collectGeneratedFiles(createAuthContract());
@@ -539,6 +594,106 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
           ],
           security: publicSecurity,
           extension: { aggregate: "Item", action: "getHealth" },
+        },
+      ],
+    };
+  }
+
+  function createUploadContract(): ContractArtifact {
+    const stringType = { kind: "string", nullable: false } as const;
+    return {
+      artifactVersion: 1,
+      openapiVersion: "3.1.0",
+      application: {
+        title: "Upload API Fixture",
+        version: "1.0.0",
+        slug: "upload-api-fixture",
+      },
+      schemas: [
+        {
+          name: "Widget",
+          modulePath: "schemas/Widget.ts",
+          persistence: { table: "widgets", identity: "id" },
+          properties: [
+            { name: "id", required: true, type: stringType },
+            { name: "name", required: true, type: stringType },
+          ],
+        },
+        {
+          name: "Document",
+          modulePath: "schemas/Document.ts",
+          persistence: { table: "documents", identity: "id" },
+          properties: [
+            { name: "id", required: true, type: stringType },
+            {
+              name: "widgetId",
+              required: true,
+              type: stringType,
+              reference: { schema: "Widget", property: "id" },
+            },
+            { name: "storageKey", required: true, type: stringType },
+            { name: "additionalMetadata", required: false, type: stringType },
+          ],
+        },
+        {
+          name: "UploadReceipt",
+          modulePath: "schemas/UploadReceipt.ts",
+          properties: [
+            {
+              name: "code",
+              required: false,
+              type: { kind: "integer", nullable: false },
+            },
+            { name: "type", required: false, type: stringType },
+            { name: "message", required: false, type: stringType },
+          ],
+        },
+      ],
+      securitySchemes: [],
+      globalSecurity: [],
+      operations: [
+        {
+          operationId: "uploadDocument",
+          method: "post",
+          path: "/widgets/{widgetId}/documents",
+          modulePath: "routes/uploadDocument.ts",
+          parameters: [
+            { name: "widgetId", location: "path", required: true, type: stringType },
+            {
+              name: "additionalMetadata",
+              location: "query",
+              required: false,
+              type: stringType,
+            },
+          ],
+          requestBody: {
+            required: true,
+            media: [
+              {
+                mediaType: "application/octet-stream",
+                type: { kind: "string", nullable: false, format: "binary" },
+              },
+            ],
+          },
+          responses: [
+            {
+              status: "200",
+              description: "ok",
+              media: [
+                {
+                  mediaType: "application/json",
+                  type: { kind: "reference", nullable: false, schema: "UploadReceipt" },
+                },
+              ],
+            },
+            { status: "404", description: "widget missing", media: [] },
+          ],
+          security: {
+            overridesGlobal: true,
+            requirements: [],
+            apicalServerHeaderNames: [],
+          },
+          extension: { aggregate: "Document", action: "upload" },
         },
       ],
     };

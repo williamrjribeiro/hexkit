@@ -1,6 +1,6 @@
 import { toCamelCase, unique } from "@hexkit/codegen";
 import type { ContractOperation, ContractParameter, ContractType } from "@hexkit/plugin-apical";
-import { findJsonMedia, isSuccessStatus } from "@hexkit/shared";
+import { findJsonMedia, findOctetStreamMedia, isSuccessStatus } from "@hexkit/shared";
 
 import type { ApplicationParameter, ResultCardinality } from "../artifact.ts";
 import { renderContractType } from "./type-render.ts";
@@ -18,11 +18,18 @@ export function deriveParameters(operation: ContractOperation): {
     );
   }
 
-  const requestMedia = findJsonMedia(operation.requestBody?.media);
+  const jsonMedia = findJsonMedia(operation.requestBody?.media);
+  const binaryMedia = findOctetStreamMedia(operation.requestBody?.media);
 
-  if (operation.requestBody !== undefined && requestMedia?.type === undefined) {
+  if (operation.requestBody !== undefined && jsonMedia === undefined && binaryMedia === undefined) {
     throw new Error(
-      `Operation "${operation.operationId}" declares an unsupported request body. Hexagonal generation supports application/json request bodies with a schema.`,
+      `Operation "${operation.operationId}" declares an unsupported request body. Hexagonal generation supports application/json or application/octet-stream (format: binary).`,
+    );
+  }
+
+  if (jsonMedia !== undefined && binaryMedia !== undefined) {
+    throw new Error(
+      `Operation "${operation.operationId}" declares both JSON and octet-stream request bodies.`,
     );
   }
 
@@ -34,7 +41,17 @@ export function deriveParameters(operation: ContractOperation): {
     renderOperationParameter(parameter),
   );
 
-  const body = deriveBodyParameter(requestMedia?.type);
+  const body =
+    binaryMedia === undefined
+      ? deriveBodyParameter(jsonMedia?.type)
+      : {
+          parameter: {
+            name: "body",
+            typeExpression: "Uint8Array",
+            location: "body" as const,
+          },
+          referencedSchemas: [],
+        };
   const parameters = [
     ...renderedPathAndQuery.map((entry) => entry.parameter),
     ...(body === undefined ? [] : [body.parameter]),
