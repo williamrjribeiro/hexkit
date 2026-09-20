@@ -46,6 +46,8 @@ describe("CLI generate command", () => {
     "routes/updatePet.ts",
     "routes/updatePetWithForm.ts",
     "routes/updateUser.ts",
+    "routes/uploadFile.ts",
+    "schemas/ApiResponseSchema.ts",
     "schemas/Category.ts",
     "schemas/CreateUsersWithListInputRequest.ts",
     "schemas/FindPetsByStatus200Response.ts",
@@ -53,7 +55,9 @@ describe("CLI generate command", () => {
     "schemas/LoginUser200Response.ts",
     "schemas/Order.ts",
     "schemas/Pet.ts",
+    "schemas/PetImage.ts",
     "schemas/Tag.ts",
+    "schemas/UploadFileRequest.ts",
     "schemas/User.ts",
     "schemas/addPetParameters.ts",
     "schemas/createUserParameters.ts",
@@ -74,6 +78,7 @@ describe("CLI generate command", () => {
     "schemas/updatePetParameters.ts",
     "schemas/updatePetWithFormParameters.ts",
     "schemas/updateUserParameters.ts",
+    "schemas/uploadFileParameters.ts",
     "server/addPet.ts",
     "server/createUser.ts",
     "server/createUsersWithListInput.ts",
@@ -92,6 +97,7 @@ describe("CLI generate command", () => {
     "server/updatePet.ts",
     "server/updatePetWithForm.ts",
     "server/updateUser.ts",
+    "server/uploadFile.ts",
     "standard-schema.ts",
     "tsconfig.json",
   ] as const;
@@ -118,12 +124,15 @@ describe("CLI generate command", () => {
   const libraryContract = new URL("../../fixtures/library-api/openapi.yaml", import.meta.url);
 
   const petstoreSchemasIndex = `
+  import { ApiResponseSchema } from "./ApiResponseSchema.ts";
   import { Category } from "./Category.ts";
   import { Order } from "./Order.ts";
   import { Pet } from "./Pet.ts";
+  import { PetImage } from "./PetImage.ts";
   import { Tag } from "./Tag.ts";
+  import { UploadFileRequest } from "./UploadFileRequest.ts";
   import { User } from "./User.ts";
-  export { Category, Order, Pet, Tag, User };
+  export { ApiResponseSchema, Category, Order, Pet, PetImage, Tag, UploadFileRequest, User };
   `;
 
   const petstoreRoutesIndex = `
@@ -134,6 +143,7 @@ describe("CLI generate command", () => {
   import { serverRoute as deletePetRoute } from "./deletePet.ts";
   import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
   import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
+  import { serverRoute as uploadFileRoute } from "./uploadFile.ts";
   import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
   import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
   import { serverRoute as deleteOrderRoute } from "./deleteOrder.ts";
@@ -152,6 +162,7 @@ describe("CLI generate command", () => {
     deletePet: deletePetRoute,
     findPetsByStatus: findPetsByStatusRoute,
     findPetsByTags: findPetsByTagsRoute,
+    uploadFile: uploadFileRoute,
     placeOrder: placeOrderRoute,
     getOrderById: getOrderByIdRoute,
     deleteOrder: deleteOrderRoute,
