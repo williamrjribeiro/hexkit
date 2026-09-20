@@ -26,6 +26,7 @@ paths:
       x-hexkit:
         operation:
           aggregate: Document
+          action: insert
       parameters:
         - name: widgetId
           in: path

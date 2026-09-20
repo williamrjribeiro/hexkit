@@ -16,6 +16,8 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
     .pathname;
   const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
     .pathname;
+  const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -57,13 +59,27 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
     ]),
   };
 
+  const uploadModules = {
+    schemas: new Map([
+      ["Widget", "schemas/Widget.ts"],
+      ["Document", "schemas/Document.ts"],
+      ["UploadReceipt", "schemas/UploadReceipt.ts"],
+    ]),
+    operations: new Map([
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["uploadDocument", "routes/uploadDocument.ts"],
+    ]),
+  };
+
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
+  let uploadContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
+      loadNormalizedContract(uploadOpenApi, uploadModules),
     ]);
   });
 
@@ -301,7 +317,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
 
   describe("Given the upload API contract", () => {
     it("when the hexagonal plugin runs, then it emits the BlobStore port and two-port upload use case", async () => {
-      const { files, artifact } = await collectGeneratedFiles(createUploadContract());
+      const { files, artifact } = await collectGeneratedFiles(uploadContract);
 
       expect(files.find((file) => file.path === "src/core/ports/blob-store.ts")).toMatchObject({
         ownership: "generated",
@@ -594,106 +610,6 @@ export type BlobStore = {
           ],
           security: publicSecurity,
           extension: { aggregate: "Item", action: "getHealth" },
-        },
-      ],
-    };
-  }
-
-  function createUploadContract(): ContractArtifact {
-    const stringType = { kind: "string", nullable: false } as const;
-    return {
-      artifactVersion: 1,
-      openapiVersion: "3.1.0",
-      application: {
-        title: "Upload API Fixture",
-        version: "1.0.0",
-        slug: "upload-api-fixture",
-      },
-      schemas: [
-        {
-          name: "Widget",
-          modulePath: "schemas/Widget.ts",
-          persistence: { table: "widgets", identity: "id" },
-          properties: [
-            { name: "id", required: true, type: stringType },
-            { name: "name", required: true, type: stringType },
-          ],
-        },
-        {
-          name: "Document",
-          modulePath: "schemas/Document.ts",
-          persistence: { table: "documents", identity: "id" },
-          properties: [
-            { name: "id", required: true, type: stringType },
-            {
-              name: "widgetId",
-              required: true,
-              type: stringType,
-              reference: { schema: "Widget", property: "id" },
-            },
-            { name: "storageKey", required: true, type: stringType },
-            { name: "additionalMetadata", required: false, type: stringType },
-          ],
-        },
-        {
-          name: "UploadReceipt",
-          modulePath: "schemas/UploadReceipt.ts",
-          properties: [
-            {
-              name: "code",
-              required: false,
-              type: { kind: "integer", nullable: false },
-            },
-            { name: "type", required: false, type: stringType },
-            { name: "message", required: false, type: stringType },
-          ],
-        },
-      ],
-      securitySchemes: [],
-      globalSecurity: [],
-      operations: [
-        {
-          operationId: "uploadDocument",
-          method: "post",
-          path: "/widgets/{widgetId}/documents",
-          modulePath: "routes/uploadDocument.ts",
-          parameters: [
-            { name: "widgetId", location: "path", required: true, type: stringType },
-            {
-              name: "additionalMetadata",
-              location: "query",
-              required: false,
-              type: stringType,
-            },
-          ],
-          requestBody: {
-            required: true,
-            media: [
-              {
-                mediaType: "application/octet-stream",
-                type: { kind: "string", nullable: false, format: "binary" },
-              },
-            ],
-          },
-          responses: [
-            {
-              status: "200",
-              description: "ok",
-              media: [
-                {
-                  mediaType: "application/json",
-                  type: { kind: "reference", nullable: false, schema: "UploadReceipt" },
-                },
-              ],
-            },
-            { status: "404", description: "widget missing", media: [] },
-          ],
-          security: {
-            overridesGlobal: true,
-            requirements: [],
-            apicalServerHeaderNames: [],
-          },
-          extension: { aggregate: "Document", action: "upload" },
         },
       ],
     };
