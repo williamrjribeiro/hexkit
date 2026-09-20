@@ -1,65 +1,68 @@
-# Task 4 Report: CLI `--http` selection and Next packaging
+# Task 4 Report — Drizzle BlobStore and metadata insert
 
 ## Status
 
-Implemented CLI selection for Hono vs Next, Next surface selection, Next packaging output, and Next DB bootstrap generation.
-
-## Changes
-
-- Added `hexkit generate <openapi> <output> [--http hono|next] [--next-surface both|routes|rsc]`.
-- Kept Hono as the default HTTP adapter.
-- Added validation so `--next-surface` without `--http next` exits with an error.
-- Added `createDefaultPlugins({ apical?, http?, nextSurface? })`.
-- Wired the Next pipeline as `apical -> architecture-hexagonal -> next(surface) -> drizzle -> packaging(next)`.
-- Added Next packaging files:
-  - `package.json` with Next, React, React DOM, Drizzle, Postgres, Zod, and scripts.
-  - `next.config.ts`, `next-env.d.ts`, and App Router `tsconfig.json`.
-  - `Dockerfile`, `.dockerignore`, and `docker-compose.yml` for Next + Postgres.
-  - `src/adapters/db/database.ts` exporting `getDatabase()` for generated Next runtime/server-access imports.
-- Added `packages/plugin-next/src` to CLI domain-agnostic scan roots.
-- Added `@hexkit/plugin-next` to `apps/cli` dependencies and lockfile.
-- Added `apps/cli/src/next-generation.test.ts`.
+Implemented the default Drizzle `BlobStore`, conditional `hexkit_blobs`
+migration, and binary-upload metadata persistence for the domain-agnostic
+`upload-api` fixture.
 
 ## TDD evidence
 
-Red checks observed:
+### RED
 
-- New CLI and Next generation tests failed on missing help/options parsing, Hono-only pipeline, missing CLI dependency, and missing Next generated output.
-- Added a Dockerfile assertion after self-review; it failed because the generated Next Dockerfile used `pnpm install --prod` before `next build`.
+Added two fixture-driven tests in
+`packages/plugin-drizzle/src/plugin.test.ts`, committed as `ee68123`:
 
-Green checks observed:
+1. BlobStore adapter and `hexkit_blobs` migration emission.
+2. Metadata insert with parent lookup, optional query metadata, aggregate
+   return, and no binary repository argument.
 
-- Updated CLI parser, pipeline wiring, dependency graph, and Next packaging.
-- Updated Next Dockerfile generation to install build dependencies before `pnpm build`, then prune production dependencies.
+After rebuilding workspace packages, `vp run --filter
+@hexkit/plugin-drizzle test` failed exactly those two tests:
+
+- Adapter lookup returned an empty string because no
+  `src/adapters/persistence/drizzle-blob-store.ts` was generated.
+- The repository still emitted `.values(storageKey)` and had no parent lookup.
+
+Result: 2 failed, 71 passed.
+
+### GREEN
+
+Implemented the adapter and metadata insert, committed as `856c470`. Rebuilt
+workspace packages and reran the same focused suite.
+
+Result: 10 test files passed; 73 tests passed.
+
+## Implementation
+
+- Emits `src/adapters/persistence/drizzle-blob-store.ts` only when the
+  hexagonal artifact has a `blobStorePort`.
+- Defines `hexkit_blobs` with a text primary key and `bytea` content using
+  Drizzle buffer mode.
+- Implements UUID-backed `put`, byte-preserving `get`, and boolean `delete`.
+- Adds the infra table to the generated SQL migration only for BlobStore apps.
+- Detects binary-upload repository methods from the octet-stream contract
+  operation.
+- Checks referenced parents before metadata insertion and returns `undefined`
+  for contracts with a 404 result.
+- Inserts path/query columns plus `storageKey`; optional query values are
+  omitted when undefined.
+- Returns the persisted aggregate so the hexagonal use case can produce the
+  receipt stub.
+- Uses UUIDs for text metadata identities and generated Postgres identities
+  for integer metadata identities.
+- Keeps domain columns free of `bytea`.
 
 ## Verification
 
-Passing:
-
-- `vp run @hexkit/plugin-next#build`
-- `vp run @hexkit/cli#test -- apps/cli/src/command.test.ts apps/cli/src/next-generation.test.ts`
-- `vp run @hexkit/plugin-next#test`
-- `vp run @hexkit/cli#check`
-- `vp run @hexkit/plugin-next#check`
-- `vp run @hexkit/cli#build`
-- `git diff --check`
-
-Known unrelated check issue:
-
-- Root `vp check` still fails on formatting in:
-  - `docs/superpowers/plans/2026-08-11-nextjs-route-handlers.md`
-  - `docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`
-- These docs were already outside the Task 4 edit set, so I left them untouched.
-
-## Self-review
-
-- Hono default path remains unchanged: existing assembled Petstore/Library/auth CLI tests pass.
-- Next path emits no Hono `src/runtime/server.ts`.
-- `routes` surface emits route handlers plus `server-access`, without `app/ui/**`.
-- `rsc` surface emits contract-path pages plus `server-access`, without route handlers/runtime/controllers.
-- Next `server-access` and runtime imports now resolve through generated `src/adapters/db/database.ts`.
-- Domain-agnostic scanner now includes `packages/plugin-next/src`.
+- `vp run --filter './packages/*' --filter './apps/cli' build`: passed for all
+  11 projects.
+- `vp check`: all 278 files formatted; no warnings, lint errors, or type errors
+  across 207 checked files.
+- `vp run --filter './packages/*' --filter './apps/cli' test`: all package and
+  CLI suites passed (488 tests).
+- Focused Drizzle suite: 10 files and 73 tests passed.
 
 ## Concerns
 
-- Clean CLI test runs that import `@hexkit/plugin-next` require the plugin-next package entry to be built first (`vp run @hexkit/plugin-next#build`), matching the repo's dist-backed package export pattern.
+None.
