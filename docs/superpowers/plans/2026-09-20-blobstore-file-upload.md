@@ -56,7 +56,7 @@ Open each PR against its base branch (not all against `main`). Merge bottom-up.
 | `apps/petstore-sample/tests/api/pet/post-upload.test.ts`                 | Pactum upload cases                             | 2     |
 | `apps/petstore-sample/tests/api/helpers/blob-db.ts`                      | Compose DB blob assertion                       | 2     |
 | `docs/petstore-openapi-progress.md`                                      | Hono then Next `partial`                        | 2 / 3 |
-| `apps/petstore-next/**` (generated + optional UI)                        | Route Handler / server-access                   | 3     |
+| `apps/petstore-next/**` (generated; form UI is a later follow-up)        | Route Handler / server-access                   | 3     |
 
 ---
 
