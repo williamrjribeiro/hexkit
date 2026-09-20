@@ -114,16 +114,20 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
       const { files, artifact } = await collectGeneratedFiles(petstoreContract);
 
       expect(files.map((file) => ({ path: file.path, ownership: file.ownership }))).toEqual([
+        { path: "src/core/domain/api-response.ts", ownership: "generated" },
         { path: "src/core/domain/category.ts", ownership: "generated" },
         { path: "src/core/domain/order.ts", ownership: "generated" },
         { path: "src/core/domain/pet.ts", ownership: "generated" },
+        { path: "src/core/domain/pet-image.ts", ownership: "generated" },
         { path: "src/core/domain/tag.ts", ownership: "generated" },
         { path: "src/core/domain/user.ts", ownership: "generated" },
         { path: "src/core/domain/auth-principal.ts", ownership: "generated" },
         { path: "src/core/ports/order-repository.ts", ownership: "generated" },
         { path: "src/core/ports/pet-repository.ts", ownership: "generated" },
+        { path: "src/core/ports/pet-image-repository.ts", ownership: "generated" },
         { path: "src/core/ports/user-repository.ts", ownership: "generated" },
         { path: "src/core/ports/authenticator.ts", ownership: "generated" },
+        { path: "src/core/ports/blob-store.ts", ownership: "generated" },
         { path: "src/core/application/add-pet.ts", ownership: "protected" },
         { path: "src/core/application/create-user.ts", ownership: "protected" },
         { path: "src/core/application/create-users-with-list-input.ts", ownership: "protected" },
@@ -141,6 +145,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
         { path: "src/core/application/update-pet.ts", ownership: "protected" },
         { path: "src/core/application/update-pet-with-form.ts", ownership: "protected" },
         { path: "src/core/application/update-user.ts", ownership: "protected" },
+        { path: "src/core/application/upload-file.ts", ownership: "protected" },
       ]);
 
       expect(files.find((file) => file.path === "src/core/domain/pet.ts")?.contents)
@@ -209,9 +214,11 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
       expect(artifact).toMatchObject({
         artifactVersion: 1,
         entities: [
+          { name: "ApiResponse", filePath: "src/core/domain/api-response.ts" },
           { name: "Category", filePath: "src/core/domain/category.ts" },
           { name: "Order", filePath: "src/core/domain/order.ts" },
           { name: "Pet", filePath: "src/core/domain/pet.ts" },
+          { name: "PetImage", filePath: "src/core/domain/pet-image.ts" },
           { name: "Tag", filePath: "src/core/domain/tag.ts" },
           { name: "User", filePath: "src/core/domain/user.ts" },
         ],
@@ -239,6 +246,12 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
               { operationId: "updatePet", name: "updatePet" },
               { operationId: "updatePetWithForm", name: "updatePetWithForm" },
             ],
+          },
+          {
+            aggregate: "PetImage",
+            name: "PetImageRepository",
+            parameterName: "petImages",
+            methods: [{ operationId: "uploadFile", name: "uploadFile" }],
           },
           {
             aggregate: "User",
