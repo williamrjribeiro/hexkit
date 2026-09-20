@@ -193,7 +193,8 @@ export function normalizeSchemas(
       throw new Error(`${location} must be an object schema.`);
     }
 
-    const modulePath = generatedModules.schemas.get(name);
+    const modulePath =
+      generatedModules.schemas.get(name) ?? generatedModules.schemas.get(`${name}Schema`);
     if (modulePath === undefined) {
       throw new Error(
         `OpenAPI schema "${name}" has no matching export in Apical schemas/index.ts.`,
