@@ -1,3 +1,4 @@
+import { ApiResponseSchema } from "./ApiResponseSchema.ts";
 import { Category } from "./Category.ts";
 import { CreateUsersWithListInputRequest } from "./CreateUsersWithListInputRequest.ts";
 import {
@@ -33,6 +34,7 @@ import {
 } from "./loginUserParameters.ts";
 import { Order } from "./Order.ts";
 import { Pet } from "./Pet.ts";
+import { PetImage } from "./PetImage.ts";
 import { Tag } from "./Tag.ts";
 import {
   updatePetWithFormQuerySchema,
@@ -41,9 +43,15 @@ import {
 import {
   updateUserPathSchema,
 } from "./updateUserParameters.ts";
+import {
+  uploadFileQuerySchema,
+  uploadFilePathSchema,
+} from "./uploadFileParameters.ts";
+import { UploadFileRequest } from "./UploadFileRequest.ts";
 import { User } from "./User.ts";
 
 export {
+  ApiResponseSchema,
   Category,
   CreateUsersWithListInputRequest,
   FindPetsByStatus200Response,
@@ -51,7 +59,9 @@ export {
   LoginUser200Response,
   Order,
   Pet,
+  PetImage,
   Tag,
+  UploadFileRequest,
   User,
   deleteOrderPathSchema,
   deletePetPathSchema,
@@ -66,4 +76,6 @@ export {
   updatePetWithFormPathSchema,
   updatePetWithFormQuerySchema,
   updateUserPathSchema,
+  uploadFilePathSchema,
+  uploadFileQuerySchema,
 };

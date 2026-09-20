@@ -15,21 +15,27 @@ import { createPlaceOrder } from "../../core/application/place-order.ts";
 import { createUpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import { createUpdatePet } from "../../core/application/update-pet.ts";
 import { createUpdateUser } from "../../core/application/update-user.ts";
+import { createUploadFile } from "../../core/application/upload-file.ts";
 import type { Authenticator } from "../../core/ports/authenticator.ts";
+import type { BlobStore } from "../../core/ports/blob-store.ts";
 import type { OrderRepository } from "../../core/ports/order-repository.ts";
+import type { PetImageRepository } from "../../core/ports/pet-image-repository.ts";
 import type { PetRepository } from "../../core/ports/pet-repository.ts";
 import type { UserRepository } from "../../core/ports/user-repository.ts";
 import { createInMemoryAuthenticator } from "../auth/in-memory-authenticator.ts";
 import { getDatabase } from "../db/database.ts";
 import { createDrizzleOrderRepository } from "../db/order-repository.ts";
+import { createDrizzlePetImageRepository } from "../db/pet-image-repository.ts";
 import { createDrizzlePetRepository } from "../db/pet-repository.ts";
 import { createDrizzleUserRepository } from "../db/user-repository.ts";
+import { createDrizzleBlobStore } from "../persistence/drizzle-blob-store.ts";
 import { createHttpControllers } from "./controllers.ts";
 import type { HttpControllers } from "./controllers.ts";
 
 export type RuntimeRepositories = {
   orders: OrderRepository;
   pets: PetRepository;
+  petImages: PetImageRepository;
   users: UserRepository;
 };
 
@@ -37,6 +43,7 @@ export type NextRuntime = {
   controllers: HttpControllers;
   repositories: RuntimeRepositories;
   authenticator: Authenticator;
+  blobStore: BlobStore;
 };
 
 let cachedRepositories: RuntimeRepositories | undefined;
@@ -49,6 +56,7 @@ function getRepositories(): RuntimeRepositories {
     cachedRepositories = {
     orders: createDrizzleOrderRepository(db),
     pets: createDrizzlePetRepository(db),
+    petImages: createDrizzlePetImageRepository(db),
     users: createDrizzleUserRepository(db),
     };
   }
@@ -62,7 +70,7 @@ function createDefaultAuthenticator(): Authenticator {
   });
 }
 
-function composeRuntime(repositories: RuntimeRepositories, authenticator: Authenticator = createDefaultAuthenticator()): NextRuntime {
+function composeRuntime(repositories: RuntimeRepositories, authenticator: Authenticator = createDefaultAuthenticator(), blobStore: BlobStore = createDrizzleBlobStore(getDatabase())): NextRuntime {
   return {
     controllers: createHttpControllers({
     addPet: createAddPet(repositories.pets),
@@ -82,9 +90,11 @@ function composeRuntime(repositories: RuntimeRepositories, authenticator: Authen
     updatePet: createUpdatePet(repositories.pets),
     updatePetWithForm: createUpdatePetWithForm(repositories.pets),
     updateUser: createUpdateUser(repositories.users),
+    uploadFile: createUploadFile(blobStore, repositories.petImages),
     }, authenticator),
     repositories,
     authenticator,
+    blobStore,
   };
 }
 

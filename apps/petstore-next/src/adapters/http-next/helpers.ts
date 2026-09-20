@@ -7,7 +7,14 @@ type ApicalRequest = {
   path: unknown;
   headers: unknown;
   body?: unknown;
-  contentType?: "application/json";
+};
+type JsonApicalRequest = ApicalRequest & {
+  body: unknown;
+  contentType: "application/json";
+};
+type BinaryApicalRequest = ApicalRequest & {
+  body: Blob;
+  contentType: "application/octet-stream";
 };
 
 function toApicalHeaders(headers: Headers): Record<string, string> {
@@ -66,17 +73,48 @@ function parseApicalQuery(
   return query;
 }
 
+export function toApicalRequest(
+  request: NextRequest,
+  params: Record<string, string>,
+  options: { jsonBody: true; binaryBody?: false; arrayQueryKeys?: readonly string[] },
+): Promise<JsonApicalRequest>;
+export function toApicalRequest(
+  request: NextRequest,
+  params: Record<string, string>,
+  options: { jsonBody: false; binaryBody: true; arrayQueryKeys?: readonly string[] },
+): Promise<BinaryApicalRequest>;
+export function toApicalRequest(
+  request: NextRequest,
+  params: Record<string, string>,
+  options: { jsonBody: false; binaryBody?: false; arrayQueryKeys?: readonly string[] },
+): Promise<ApicalRequest>;
 export async function toApicalRequest(
   request: NextRequest,
   params: Record<string, string>,
-  options: { jsonBody: boolean; arrayQueryKeys?: readonly string[] },
-): Promise<ApicalRequest> {
+  options: { jsonBody: boolean; binaryBody?: boolean; arrayQueryKeys?: readonly string[] },
+): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest> {
   const query = parseApicalQuery(request.nextUrl.searchParams, options.arrayQueryKeys ?? []);
   const baseRequest: ApicalRequest = {
     query,
     path: params,
     headers: toApicalHeaders(request.headers),
   };
+
+  if (options.binaryBody) {
+    const contentType = request.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().startsWith("application/octet-stream")) {
+      throw new RequestValidationError("body-error");
+    }
+    const body = new Blob([await request.arrayBuffer()]);
+    if (body.size === 0) {
+      throw new RequestValidationError("body-error");
+    }
+    return {
+      ...baseRequest,
+      body,
+      contentType: "application/octet-stream",
+    };
+  }
 
   if (!options.jsonBody) return baseRequest;
 

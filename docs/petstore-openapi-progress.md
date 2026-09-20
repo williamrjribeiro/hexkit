@@ -47,12 +47,12 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
 | `@hexkit/plugin-hono` | 3         | 17        | 0             | 6         |
-| `@hexkit/plugin-next` | 2         | 17        | 0             | 7         |
+| `@hexkit/plugin-next` | 2         | 18        | 0             | 6         |
 
 Almost all PoC Pet / Order / User routes are **partial** (JSON-only, missing
 Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON media type, and Hono header
 `apiKey` (Petstore `getPetById` dogfood). Remaining **missing** surface: XML, form-urlencoded,
-OAuth, inventory, Next upload, webhooks, and mutualTLS.
+OAuth, inventory, webhooks, and mutualTLS.
 
 ## Operations
 
@@ -65,16 +65,16 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 
 ### Pet
 
-| operationId         | Method / path                   | Hono    | Next    | Notes                                                                                                 |
-| ------------------- | ------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------- |
-| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`                                  |
-| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`                                  |
-| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON + Hono `api_key` dogfood; still need XML and `petstore_auth`                                 |
-| `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)                            |
-| `findPetsByStatus`  | `GET /pet/findByStatus`         | partial | partial | PoC JSON + DB filter; still need XML and `petstore_auth`                                              |
-| `findPetsByTags`    | `GET /pet/findByTags`           | partial | partial | PoC JSON + DB filter (JSONB tag names); still need XML and `petstore_auth`                            |
-| `updatePetWithForm` | `POST /pet/{petId}`             | partial | partial | Query `name` / `status`; still need `petstore_auth`                                                   |
-| `uploadFile`        | `POST /pet/{petId}/uploadImage` | partial | missing | Hono binary octet-stream + BlobStore metadata dogfood; Next support and `petstore_auth` still missing |
+| operationId         | Method / path                   | Hono    | Next    | Notes                                                                                         |
+| ------------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------- |
+| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`                          |
+| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON works; still need XML, form-urlencoded, and `petstore_auth`                          |
+| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON + Hono `api_key` dogfood; still need XML and `petstore_auth`                         |
+| `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)                    |
+| `findPetsByStatus`  | `GET /pet/findByStatus`         | partial | partial | PoC JSON + DB filter; still need XML and `petstore_auth`                                      |
+| `findPetsByTags`    | `GET /pet/findByTags`           | partial | partial | PoC JSON + DB filter (JSONB tag names); still need XML and `petstore_auth`                    |
+| `updatePetWithForm` | `POST /pet/{petId}`             | partial | partial | Query `name` / `status`; still need `petstore_auth`                                           |
+| `uploadFile`        | `POST /pet/{petId}/uploadImage` | partial | partial | Hono and Next binary octet-stream + BlobStore metadata dogfood; `petstore_auth` still missing |
 
 Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
 the PoC slice (Phase 1); that is covered by the Pet rows above, not as a

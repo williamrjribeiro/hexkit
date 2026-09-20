@@ -212,6 +212,7 @@ describe("Given Next.js CLI generation", () => {
     expect(paths).toEqual(
       expect.arrayContaining([
         "app/pet/[petId]/route.ts",
+        "app/pet/[petId]/uploadImage/route.ts",
         "app/pet/findByStatus/route.ts",
         "app/pet/findByTags/route.ts",
         "app/user/[username]/route.ts",
@@ -233,6 +234,12 @@ describe("Given Next.js CLI generation", () => {
     );
     expect(generatedFile(result, "src/adapters/http-next/server-access.ts")).toContain(
       "getPetById: (petId) => createGetPetById(repositories.pets)(rscPrincipal, petId),",
+    );
+    expect(generatedFile(result, "src/adapters/http-next/server-access.ts")).toContain(
+      "uploadFile: createUploadFile(blobStore, repositories.petImages),",
+    );
+    expect(generatedFile(result, "src/adapters/http-next/runtime.ts")).toContain(
+      "blobStore: BlobStore = createDrizzleBlobStore(getDatabase())",
     );
   });
 

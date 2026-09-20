@@ -4,6 +4,7 @@ import { route as updatePetRoute } from "./updatePet.ts";
 import { route as getPetByIdRoute } from "./getPetById.ts";
 import { route as updatePetWithFormRoute } from "./updatePetWithForm.ts";
 import { route as deletePetRoute } from "./deletePet.ts";
+import { route as uploadFileRoute } from "./uploadFile.ts";
 import { route as findPetsByStatusRoute } from "./findPetsByStatus.ts";
 import { route as findPetsByTagsRoute } from "./findPetsByTags.ts";
 import { route as placeOrderRoute } from "./placeOrder.ts";
@@ -23,6 +24,7 @@ export { updatePetWrapper } from "./updatePet.ts";
 export { getPetByIdWrapper } from "./getPetById.ts";
 export { updatePetWithFormWrapper } from "./updatePetWithForm.ts";
 export { deletePetWrapper } from "./deletePet.ts";
+export { uploadFileWrapper } from "./uploadFile.ts";
 export { findPetsByStatusWrapper } from "./findPetsByStatus.ts";
 export { findPetsByTagsWrapper } from "./findPetsByTags.ts";
 export { placeOrderWrapper } from "./placeOrder.ts";
@@ -42,6 +44,7 @@ export type { updatePetHandler } from "./updatePet.ts";
 export type { getPetByIdHandler } from "./getPetById.ts";
 export type { updatePetWithFormHandler } from "./updatePetWithForm.ts";
 export type { deletePetHandler } from "./deletePet.ts";
+export type { uploadFileHandler } from "./uploadFile.ts";
 export type { findPetsByStatusHandler } from "./findPetsByStatus.ts";
 export type { findPetsByTagsHandler } from "./findPetsByTags.ts";
 export type { placeOrderHandler } from "./placeOrder.ts";
@@ -62,6 +65,7 @@ updatePet: updatePetRoute,
 getPetById: getPetByIdRoute,
 updatePetWithForm: updatePetWithFormRoute,
 deletePet: deletePetRoute,
+uploadFile: uploadFileRoute,
 findPetsByStatus: findPetsByStatusRoute,
 findPetsByTags: findPetsByTagsRoute,
 placeOrder: placeOrderRoute,

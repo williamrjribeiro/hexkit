@@ -4,6 +4,7 @@ export { clientRoute as updatePetClientRoute, serverRoute as updatePetServerRout
 export { clientRoute as getPetByIdClientRoute, serverRoute as getPetByIdServerRoute } from "./getPetById.ts";
 export { clientRoute as updatePetWithFormClientRoute, serverRoute as updatePetWithFormServerRoute } from "./updatePetWithForm.ts";
 export { clientRoute as deletePetClientRoute, serverRoute as deletePetServerRoute } from "./deletePet.ts";
+export { clientRoute as uploadFileClientRoute, serverRoute as uploadFileServerRoute } from "./uploadFile.ts";
 export { clientRoute as findPetsByStatusClientRoute, serverRoute as findPetsByStatusServerRoute } from "./findPetsByStatus.ts";
 export { clientRoute as findPetsByTagsClientRoute, serverRoute as findPetsByTagsServerRoute } from "./findPetsByTags.ts";
 export { clientRoute as placeOrderClientRoute, serverRoute as placeOrderServerRoute } from "./placeOrder.ts";
@@ -23,6 +24,7 @@ import { serverRoute as updatePetRoute } from "./updatePet.ts";
 import { serverRoute as getPetByIdRoute } from "./getPetById.ts";
 import { serverRoute as updatePetWithFormRoute } from "./updatePetWithForm.ts";
 import { serverRoute as deletePetRoute } from "./deletePet.ts";
+import { serverRoute as uploadFileRoute } from "./uploadFile.ts";
 import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
 import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
 import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
@@ -43,6 +45,7 @@ export const routes = {
   getPetById: getPetByIdRoute,
   updatePetWithForm: updatePetWithFormRoute,
   deletePet: deletePetRoute,
+  uploadFile: uploadFileRoute,
   findPetsByStatus: findPetsByStatusRoute,
   findPetsByTags: findPetsByTagsRoute,
   placeOrder: placeOrderRoute,

@@ -33,3 +33,12 @@ export const orders = pgTable("orders", {
   status: orderStatus("status").notNull(),
   complete: boolean("complete").notNull(),
 });
+
+export const pet_images = pgTable("pet_images", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  petId: integer("pet_id")
+    .notNull()
+    .references(() => pets.id),
+  storageKey: text("storage_key").notNull(),
+  additionalMetadata: text("additional_metadata"),
+});
