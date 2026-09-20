@@ -4,7 +4,10 @@
  */
 export type UseCaseArgumentInput = {
   requiresAuth: boolean;
-  parameters: readonly { readonly name: string; readonly location?: "path" | "query" }[];
+  parameters: readonly {
+    readonly name: string;
+    readonly location?: "path" | "query" | "body";
+  }[];
 };
 
 export type UseCaseArgumentBodyFlags = {

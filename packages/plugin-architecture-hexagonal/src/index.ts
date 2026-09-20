@@ -7,6 +7,7 @@ export {
   type ApplicationParameter,
   type ApplicationRepository,
   type ApplicationRepositoryMethod,
+  type ApplicationRepositoryParameter,
   type ApplicationUseCase,
   type PersistenceKind,
   type ResultCardinality,
