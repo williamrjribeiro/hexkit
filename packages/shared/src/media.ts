@@ -40,6 +40,31 @@ export function hasJsonRequestBody(operation: ContractOperation): boolean {
 }
 
 /**
+ * First `application/octet-stream` media entry with a binary string schema.
+ *
+ * @param media - Request or response media list. `undefined` is treated as empty.
+ */
+export function findOctetStreamMedia(
+  media: readonly ContractMedia[] | undefined,
+): ContractMedia | undefined {
+  return media?.find(
+    (entry) =>
+      entry.mediaType === "application/octet-stream" &&
+      entry.type?.kind === "string" &&
+      entry.type.format === "binary",
+  );
+}
+
+/**
+ * True when the operation declares an octet-stream binary request body.
+ *
+ * @param operation - Contract operation to inspect.
+ */
+export function hasBinaryRequestBody(operation: ContractOperation): boolean {
+  return findOctetStreamMedia(operation.requestBody?.media) !== undefined;
+}
+
+/**
  * True when the operation declares a `404` response.
  *
  * @param operation - Contract operation to inspect.

@@ -8,7 +8,9 @@ import {
   deriveUseCaseArgumentExpressions,
   extractOpenApiPathParamNames,
   findJsonMedia,
+  findOctetStreamMedia,
   findSuccessResponse,
+  hasBinaryRequestBody,
   hasJsonRequestBody,
   hasNotFoundResponse,
   IN_MEMORY_AUTH_ADAPTER_PATH,
@@ -26,8 +28,10 @@ describe("Given the @hexkit/shared public API", () => {
     expect(IN_MEMORY_AUTH_ADAPTER_PATH).toBe("src/adapters/auth/in-memory-authenticator.ts");
     expect(typeof isSuccessStatus).toBe("function");
     expect(typeof findJsonMedia).toBe("function");
+    expect(typeof findOctetStreamMedia).toBe("function");
     expect(typeof findSuccessResponse).toBe("function");
     expect(typeof hasJsonRequestBody).toBe("function");
+    expect(typeof hasBinaryRequestBody).toBe("function");
     expect(typeof hasNotFoundResponse).toBe("function");
     expect(typeof extractOpenApiPathParamNames).toBe("function");
     expect(typeof openApiPathToHonoPath).toBe("function");

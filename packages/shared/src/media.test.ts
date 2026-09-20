@@ -4,12 +4,15 @@ import type { ContractOperation } from "@hexkit/plugin-apical";
 
 import {
   findJsonMedia,
+  findOctetStreamMedia,
   findSuccessResponse,
+  hasBinaryRequestBody,
   hasJsonRequestBody,
   hasNotFoundResponse,
 } from "./media.ts";
 
 const stringType = { kind: "string", nullable: false } as const;
+const binaryType = { kind: "string", nullable: false, format: "binary" } as const;
 const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
 
 const publicSecurity = {
@@ -125,5 +128,31 @@ describe("Given a request body", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it("finds application/octet-stream media with binary schema", () => {
+    const media = findOctetStreamMedia([
+      {
+        mediaType: "application/octet-stream",
+        type: binaryType,
+      },
+    ]);
+    expect(media?.mediaType).toBe("application/octet-stream");
+  });
+
+  it("hasBinaryRequestBody is true for octet-stream operations", () => {
+    expect(
+      hasBinaryRequestBody(
+        operation({
+          operationId: "uploadDocument",
+          method: "post",
+          path: "/widgets/{widgetId}/documents",
+          requestBody: {
+            required: true,
+            media: [{ mediaType: "application/octet-stream", type: binaryType }],
+          },
+        }),
+      ),
+    ).toBe(true);
   });
 });

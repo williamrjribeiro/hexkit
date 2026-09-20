@@ -8,7 +8,9 @@ export {
 } from "./controller-binding.ts";
 export {
   findJsonMedia,
+  findOctetStreamMedia,
   findSuccessResponse,
+  hasBinaryRequestBody,
   hasJsonRequestBody,
   hasNotFoundResponse,
 } from "./media.ts";
@@ -30,4 +32,4 @@ export {
 } from "./security-render.ts";
 export { isSuccessStatus } from "./status.ts";
 export { deriveUseCaseArgumentExpressions } from "./use-case-args.ts";
-export type { UseCaseArgumentInput } from "./use-case-args.ts";
+export type { UseCaseArgumentBodyFlags, UseCaseArgumentInput } from "./use-case-args.ts";
