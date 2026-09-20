@@ -75,7 +75,15 @@ function renderBlobStoreFactory(
   const queryArguments = useCase.parameters
     .filter((parameter) => parameter.location === "query")
     .map((parameter) => parameter.name);
+  const contentTypeParameter = useCase.parameters.find(
+    (parameter) => parameter.location === "contentType",
+  );
   const bodyParameter = useCase.parameters.find((parameter) => parameter.location === "body");
+  if (contentTypeParameter === undefined) {
+    throw new Error(
+      `BlobStore use case "${useCase.operationId}" is missing its content type parameter.`,
+    );
+  }
   if (bodyParameter === undefined) {
     throw new Error(
       `BlobStore use case "${useCase.operationId}" is missing its binary body parameter.`,
@@ -92,6 +100,7 @@ function renderBlobStoreFactory(
     `  ${useCase.repositoryParameterName}: ${useCase.repositoryName},`,
     `): ${useCase.typeName} {`,
     `  return async (${factoryParameters.join(", ")}) => {`,
+    `    void ${contentTypeParameter.name};`,
     `    const { key } = await blobs.put(${bodyParameter.name});`,
     `    const saved = await ${useCase.repositoryParameterName}.${useCase.methodName}(${repositoryArguments});`,
     "    if (saved === undefined) return undefined;",

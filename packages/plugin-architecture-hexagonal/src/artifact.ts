@@ -9,7 +9,7 @@ export type ApplicationEntity = {
 export type ApplicationParameter = {
   name: string;
   typeExpression: string;
-  location?: "path" | "query" | "body";
+  location?: "path" | "query" | "contentType" | "body";
 };
 
 export type ApplicationRepositoryParameter = Omit<ApplicationParameter, "location"> & {

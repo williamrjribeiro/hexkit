@@ -180,7 +180,7 @@ describe("operation parameter derivation", () => {
             },
           }),
         ),
-      ).toThrow(/unsupported request body/);
+      ).toThrow(/must declare a typed application\/json schema or a string schema/);
     });
 
     it("when a request body declares both json and octet-stream, then the calculation throws", () => {
@@ -204,14 +204,29 @@ describe("operation parameter derivation", () => {
             },
           }),
         ),
-      ).toThrow("declares both JSON and octet-stream request bodies");
+      ).toThrow("cannot declare both JSON and binary request bodies");
     });
 
-    it("when request body is octet-stream binary, then body param is Uint8Array", () => {
+    it("when request body has multiple binary content types, then contentType precedes body", () => {
       const { parameters } = deriveParameters(
         operation({
           operationId: "uploadDocument",
           method: "post",
+          path: "/widgets/{widgetId}/documents",
+          parameters: [
+            {
+              name: "widgetId",
+              location: "path",
+              required: true,
+              type: stringType,
+            },
+            {
+              name: "additionalMetadata",
+              location: "query",
+              required: false,
+              type: stringType,
+            },
+          ],
           requestBody: {
             required: true,
             media: [
@@ -219,16 +234,33 @@ describe("operation parameter derivation", () => {
                 mediaType: "application/octet-stream",
                 type: { kind: "string", nullable: false, format: "binary" },
               },
+              {
+                mediaType: "image/png",
+                type: { kind: "string", nullable: false, format: "binary" },
+              },
+              {
+                mediaType: "image/jpeg",
+                type: { kind: "string", nullable: false, format: "binary" },
+              },
             ],
           },
         }),
       );
 
-      expect(parameters).toContainEqual({
-        name: "body",
-        typeExpression: "Uint8Array",
-        location: "body",
-      });
+      expect(parameters).toEqual([
+        { name: "widgetId", typeExpression: "string", location: "path" },
+        {
+          name: "additionalMetadata",
+          typeExpression: "string | undefined",
+          location: "query",
+        },
+        {
+          name: "contentType",
+          typeExpression: '"application/octet-stream" | "image/png" | "image/jpeg"',
+          location: "contentType",
+        },
+        { name: "body", typeExpression: "Uint8Array", location: "body" },
+      ]);
     });
 
     it("when a query parameter is optional, then the type expression includes undefined", () => {

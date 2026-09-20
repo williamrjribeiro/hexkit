@@ -1,6 +1,6 @@
 import { toCamelCase, unique } from "@hexkit/codegen";
 import type { ContractOperation, ContractParameter, ContractType } from "@hexkit/plugin-apical";
-import { findJsonMedia, findOctetStreamMedia, isSuccessStatus } from "@hexkit/shared";
+import { deriveRequestBodyTransport, findJsonMedia, isSuccessStatus } from "@hexkit/shared";
 
 import type { ApplicationParameter, ResultCardinality } from "../artifact.ts";
 import { renderContractType } from "./type-render.ts";
@@ -18,20 +18,9 @@ export function deriveParameters(operation: ContractOperation): {
     );
   }
 
-  const jsonMedia = findJsonMedia(operation.requestBody?.media);
-  const binaryMedia = findOctetStreamMedia(operation.requestBody?.media);
-
-  if (operation.requestBody !== undefined && jsonMedia === undefined && binaryMedia === undefined) {
-    throw new Error(
-      `Operation "${operation.operationId}" declares an unsupported request body. Hexagonal generation supports application/json or application/octet-stream (format: binary).`,
-    );
-  }
-
-  if (jsonMedia !== undefined && binaryMedia !== undefined) {
-    throw new Error(
-      `Operation "${operation.operationId}" declares both JSON and octet-stream request bodies.`,
-    );
-  }
+  const transport = deriveRequestBodyTransport(operation);
+  const jsonMedia =
+    transport.kind === "json" ? findJsonMedia(operation.requestBody?.media) : undefined;
 
   const pathParameters = operation.parameters.filter((parameter) => parameter.location === "path");
   const queryParameters = operation.parameters.filter(
@@ -42,7 +31,7 @@ export function deriveParameters(operation: ContractOperation): {
   );
 
   const body =
-    binaryMedia === undefined
+    transport.kind !== "binary"
       ? deriveBodyParameter(jsonMedia?.type)
       : {
           parameter: {
@@ -52,8 +41,17 @@ export function deriveParameters(operation: ContractOperation): {
           },
           referencedSchemas: [],
         };
+  const contentType =
+    transport.kind === "binary"
+      ? {
+          name: "contentType",
+          typeExpression: transport.contentTypes.map((value) => JSON.stringify(value)).join(" | "),
+          location: "contentType" as const,
+        }
+      : undefined;
   const parameters = [
     ...renderedPathAndQuery.map((entry) => entry.parameter),
+    ...(contentType === undefined ? [] : [contentType]),
     ...(body === undefined ? [] : [body.parameter]),
   ];
 

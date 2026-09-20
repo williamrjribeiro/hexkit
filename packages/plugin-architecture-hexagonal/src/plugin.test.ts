@@ -358,13 +358,14 @@ export type BlobStore = {
         import type { BlobStore } from "../ports/blob-store.ts";
         import type { DocumentRepository } from "../ports/document-repository.ts";
 
-        export type UploadDocument = (widgetId: string, additionalMetadata: string | undefined, body: Uint8Array) => Promise<UploadReceipt | undefined>;
+        export type UploadDocument = (widgetId: string, additionalMetadata: string | undefined, contentType: "application/octet-stream" | "image/png" | "image/jpeg", body: Uint8Array) => Promise<UploadReceipt | undefined>;
 
         export function createUploadDocument(
           blobs: BlobStore,
           documents: DocumentRepository,
         ): UploadDocument {
-          return async (widgetId, additionalMetadata, body) => {
+          return async (widgetId, additionalMetadata, contentType, body) => {
+            void contentType;
             const { key } = await blobs.put(body);
             const saved = await documents.uploadDocument(widgetId, key, additionalMetadata);
             if (saved === undefined) return undefined;
