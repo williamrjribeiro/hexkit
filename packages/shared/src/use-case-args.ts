@@ -21,9 +21,9 @@ export type UseCaseArgumentBodyFlags = {
  * Authenticated operations always receive `principal` first. Path parameters
  * are read from `request.value.path.<name>` and query parameters from
  * `request.value.query?.<name>` (optional chaining: Apical marks the query
- * object optional when every query field is optional). JSON or binary bodies
- * append `request.value.body` after path and query arguments so keyed updates
- * keep the path identity.
+ * object optional when every query field is optional). JSON bodies append the
+ * parsed body directly; binary bodies convert Apical's validated `Blob` to the
+ * `Uint8Array` expected by the application port.
  *
  * @param useCase - Auth flag and path/body parameter names.
  * @param bodyFlags - Whether the operation's request body is JSON or binary.
@@ -43,7 +43,11 @@ export function deriveUseCaseArgumentExpressions(
   const queryExpressions = useCase.parameters
     .filter((parameter) => parameter.location === "query")
     .map((parameter) => `request.value.query?.${parameter.name}`);
-  const bodyExpression = hasRequestBody ? ["request.value.body"] : [];
+  const bodyExpression = hasBinaryRequestBody
+    ? ["new Uint8Array(await request.value.body.arrayBuffer())"]
+    : hasJsonRequestBody
+      ? ["request.value.body"]
+      : [];
 
   return [...principalExpression, ...pathExpressions, ...queryExpressions, ...bodyExpression];
 }
