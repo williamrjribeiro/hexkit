@@ -30,7 +30,7 @@
 | --- | ----------------------------------- | ---------- | ------------------------------------------------------------------------ |
 | 1   | `cursor/blobstore-foundation-7f96`  | `main`     | Fixture + shared/hex/drizzle/hono/next binary + BlobStore; package tests |
 | 2   | `cursor/blobstore-hono-upload-7f96` | PR1 branch | `openapi.poc.yaml` + Hono dogfood + DB assert + tracker Hono cell        |
-| 3   | `cursor/blobstore-next-upload-7f96` | PR2 branch | Next regen (+ optional UI) + tracker Next cell                           |
+| 3   | `cursor/blobstore-next-upload-7f96` | PR2 branch | Next regen (Route Handlers + DAL; no form UI) + tracker Next cell        |
 
 Open each PR against its base branch (not all against `main`). Merge bottom-up.
 

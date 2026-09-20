@@ -210,13 +210,19 @@ is enough when PoC still lists octet-stream alone.
 | Drizzle     | Still detects binary upload via shared helper                               |
 | CLI         | Generate upload-api; assert signature + route helper strings                |
 
-## 7. Deferred: Next showcase UI
+## 7. Deferred: Next showcase UI → subsumed by auto mutation forms
 
 PetShop dogfood uses `--next-surface routes` + fixture overlay: Route Handlers
-at literal OpenAPI paths; RSC resource pages are **GET-only** today. A
-generated form page for binary POST (e.g. `/ui/pet/[petId]/uploadImage`) or a
-fixture panel under `/pets/[petId]` is **out of scope** until this transport
-work lands and we can decide with working code.
+at literal OpenAPI paths; RSC resource pages are **GET-only** today.
+
+A one-off binary upload page is **not** the follow-up. Instead, see the
+normative requirement in
+[Next Route Handlers design §11](./2026-08-11-nextjs-route-handlers-design.md):
+auto-generate scaffold forms for **POST / PUT / PATCH** from contract inputs
+(including `format: binary` → file input + Content-Type allowlist). Binary
+upload UI is one media case of that generator.
+
+This Content-Type / BlobStore stack does **not** implement that requirement.
 
 ## 8. Risks & mitigations
 
