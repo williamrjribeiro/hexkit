@@ -265,6 +265,85 @@
         "table": "users",
         "identity": "id"
       }
+    },
+    {
+      "name": "PetImage",
+      "modulePath": "schemas/PetImage.ts",
+      "properties": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "petId",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          },
+          "reference": {
+            "schema": "Pet",
+            "property": "id"
+          }
+        },
+        {
+          "name": "storageKey",
+          "required": true,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "additionalMetadata",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "persistence": {
+        "table": "pet_images",
+        "identity": "id"
+      }
+    },
+    {
+      "name": "ApiResponse",
+      "modulePath": "schemas/ApiResponseSchema.ts",
+      "properties": [
+        {
+          "name": "code",
+          "required": false,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "type",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        },
+        {
+          "name": "message",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ]
     }
   ],
   "securitySchemes": [
@@ -518,6 +597,81 @@
       "extension": {
         "aggregate": "Pet",
         "action": "update"
+      }
+    },
+    {
+      "operationId": "uploadFile",
+      "method": "post",
+      "path": "/pet/{petId}/uploadImage",
+      "modulePath": "routes/uploadFile.ts",
+      "parameters": [
+        {
+          "name": "petId",
+          "location": "path",
+          "required": true,
+          "type": {
+            "kind": "integer",
+            "nullable": false,
+            "format": "int32"
+          }
+        },
+        {
+          "name": "additionalMetadata",
+          "location": "query",
+          "required": false,
+          "type": {
+            "kind": "string",
+            "nullable": false
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "description": "successful operation",
+          "media": [
+            {
+              "mediaType": "application/json",
+              "type": {
+                "kind": "reference",
+                "nullable": false,
+                "schema": "ApiResponse"
+              }
+            }
+          ]
+        },
+        {
+          "status": "400",
+          "description": "No file uploaded / invalid input",
+          "media": []
+        },
+        {
+          "status": "404",
+          "description": "Pet not found",
+          "media": []
+        }
+      ],
+      "security": {
+        "overridesGlobal": false,
+        "requirements": [],
+        "apicalServerHeaderNames": []
+      },
+      "requestBody": {
+        "required": true,
+        "media": [
+          {
+            "mediaType": "application/octet-stream",
+            "type": {
+              "kind": "string",
+              "nullable": false,
+              "format": "binary"
+            }
+          }
+        ]
+      },
+      "extension": {
+        "aggregate": "PetImage",
+        "action": "insert"
       }
     },
     {

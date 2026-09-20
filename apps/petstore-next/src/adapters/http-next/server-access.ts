@@ -15,19 +15,25 @@ import { PlaceOrder, createPlaceOrder } from "../../core/application/place-order
 import { UpdatePetWithForm, createUpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import { UpdatePet, createUpdatePet } from "../../core/application/update-pet.ts";
 import { UpdateUser, createUpdateUser } from "../../core/application/update-user.ts";
+import { UploadFile, createUploadFile } from "../../core/application/upload-file.ts";
 import type { Principal } from "../../core/domain/auth-principal.ts";
 import type { Pet } from "../../core/domain/pet.ts";
+import type { BlobStore } from "../../core/ports/blob-store.ts";
 import type { OrderRepository } from "../../core/ports/order-repository.ts";
+import type { PetImageRepository } from "../../core/ports/pet-image-repository.ts";
 import type { PetRepository } from "../../core/ports/pet-repository.ts";
 import type { UserRepository } from "../../core/ports/user-repository.ts";
 import { getDatabase } from "../db/database.ts";
 import { createDrizzleOrderRepository } from "../db/order-repository.ts";
+import { createDrizzlePetImageRepository } from "../db/pet-image-repository.ts";
 import { createDrizzlePetRepository } from "../db/pet-repository.ts";
 import { createDrizzleUserRepository } from "../db/user-repository.ts";
+import { createDrizzleBlobStore } from "../persistence/drizzle-blob-store.ts";
 
 export type RuntimeRepositories = {
   orders: OrderRepository;
   pets: PetRepository;
+  petImages: PetImageRepository;
   users: UserRepository;
 };
 
@@ -49,6 +55,7 @@ export type ServerAccess = {
   updatePet: UpdatePet;
   updatePetWithForm: UpdatePetWithForm;
   updateUser: UpdateUser;
+  uploadFile: UploadFile;
 };
 
 let cachedRepositories: RuntimeRepositories | undefined;
@@ -63,13 +70,14 @@ function getRepositories(): RuntimeRepositories {
     cachedRepositories = {
     orders: createDrizzleOrderRepository(db),
     pets: createDrizzlePetRepository(db),
+    petImages: createDrizzlePetImageRepository(db),
     users: createDrizzleUserRepository(db),
     };
   }
   return cachedRepositories;
 }
 
-function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
+function composeServerAccess(repositories: RuntimeRepositories, blobStore: BlobStore = createDrizzleBlobStore(getDatabase())): ServerAccess {
   return {
     addPet: createAddPet(repositories.pets),
     createUser: createCreateUser(repositories.users),
@@ -88,6 +96,7 @@ function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {
     updatePet: createUpdatePet(repositories.pets),
     updatePetWithForm: createUpdatePetWithForm(repositories.pets),
     updateUser: createUpdateUser(repositories.users),
+    uploadFile: createUploadFile(blobStore, repositories.petImages),
   };
 }
 

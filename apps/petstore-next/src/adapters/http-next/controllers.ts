@@ -15,6 +15,7 @@ import type { PlaceOrder } from "../../core/application/place-order.ts";
 import type { UpdatePetWithForm } from "../../core/application/update-pet-with-form.ts";
 import type { UpdatePet } from "../../core/application/update-pet.ts";
 import type { UpdateUser } from "../../core/application/update-user.ts";
+import type { UploadFile } from "../../core/application/upload-file.ts";
 import type { Principal } from "../../core/domain/auth-principal.ts";
 import type { Authenticator } from "../../core/ports/authenticator.ts";
 import { addPetResponseMap } from "../../generated/contracts/routes/addPet.ts";
@@ -30,6 +31,7 @@ import { placeOrderResponseMap } from "../../generated/contracts/routes/placeOrd
 import { updatePetResponseMap } from "../../generated/contracts/routes/updatePet.ts";
 import { updatePetWithFormResponseMap } from "../../generated/contracts/routes/updatePetWithForm.ts";
 import { updateUserResponseMap } from "../../generated/contracts/routes/updateUser.ts";
+import { uploadFileResponseMap } from "../../generated/contracts/routes/uploadFile.ts";
 import { addPetWrapper } from "../../generated/contracts/server/addPet.ts";
 import { createUserWrapper } from "../../generated/contracts/server/createUser.ts";
 import { createUsersWithListInputWrapper } from "../../generated/contracts/server/createUsersWithListInput.ts";
@@ -47,6 +49,7 @@ import { placeOrderWrapper } from "../../generated/contracts/server/placeOrder.t
 import { updatePetWrapper } from "../../generated/contracts/server/updatePet.ts";
 import { updatePetWithFormWrapper } from "../../generated/contracts/server/updatePetWithForm.ts";
 import { updateUserWrapper } from "../../generated/contracts/server/updateUser.ts";
+import { uploadFileWrapper } from "../../generated/contracts/server/uploadFile.ts";
 
 export type HttpUseCases = {
   addPet: AddPet;
@@ -66,6 +69,7 @@ export type HttpUseCases = {
   updatePet: UpdatePet;
   updatePetWithForm: UpdatePetWithForm;
   updateUser: UpdateUser;
+  uploadFile: UploadFile;
 };
 
 export class RequestValidationError extends Error {
@@ -251,6 +255,18 @@ export function createHttpControllers(useCases: HttpUseCases, authenticator?: Au
         status: "200",
         contentType: "application/json",
         data: updateUserResponseMap["200"]["application/json"].parse(result),
+      };
+    }),
+    uploadFile: uploadFileWrapper(async (request) => {
+      if (!request.isValid || !request.value.body) {
+        throw new RequestValidationError(request.isValid ? "body-error" : request.kind);
+      }
+      const result = await useCases.uploadFile(request.value.path.petId, request.value.query?.additionalMetadata, new Uint8Array(await request.value.body.arrayBuffer()));
+      if (!result) return { status: "404" };
+      return {
+        status: "200",
+        contentType: "application/json",
+        data: uploadFileResponseMap["200"]["application/json"].parse(result),
       };
     })
   };
