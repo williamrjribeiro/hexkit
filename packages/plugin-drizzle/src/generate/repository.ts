@@ -14,6 +14,12 @@ import {
   isLocatedUpdate,
   renderFieldPatchUpdateMethod,
 } from "./field-patch.ts";
+import {
+  isMetadataInsert,
+  metadataInsertTargetTables,
+  metadataInsertUsesRandomUuid,
+  renderMetadataInsertMethod,
+} from "./metadata-insert.ts";
 import { mapperFunctionName } from "../model/table.ts";
 
 export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] {
@@ -23,7 +29,11 @@ export function renderRepositoryFiles(model: PersistenceModel): GeneratedFile[] 
 function renderRepositoryFile(repository: PersistenceRepositoryModel): GeneratedFile {
   const table = repository.table;
   const needsEq = repository.methods.some(
-    (method) => method.kind === "update" || method.kind === "select" || method.kind === "delete",
+    (method) =>
+      method.kind === "update" ||
+      method.kind === "select" ||
+      method.kind === "delete" ||
+      isMetadataInsert(method),
   );
   const needsInArray = repository.methods.some((method) => {
     if (method.kind !== "list" || method.parameters.length === 0) return false;
@@ -36,6 +46,9 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
     ...(needsInArray ? (["inArray"] as const) : []),
   ];
   const imports: ImportDeclaration[] = [
+    ...(repository.methods.some((method) => metadataInsertUsesRandomUuid(repository, method))
+      ? [{ from: "node:crypto", names: ["randomUUID"] }]
+      : []),
     ...(drizzleNames.length > 0 ? [{ from: "drizzle-orm", names: [...drizzleNames] }] : []),
     {
       from: "drizzle-orm/node-postgres",
@@ -58,7 +71,12 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
     },
     {
       from: "./schema.ts",
-      names: [table.exportName],
+      names: [
+        table.exportName,
+        ...repository.methods.flatMap((method) =>
+          isMetadataInsert(method) ? metadataInsertTargetTables(repository, method) : [],
+        ),
+      ],
     },
   ];
 
@@ -95,6 +113,9 @@ function renderMethod(
 
   switch (method.kind) {
     case "insert": {
+      if (isMetadataInsert(method)) {
+        return renderMetadataInsertMethod(repository, method);
+      }
       const parameter = method.entityParameterName;
       const entityType =
         method.parameters.find((entry) => entry.name === parameter)?.typeExpression ?? "";

@@ -21,6 +21,7 @@ import {
 
 export type PersistenceModel = {
   applicationSlug: string;
+  usesBlobStore?: boolean;
   migrationPath: string;
   schemaFilePath: string;
   mapperFilePath: string;
@@ -82,6 +83,7 @@ export function derivePersistenceModel(
 
   return {
     applicationSlug,
+    usesBlobStore: application.blobStorePort !== undefined,
     migrationPath: `drizzle/0000_${applicationSlug}.sql`,
     schemaFilePath: "src/adapters/db/schema.ts",
     mapperFilePath: "src/adapters/db/mappers.ts",

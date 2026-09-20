@@ -18,6 +18,7 @@ export type PersistenceRepositoryMethodModel = {
   entityParameterName: string;
   identityParameterName: string;
   lookupColumnName: string;
+  usesBlobStore?: boolean;
   successHeaders?: readonly { name: string; typeExpression: string }[];
 };
 
@@ -74,6 +75,7 @@ export function deriveRepository(
       entityParameterName,
       identityParameterName: pathParameterName ?? firstParameterName ?? table.identityPropertyName,
       lookupColumnName,
+      usesBlobStore: isBinaryUploadOperation(operation),
       ...(method.successHeaders === undefined || method.successHeaders.length === 0
         ? {}
         : { successHeaders: method.successHeaders }),
@@ -89,6 +91,19 @@ export function deriveRepository(
     table,
     methods,
   };
+}
+
+function isBinaryUploadOperation(operation: ContractOperation): boolean {
+  return (
+    operation.requestBody?.media.some((media) => {
+      const type = media.type;
+      return (
+        media.mediaType.toLowerCase().split(";", 1)[0]?.trim() === "application/octet-stream" &&
+        type?.kind === "string" &&
+        type.format === "binary"
+      );
+    }) ?? false
+  );
 }
 
 function resolveLookupColumnName(

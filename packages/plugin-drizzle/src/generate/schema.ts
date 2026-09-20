@@ -21,9 +21,12 @@ export function renderSchemaFile(model: PersistenceModel): GeneratedFile {
   ];
 
   const statements = [
-    [...model.enums.map(renderEnumDeclaration), ...model.tables.map(renderTableDeclaration)].join(
-      "\n\n",
-    ),
+    [
+      ...model.enums.map(renderEnumDeclaration),
+      ...model.tables.map((table) =>
+        renderTableDeclaration(table, tableHasBlobUpload(model, table.schemaName)),
+      ),
+    ].join("\n\n"),
   ];
 
   return {
@@ -63,11 +66,14 @@ function renderEnumDeclaration(enumeration: PersistenceEnumModel): string {
   return `export const ${enumeration.exportName} = pgEnum(${JSON.stringify(enumeration.sqlName)}, [${values}]);`;
 }
 
-function renderTableDeclaration(table: PersistenceTableModel): string {
+function renderTableDeclaration(table: PersistenceTableModel, hasBlobUpload: boolean): string {
   const columns = table.columns.map((column) => {
     const chain = [renderColumnConstructor(column)];
     if (column.isIdentity) {
       chain.push("primaryKey()");
+      if (hasBlobUpload && column.sqlType === "integer") {
+        chain.push("generatedAlwaysAsIdentity()");
+      }
     }
     if (column.required && !column.isIdentity) {
       chain.push("notNull()");
@@ -91,6 +97,14 @@ function renderTableDeclaration(table: PersistenceTableModel): string {
     ...columns,
     "});",
   ].join("\n");
+}
+
+function tableHasBlobUpload(model: PersistenceModel, schemaName: string): boolean {
+  return model.repositories.some(
+    (repository) =>
+      repository.aggregate === schemaName &&
+      repository.methods.some((method) => method.usesBlobStore),
+  );
 }
 
 function renderColumnConstructor(column: PersistenceColumnModel): string {

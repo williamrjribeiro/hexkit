@@ -4,6 +4,7 @@ import type { GeneratedFile } from "@hexkit/plugin-api";
 
 import type { PersistenceArtifact } from "../artifact.ts";
 import { derivePersistenceModel, toPersistenceArtifact } from "../model/derive.ts";
+import { renderDrizzleBlobStoreFile } from "./blob-store.ts";
 import { renderMapperFile } from "./mappers.ts";
 import { renderMigrationFile } from "./migration.ts";
 import { renderRepositoryFiles } from "./repository.ts";
@@ -32,6 +33,7 @@ export function generatePersistenceFromArtifacts(
     renderMigrationFile(model),
     renderMapperFile(model),
     ...renderRepositoryFiles(model),
+    ...(model.usesBlobStore ? [renderDrizzleBlobStoreFile()] : []),
   ];
 
   return {

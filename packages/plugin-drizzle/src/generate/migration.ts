@@ -12,8 +12,11 @@ import type { PersistenceTableModel } from "../model/table.ts";
 /** Writes the SQL migration that creates those tables, including JSONB columns. */
 export function renderMigrationFile(model: PersistenceModel): GeneratedFile {
   const sections = [
+    ...(model.usesBlobStore ? [renderBlobStoreMigration()] : []),
     ...model.enums.map(renderEnumMigration),
-    ...model.tables.map(renderTableMigration),
+    ...model.tables.map((table) =>
+      renderTableMigration(table, tableHasBlobUpload(model, table.schemaName)),
+    ),
   ];
 
   return {
@@ -21,6 +24,15 @@ export function renderMigrationFile(model: PersistenceModel): GeneratedFile {
     contents: `${sections.join("\n\n")}\n`,
     ownership: "generated",
   };
+}
+
+function renderBlobStoreMigration(): string {
+  return [
+    'CREATE TABLE IF NOT EXISTS "hexkit_blobs" (',
+    '  "key" text PRIMARY KEY NOT NULL,',
+    '  "content" bytea NOT NULL',
+    ");",
+  ].join("\n");
 }
 
 function renderEnumMigration(enumeration: PersistenceEnumModel): string {
@@ -34,8 +46,8 @@ END
 $$;`;
 }
 
-function renderTableMigration(table: PersistenceTableModel): string {
-  const columnLines = table.columns.map((column) => renderColumnSql(column));
+function renderTableMigration(table: PersistenceTableModel, hasBlobUpload: boolean): string {
+  const columnLines = table.columns.map((column) => renderColumnSql(column, hasBlobUpload));
   const foreignKeys = columnsWithForeignKeys(table.columns).map((column) =>
     renderForeignKeyConstraint(table, column),
   );
@@ -48,11 +60,15 @@ function renderTableMigration(table: PersistenceTableModel): string {
   return [`CREATE TABLE IF NOT EXISTS "${table.tableName}" (`, ...body, ");"].join("\n");
 }
 
-function renderColumnSql(column: PersistenceColumnModel): string {
+function renderColumnSql(column: PersistenceColumnModel, hasBlobUpload: boolean): string {
   const typeSql = renderSqlType(column);
+  const generatedIdentity =
+    hasBlobUpload && column.isIdentity && column.sqlType === "integer"
+      ? " GENERATED ALWAYS AS IDENTITY"
+      : "";
   const nullSql = column.required || column.isIdentity ? " NOT NULL" : "";
   const primaryKey = column.isIdentity ? " PRIMARY KEY" : "";
-  return `"${column.sqlName}" ${typeSql}${primaryKey}${nullSql}`;
+  return `"${column.sqlName}" ${typeSql}${generatedIdentity}${primaryKey}${nullSql}`;
 }
 
 function renderSqlType(column: PersistenceColumnModel): string {
@@ -81,4 +97,12 @@ function renderForeignKeyConstraint(
 
 function escapeSql(value: string): string {
   return value.replaceAll("'", "''");
+}
+
+function tableHasBlobUpload(model: PersistenceModel, schemaName: string): boolean {
+  return model.repositories.some(
+    (repository) =>
+      repository.aggregate === schemaName &&
+      repository.methods.some((method) => method.usesBlobStore),
+  );
 }
