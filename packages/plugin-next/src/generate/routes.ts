@@ -37,7 +37,9 @@ function renderRouteSource(route: NextRouteFile): string {
 function renderMethodHandler(method: NextMethodBinding): string {
   const methodName = method.method.toUpperCase();
   const jsonBody = method.hasJsonRequestBody ? "true" : "false";
-  const binaryBodyOption = method.hasBinaryRequestBody ? " binaryBody: true," : "";
+  const binaryBodyOption = method.hasBinaryRequestBody
+    ? ` binaryBody: true, contentTypes: ${renderBinaryContentTypes(method)},`
+    : "";
   const arrayKeysLiteral = JSON.stringify(method.arrayQueryParameterNames);
   const controllerArguments = method.requiresAuth ? "apicalRequest, principal" : "apicalRequest";
 
@@ -58,6 +60,15 @@ function renderMethodHandler(method: NextMethodBinding): string {
     "  }",
     "}",
   ].join("\n");
+}
+
+function renderBinaryContentTypes(method: NextMethodBinding): string {
+  if (method.requestBodyTransport.kind !== "binary") {
+    throw new Error(
+      `Binary operation "${method.operationId}" is missing declared request content types.`,
+    );
+  }
+  return JSON.stringify(method.requestBodyTransport.contentTypes);
 }
 
 function renderAuthentication(method: NextMethodBinding): string[] {

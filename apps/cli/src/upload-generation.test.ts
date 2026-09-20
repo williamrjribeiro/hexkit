@@ -73,6 +73,10 @@ function expectUploadFoundation(outputDirectory: string): void {
   expect(useCase).toContain("export function createUploadDocument(");
   expect(useCase).toContain("blobs: BlobStore");
   expect(useCase).toContain("documents: DocumentRepository");
+  expect(useCase).toMatch(
+    /contentType:\s*"application\/octet-stream"\s*\|\s*"image\/png"\s*\|\s*"image\/jpeg"/,
+  );
+  expect(useCase).toContain("Uint8Array");
 }
 
 describe("Given the upload-api fixture", () => {

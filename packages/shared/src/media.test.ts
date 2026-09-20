@@ -130,17 +130,17 @@ describe("Given a request body", () => {
     ).toBe(false);
   });
 
-  it("finds application/octet-stream media with binary schema", () => {
+  it("finds any media type with a binary schema", () => {
     const media = findOctetStreamMedia([
       {
-        mediaType: "application/octet-stream",
+        mediaType: "image/png",
         type: binaryType,
       },
     ]);
-    expect(media?.mediaType).toBe("application/octet-stream");
+    expect(media?.mediaType).toBe("image/png");
   });
 
-  it("hasBinaryRequestBody is true for octet-stream operations", () => {
+  it("hasBinaryRequestBody is true for non-octet-stream binary operations", () => {
     expect(
       hasBinaryRequestBody(
         operation({
@@ -149,7 +149,7 @@ describe("Given a request body", () => {
           path: "/widgets/{widgetId}/documents",
           requestBody: {
             required: true,
-            media: [{ mediaType: "application/octet-stream", type: binaryType }],
+            media: [{ mediaType: "image/jpeg", type: binaryType }],
           },
         }),
       ),

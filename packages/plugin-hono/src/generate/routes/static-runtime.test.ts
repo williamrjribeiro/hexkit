@@ -27,7 +27,7 @@ describe("Given an unauthenticated app", () => {
       "async function jsonRequest(context: Context, arrayQueryKeys: readonly string[] = []): Promise<JsonApicalRequest>",
     );
     expect(source).toContain(
-      "async function binaryRequest(context: Context, arrayQueryKeys: readonly string[] = []): Promise<BinaryApicalRequest>",
+      "async function binaryRequest<const ContentTypes extends readonly string[]>(",
     );
     expect(source).not.toContain("createAuthenticateMiddleware");
     expect(source).not.toContain("AppBindings");

@@ -137,6 +137,11 @@ function toRepositoryParameters(
         `Repository parameter "${parameter.name}" cannot receive a binary request body directly.`,
       );
     }
+    if (parameter.location === "contentType") {
+      throw new Error(
+        `Repository parameter "${parameter.name}" cannot receive a request content type directly.`,
+      );
+    }
     return {
       name: parameter.name,
       typeExpression: parameter.typeExpression,

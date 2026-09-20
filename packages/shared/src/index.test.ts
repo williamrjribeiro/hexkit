@@ -5,6 +5,7 @@ import {
   compareOpenApiRouteRegistrationOrder,
   deriveAuthSchemes,
   deriveHttpControllerBinding,
+  deriveRequestBodyTransport,
   deriveUseCaseArgumentExpressions,
   extractOpenApiPathParamNames,
   findJsonMedia,
@@ -38,6 +39,7 @@ describe("Given the @hexkit/shared public API", () => {
     expect(typeof openApiPathToNextSegments).toBe("function");
     expect(typeof compareOpenApiRouteRegistrationOrder).toBe("function");
     expect(typeof deriveAuthSchemes).toBe("function");
+    expect(typeof deriveRequestBodyTransport).toBe("function");
     expect(typeof deriveUseCaseArgumentExpressions).toBe("function");
     expect(typeof deriveHttpControllerBinding).toBe("function");
     expect(typeof renderHttpControllersFile).toBe("function");

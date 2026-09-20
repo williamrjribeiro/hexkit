@@ -154,7 +154,7 @@ describe("Given deriveHttpControllerBinding", () => {
     expect(binding.successStatus).toBe("204");
   });
 
-  it("when an octet-stream body operation has path parameters, then binary binding and arguments are set", () => {
+  it("when a multi-content-type binary body has path parameters, then transport and arguments are set", () => {
     const binding = deriveHttpControllerBinding(
       operation({
         operationId: "uploadDocument",
@@ -163,7 +163,10 @@ describe("Given deriveHttpControllerBinding", () => {
         parameters: [{ name: "widgetId", location: "path", required: true, type: stringType }],
         requestBody: {
           required: true,
-          media: [{ mediaType: "application/octet-stream", type: binaryType }],
+          media: [
+            { mediaType: "application/octet-stream", type: binaryType },
+            { mediaType: "image/png", type: binaryType },
+          ],
         },
         responses: [{ status: "201", description: "created", media: [] }],
       }),
@@ -177,9 +180,14 @@ describe("Given deriveHttpControllerBinding", () => {
     expect(binding).toMatchObject({
       hasJsonRequestBody: false,
       hasBinaryRequestBody: true,
+      requestBodyTransport: {
+        kind: "binary",
+        contentTypes: ["application/octet-stream", "image/png"],
+      },
       successStatus: "201",
       useCaseArgumentExpressions: [
         "request.value.path.widgetId",
+        "apicalRequest.contentType!",
         "new Uint8Array(await request.value.body.arrayBuffer())",
       ],
     });

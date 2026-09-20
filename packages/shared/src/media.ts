@@ -5,6 +5,7 @@ import type {
   ContractResponse,
 } from "@hexkit/plugin-apical";
 
+import { deriveRequestBodyTransport } from "./request-body-transport.ts";
 import { isSuccessStatus } from "./status.ts";
 
 /**
@@ -40,28 +41,25 @@ export function hasJsonRequestBody(operation: ContractOperation): boolean {
 }
 
 /**
- * First `application/octet-stream` media entry with a binary string schema.
+ * First media entry with a binary string schema.
  *
  * @param media - Request or response media list. `undefined` is treated as empty.
+ * @deprecated Prefer `deriveRequestBodyTransport`, which also exposes every
+ *   declared binary content type.
  */
 export function findOctetStreamMedia(
   media: readonly ContractMedia[] | undefined,
 ): ContractMedia | undefined {
-  return media?.find(
-    (entry) =>
-      entry.mediaType === "application/octet-stream" &&
-      entry.type?.kind === "string" &&
-      entry.type.format === "binary",
-  );
+  return media?.find((entry) => entry.type?.kind === "string" && entry.type.format === "binary");
 }
 
 /**
- * True when the operation declares an octet-stream binary request body.
+ * True when the operation declares any binary string request body.
  *
  * @param operation - Contract operation to inspect.
  */
 export function hasBinaryRequestBody(operation: ContractOperation): boolean {
-  return findOctetStreamMedia(operation.requestBody?.media) !== undefined;
+  return deriveRequestBodyTransport(operation).kind === "binary";
 }
 
 /**

@@ -576,23 +576,30 @@ describe("@hexkit/plugin-next", () => {
   });
 
   describe("Given ContractArtifact + ApplicationArtifact for Upload API", () => {
-    it("when route generation runs, then binary requests and BlobStore are bound", async () => {
+    it("when route generation runs, then declared binary content types and BlobStore are bound", async () => {
       const { files } = await collectGeneratedFiles(uploadContract, "routes");
       const filesByPath = fileMap(files);
       const route = filesByPath.get("app/widgets/[widgetId]/documents/route.ts");
       const helpers = filesByPath.get("src/adapters/http-next/helpers.ts");
+      const controllers = filesByPath.get("src/adapters/http-next/controllers.ts");
       const runtime = filesByPath.get("src/adapters/http-next/runtime.ts");
       const serverAccess = filesByPath.get("src/adapters/http-next/server-access.ts");
 
       expect(route?.contents).toContain(
-        "toApicalRequest(request, params, { jsonBody: false, binaryBody: true, arrayQueryKeys: [] })",
+        'toApicalRequest(request, params, { jsonBody: false, binaryBody: true, contentTypes: ["application/octet-stream","image/png","image/jpeg"], arrayQueryKeys: [] })',
       );
-      expect(helpers?.contents).toContain("binaryBody?: boolean");
       expect(helpers?.contents).toContain(
-        'contentType.toLowerCase().startsWith("application/octet-stream")',
+        'const normalizedContentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase()',
       );
+      expect(helpers?.contents).toContain(
+        "const contentType = options.contentTypes.find((declared) => declared.toLowerCase() === normalizedContentType)",
+      );
+      expect(helpers?.contents).toContain("if (contentType === undefined)");
       expect(helpers?.contents).toContain("const body = new Blob([await request.arrayBuffer()])");
       expect(helpers?.contents).toContain("if (body.size === 0)");
+      expect(helpers?.contents).toContain("contentType,");
+      expect(helpers?.contents).not.toContain('startsWith("application/octet-stream")');
+      expect(controllers?.contents).toContain("apicalRequest.contentType!");
       expect(runtime?.contents).toContain(
         'import type { BlobStore } from "../../core/ports/blob-store.ts";',
       );

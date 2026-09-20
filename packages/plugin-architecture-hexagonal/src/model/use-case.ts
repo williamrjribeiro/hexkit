@@ -1,6 +1,6 @@
 import { toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { ContractOperation } from "@hexkit/plugin-apical";
-import { hasBinaryRequestBody } from "@hexkit/shared";
+import { deriveRequestBodyTransport } from "@hexkit/shared";
 
 import type { ApplicationParameter } from "../artifact.ts";
 import { deriveParameters, deriveReturnType } from "./parameters.ts";
@@ -28,7 +28,7 @@ export function deriveUseCase(
   method: RepositoryMethodModel,
 ): UseCaseModel {
   const typeName = toPascalCase(operation.operationId);
-  const usesBlobStore = hasBinaryRequestBody(operation);
+  const usesBlobStore = deriveRequestBodyTransport(operation).kind === "binary";
   const transportParameters = usesBlobStore ? deriveParameters(operation) : undefined;
   const transportReturnType = usesBlobStore ? deriveReturnType(operation) : undefined;
   return {

@@ -47,12 +47,12 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
 | `@hexkit/plugin-hono` | 3         | 17        | 0             | 6         |
-| `@hexkit/plugin-next` | 2         | 18        | 0             | 6         |
+| `@hexkit/plugin-next` | 2         | 18        | 0             | 7         |
 
 Almost all PoC Pet / Order / User routes are **partial** (JSON-only, missing
 Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON media type, and Hono header
 `apiKey` (Petstore `getPetById` dogfood). Remaining **missing** surface: XML, form-urlencoded,
-OAuth, inventory, webhooks, and mutualTLS.
+OAuth, inventory, webhooks, mutualTLS, and Next auto mutation form pages.
 
 ## Operations
 
@@ -116,6 +116,7 @@ in that operation’s Notes.
 | OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today                                                                                      |
 | mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference                                                                                                  |
 | Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)                                                                                               |
+| Auto mutation form pages (RSC)      | n/a     | missing | Follow-up: generate POST/PUT/PATCH scaffold forms from contract inputs (incl. binary file input). See Next design §11; not part of BlobStore stack     |
 
 ## Contract map
 

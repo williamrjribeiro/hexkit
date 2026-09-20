@@ -59,9 +59,9 @@ function renderApicalRequestType(): string {
     "  body: unknown;",
     '  contentType: "application/json";',
     "};",
-    "type BinaryApicalRequest = ApicalRequest & {",
+    "type BinaryApicalRequest<ContentType extends string = string> = ApicalRequest & {",
     "  body: Blob;",
-    '  contentType: "application/octet-stream";',
+    "  contentType: ContentType;",
     "};",
   ].join("\n");
 }
@@ -133,9 +133,14 @@ function renderJsonRequestHelper(contextType: string): string {
 
 function renderBinaryRequestHelper(contextType: string): string {
   return [
-    `async function binaryRequest(context: ${contextType}, arrayQueryKeys: readonly string[] = []): Promise<BinaryApicalRequest> {`,
-    '  const contentType = context.req.header("content-type") ?? "";',
-    '  if (!contentType.toLowerCase().startsWith("application/octet-stream")) {',
+    "async function binaryRequest<const ContentTypes extends readonly string[]>(",
+    `  context: ${contextType},`,
+    "  contentTypes: ContentTypes,",
+    "  arrayQueryKeys: readonly string[] = [],",
+    "): Promise<BinaryApicalRequest<ContentTypes[number]>> {",
+    '  const normalizedContentType = context.req.header("content-type")?.split(";", 1)[0]?.trim().toLowerCase();',
+    "  const contentType = contentTypes.find((declared) => declared.toLowerCase() === normalizedContentType);",
+    "  if (contentType === undefined) {",
     '    throw new RequestValidationError("body-error");',
     "  }",
     "",
@@ -147,7 +152,7 @@ function renderBinaryRequestHelper(contextType: string): string {
     "  return {",
     "    ...request(context, arrayQueryKeys),",
     "    body,",
-    '    contentType: "application/octet-stream",',
+    "    contentType,",
     "  };",
     "}",
   ].join("\n");

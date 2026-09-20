@@ -15,6 +15,7 @@ export {
   hasNotFoundResponse,
 } from "./media.ts";
 export type { ContractSecurityScheme } from "./media.ts";
+export { deriveRequestBodyTransport, type RequestBodyTransport } from "./request-body-transport.ts";
 export {
   compareOpenApiRouteRegistrationOrder,
   extractOpenApiPathParamNames,

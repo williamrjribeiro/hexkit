@@ -5,7 +5,7 @@ import type { HttpOperationBinding } from "../../artifact.ts";
 export function renderRouteRegistration(operation: HttpOperationBinding): string {
   const arrayKeysLiteral = JSON.stringify(operation.arrayQueryParameterNames);
   const requestExpression = operation.hasBinaryRequestBody
-    ? `await binaryRequest(context, ${arrayKeysLiteral})`
+    ? `await binaryRequest(context, ${renderBinaryContentTypes(operation)}, ${arrayKeysLiteral})`
     : operation.hasJsonRequestBody
       ? `await jsonRequest(context, ${arrayKeysLiteral})`
       : `request(context, ${arrayKeysLiteral})`;
@@ -27,6 +27,15 @@ export function renderRouteRegistration(operation: HttpOperationBinding): string
     `    respond(await controllers.${operation.operationId}(${controllerArguments})),`,
     "  );",
   ].join("\n");
+}
+
+function renderBinaryContentTypes(operation: HttpOperationBinding): string {
+  if (operation.requestBodyTransport.kind !== "binary") {
+    throw new Error(
+      `Binary operation "${operation.operationId}" is missing declared request content types.`,
+    );
+  }
+  return JSON.stringify(operation.requestBodyTransport.contentTypes);
 }
 
 export function renderSecurityMeta(operation: HttpOperationBinding): string {

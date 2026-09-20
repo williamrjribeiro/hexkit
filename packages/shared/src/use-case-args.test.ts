@@ -107,7 +107,7 @@ describe("Given use-case argument derivation", () => {
     ).toEqual([]);
   });
 
-  it("when the operation has a binary body, then path expressions precede the body", () => {
+  it("when the operation has a binary body, then content type and body follow path expressions", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         {
@@ -118,6 +118,7 @@ describe("Given use-case argument derivation", () => {
       ),
     ).toEqual([
       "request.value.path.widgetId",
+      "apicalRequest.contentType!",
       "new Uint8Array(await request.value.body.arrayBuffer())",
     ]);
   });

@@ -328,6 +328,7 @@ Deferred after PoC: `plugin-sst`, live AWS deploy, OAuth/OIDC, full Petstore sur
 - CI job for `vp run dogfood-auth` (local-only today).
 - Hardening protected-zone policy (e.g. `--strict-protected` fail mode).
 - Automated tests for `apps/petstore-next` (the vanilla PetShop Next fixture has no Vitest/Pactum/Playwright suite; `plugin-next` and CLI tests cover the generator).
+- **Next auto mutation forms:** `plugin-next` must emit domain-agnostic scaffold form pages for **POST / PUT / PATCH** (fields from path/query/body; binary → file input; Server Action → `getServerAccess()`), with escape hatches for non-form-friendly schemas. See [`docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md`](./docs/superpowers/specs/2026-08-11-nextjs-route-handlers-design.md) §11. PetShop fixture UI may stay curated on top.
 
 ### 11.1 Domain-agnostic invariant (closed 2026-08-22)
 

@@ -49,7 +49,7 @@ From [Fetching Data](https://nextjs.org/docs/app/getting-started/fetching-data) 
 | ------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Server Component reads    | Prefer **DAL / ORM / in-process** calls; avoid self-HTTP where possible | Generated RSC pages import **use cases** via a server-access composition module — **not** `fetch` to Route Handlers |
 | Public / external clients | HTTP APIs (REST)                                                        | Generate Route Handlers that honor the OpenAPI contract                                                             |
-| Mutations from React UI   | Server Actions (`"use server"`, POST-oriented, FormData-friendly)       | **Out of v1** for OpenAPI fidelity (pages are read-oriented scaffolds)                                              |
+| Mutations from React UI   | Server Actions (`"use server"`, POST-oriented, FormData-friendly)       | **v1:** pages are read-oriented scaffolds. **Follow-up:** contract-derived form pages (§11)                         |
 | Authz                     | Check auth inside every public entry (Route Handler / Server Function)  | Reuse hexagonal `Authenticator` + Apical header presence                                                            |
 
 **Conclusion:** Hexkit’s OpenAPI → HTTP mapping belongs on **Route Handlers**. RSC support belongs on **in-process use-case calls**. Server Actions are a parallel React mutation API and must not be treated as the OpenAPI surface.
@@ -383,21 +383,78 @@ Hexkit Next.js v1 is done when:
 
 ## 10. Decisions log
 
-| Decision                          | Choice                                                                                                                                           |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Next surface for OpenAPI          | App Router Route Handlers at literal contract paths                                                                                              |
-| RSC support                       | **v1 required** as selectable surface — basic pages + server-access DAL                                                                          |
-| Generation modes                  | `NextSurface = "routes" \| "rsc" \| "both"` (default `both`)                                                                                     |
-| UI vs API paths                   | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers + **server-access DAL** + stub root entry (no `/ui` scaffolds) |
-| PetShop dogfood                   | `apps/petstore-next` fixture UI; generate to TMP with `routes`; copy `src/**` + `app/**/route.ts` only                                           |
-| PetShop bootstrap                 | Vanilla create-next-app defaults; installs via **Vite+ (`vp`) / pnpm**; `@/*` → `./src/*`                                                        |
-| PetShop styling                   | Tailwind (create-next-app default) + optional CSS Modules                                                                                        |
-| PetShop data loading              | RSC DAL reads; form posts (Server Actions → use cases); **no client-side fetching**                                                              |
-| PetShop tests                     | **None**                                                                                                                                         |
-| Server Actions as OpenAPI surface | Out of scope — OpenAPI stays on Route Handlers                                                                                                   |
-| Pages Router API routes           | Out of scope                                                                                                                                     |
-| Default HTTP adapter              | Hono (unchanged)                                                                                                                                 |
-| Domain agnosticism                | Normative for `plugin-next` (PRD §5.0)                                                                                                           |
-| Caching                           | Dynamic / request-time default                                                                                                                   |
-| Primary architecture              | Approach A                                                                                                                                       |
-| Next.js version floor             | 16.x                                                                                                                                             |
+| Decision                             | Choice                                                                                                                                           |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Next surface for OpenAPI             | App Router Route Handlers at literal contract paths                                                                                              |
+| RSC support                          | **v1 required** as selectable surface — basic pages + server-access DAL                                                                          |
+| Generation modes                     | `NextSurface = "routes" \| "rsc" \| "both"` (default `both`)                                                                                     |
+| UI vs API paths                      | `both` → UI under `/ui/...`; `rsc` → pages at contract paths; `routes` → handlers + **server-access DAL** + stub root entry (no `/ui` scaffolds) |
+| PetShop dogfood                      | `apps/petstore-next` fixture UI; generate to TMP with `routes`; copy `src/**` + `app/**/route.ts` only                                           |
+| PetShop bootstrap                    | Vanilla create-next-app defaults; installs via **Vite+ (`vp`) / pnpm**; `@/*` → `./src/*`                                                        |
+| PetShop styling                      | Tailwind (create-next-app default) + optional CSS Modules                                                                                        |
+| PetShop data loading                 | RSC DAL reads; form posts (Server Actions → use cases); **no client-side fetching**                                                              |
+| PetShop tests                        | **None**                                                                                                                                         |
+| Server Actions as OpenAPI surface    | Out of scope — OpenAPI stays on Route Handlers                                                                                                   |
+| Auto mutation forms (POST/PUT/PATCH) | **Follow-up required** — contract-derived scaffolds + Server Action → DAL (§11); not PoC                                                         |
+| Pages Router API routes              | Out of scope                                                                                                                                     |
+| Default HTTP adapter                 | Hono (unchanged)                                                                                                                                 |
+| Domain agnosticism                   | Normative for `plugin-next` (PRD §5.0)                                                                                                           |
+| Caching                              | Dynamic / request-time default                                                                                                                   |
+| Primary architecture                 | Approach A                                                                                                                                       |
+| Next.js version floor                | 16.x                                                                                                                                             |
+
+## 11. Follow-up requirement: auto-generated mutation forms
+
+**Status:** required follow-up (not implemented in PoC / BlobStore stack).
+
+`plugin-next` today emits **GET-only** RSC scaffolds. PetShop create/update UIs
+are **fixture-owned** (`apps/petstore-next/app/pets/**`, `orders/**`). Hexkit
+must grow a **domain-agnostic** generator for write UIs derived from the
+OpenAPI/Apical contract.
+
+### Requirement
+
+When `--next-surface` is `both` or `rsc`, for each operation whose HTTP method
+is **`POST`**, **`PUT`**, or **`PATCH`**, emit a scaffold form page whose
+fields match the operation’s **deriveable inputs**:
+
+| Input source                       | Form control (when shape is form-friendly)       |
+| ---------------------------------- | ------------------------------------------------ |
+| Path / query scalars & enums       | text / number / checkbox / select                |
+| JSON body — flat object properties | one control per property (required vs optional)  |
+| `string` + `format: binary` body   | `<input type="file">` (+ Content-Type allowlist) |
+| Body-less writes (query/path only) | fields from params only (e.g. form-style patch)  |
+
+Submit via a generated **Server Action** that calls `getServerAccess()` /
+use cases **in-process** — never `fetch` to Route Handlers. OpenAPI public
+HTTP remains on Route Handlers only (unchanged).
+
+Path placement follows existing surface rules: under `app/ui/...` for `both`,
+literal OpenAPI paths for `rsc`, with no `page`/`route` segment collision.
+
+### Notes / constraints
+
+1. **Not “every POST blindly.”** Key off writable methods with a deriveable
+   input shape. Skip or degrade when the schema is not form-friendly.
+2. **Complex schemas:** nested objects, arrays, `oneOf` / `anyOf`, free-form
+   maps → escape hatch (e.g. raw JSON textarea) rather than fake flat fields.
+3. **Auth:** same policy as GET scaffolds — secured ops may omit browser
+   credential UI in v1 of this follow-up; document the limitation. Authenticated
+   demos still prefer Route Handlers.
+4. **Media types:** JSON + declared binary Content-Types only until
+   form-urlencoded / multipart land in adapters. Do not emit HTML
+   `enctype="multipart/form-data"` as if it fulfilled OpenAPI multipart.
+5. **PetShop overlay:** generated scaffolds stay minimal and domain-agnostic.
+   Fixture UI under `/pets`, `/orders`, etc. may continue to override or ignore
+   `/ui` scaffolds for curated dogfood.
+6. **Binary uploads** (e.g. `uploadFile`) are one media case of this
+   generator — not a one-off PetShop page. See also
+   [binary Content-Type design](./2026-09-20-binary-content-types-design.md) §7
+   and [BlobStore upload design](./2026-09-20-blobstore-file-upload-design.md).
+
+### Success sketch
+
+- Generic fixture / CLI test: OpenAPI with POST/PUT/PATCH → generated form
+  page + Server Action strings; no Petstore literals in plugin source.
+- Petstore `addPet` / `updatePet` / `uploadFile` usable via generated `/ui`
+  scaffolds when surface is `both` (fixture overlay optional).

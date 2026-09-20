@@ -309,9 +309,11 @@ Notes:
 
 - Route Handler: same binary parse into `toApicalRequest` / controller path.
 - `ServerAccess` binds `createUploadFile(blobs, petImages)`.
-- RSC UI for upload is **optional** in PR3; Route Handler + server-access
-  regen is required. Prefer a small fixture-owned file input on pet detail
-  only if it stays clearly non-classic-API (no new routes).
+- RSC / form UI for upload is **out of this stack**. Route Handler +
+  server-access regen is required in PR3. Generated write forms (including
+  binary file inputs) are a separate follow-up:
+  [Next Route Handlers design §11](./2026-08-11-nextjs-route-handlers-design.md)
+  (POST/PUT/PATCH auto forms).
 
 ### 5.9 PoC contract addition (PR2)
 

@@ -39,10 +39,10 @@
     "@hexkit/codegen": "workspace:*",
     "@hexkit/plugin-api": "workspace:*",
     "@hexkit/plugin-apical": "workspace:*",
-    "@hexkit/plugin-architecture-hexagonal": "workspace:*"
+    "@hexkit/plugin-architecture-hexagonal": "workspace:*",
+    "@hexkit/shared": "workspace:*"
   },
   "devDependencies": {
-    "@hexkit/shared": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
