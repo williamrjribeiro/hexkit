@@ -27,6 +27,8 @@ describe("@hexkit/plugin-drizzle", () => {
     .pathname;
   const keyOpenApi = new URL("../../../apps/fixtures/key-api/openapi.yaml", import.meta.url)
     .pathname;
+  const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -98,21 +100,35 @@ describe("@hexkit/plugin-drizzle", () => {
     ]),
   };
 
+  const uploadModules = {
+    schemas: new Map([
+      ["Widget", "schemas/Widget.ts"],
+      ["Document", "schemas/Document.ts"],
+      ["UploadReceipt", "schemas/UploadReceipt.ts"],
+    ]),
+    operations: new Map([
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["uploadDocument", "routes/uploadDocument.ts"],
+    ]),
+  };
+
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
   let authContract: ContractArtifact;
   let patchContract: ContractArtifact;
   let keyContract: ContractArtifact;
+  let uploadContract: ContractArtifact;
   let petstoreApplication: ApplicationArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract, authContract, patchContract, keyContract] =
+    [petstoreContract, libraryContract, authContract, patchContract, keyContract, uploadContract] =
       await Promise.all([
         loadNormalizedContract(petstoreOpenApi, petstoreModules),
         loadNormalizedContract(libraryOpenApi, libraryModules),
         loadNormalizedContract(authOpenApi, authModules),
         loadNormalizedContract(patchOpenApi, patchModules),
         loadNormalizedContract(keyOpenApi, keyModules),
+        loadNormalizedContract(uploadOpenApi, uploadModules),
       ]);
     petstoreApplication = applicationFromContract(petstoreContract);
   });
@@ -416,6 +432,56 @@ describe("@hexkit/plugin-drizzle", () => {
       expect(repository).toContain('return ""');
       expect(repository).toContain("eq(widgets.sku, sku)");
       expect(repository).not.toContain("eq(widgets.id, sku)");
+    });
+  });
+
+  describe("Given an application with a BlobStore port", () => {
+    it("emits a bytea-backed Drizzle BlobStore and its migration table", async () => {
+      const { files } = await collectGeneratedFiles(
+        uploadContract,
+        applicationFromContract(uploadContract),
+      );
+      const adapter =
+        files.find((file) => file.path === "src/adapters/persistence/drizzle-blob-store.ts")
+          ?.contents ?? "";
+      const migration =
+        files.find((file) => file.path === "drizzle/0000_upload-api-fixture.sql")?.contents ?? "";
+
+      expect(adapter).toContain('pgTable("hexkit_blobs"');
+      expect(adapter).toContain('bytea("content", { mode: "buffer" }).notNull()');
+      expect(adapter).toContain("export function createDrizzleBlobStore(");
+      expect(adapter).toContain("Buffer.from(bytes)");
+      expect(adapter).toContain("new Uint8Array(row.content)");
+      expect(adapter).toContain("return deleted.length > 0");
+      expect(migration).toContain('CREATE TABLE IF NOT EXISTS "hexkit_blobs"');
+      expect(migration).toContain('"key" text PRIMARY KEY NOT NULL');
+      expect(migration).toContain('"content" bytea NOT NULL');
+    });
+
+    it("emits a metadata insert that checks the parent and returns the aggregate", async () => {
+      const { files } = await collectGeneratedFiles(
+        uploadContract,
+        applicationFromContract(uploadContract),
+      );
+      const repository =
+        files.find((file) => file.path === "src/adapters/db/document-repository.ts")?.contents ??
+        "";
+
+      expect(repository).toContain(
+        "async uploadDocument(widgetId: string, storageKey: string, additionalMetadata: string | undefined): Promise<Document | undefined>",
+      );
+      expect(repository).toContain(
+        "db.select().from(widgets).where(eq(widgets.id, widgetId)).limit(1)",
+      );
+      expect(repository).toContain("if (!parent) return undefined");
+      expect(repository).toContain("widgetId,");
+      expect(repository).toContain("storageKey,");
+      expect(repository).toContain(
+        "...(additionalMetadata !== undefined ? { additionalMetadata } : {})",
+      );
+      expect(repository).toContain("return row ? mapDocumentRow(row) : undefined");
+      expect(repository).not.toContain(".values(storageKey)");
+      expect(repository).not.toContain("Uint8Array");
     });
   });
 

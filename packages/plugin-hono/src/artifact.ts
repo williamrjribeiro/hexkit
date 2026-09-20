@@ -19,6 +19,14 @@ export type HttpAuthenticatorBinding = {
 export type HttpOperationBinding = HttpControllerBinding & {
   honoPath: string;
   authMiddlewareName?: string;
+  usesBlobStore?: boolean;
+};
+
+export type HttpBlobStoreBinding = {
+  portName: "BlobStore";
+  portFilePath: "src/core/ports/blob-store.ts";
+  adapterFilePath: "src/adapters/persistence/drizzle-blob-store.ts";
+  adapterFactoryName: "createDrizzleBlobStore";
 };
 
 export type HttpArtifact = {
@@ -32,6 +40,7 @@ export type HttpArtifact = {
   repositories: readonly HttpRepositoryBinding[];
   operations: readonly HttpOperationBinding[];
   authenticator?: HttpAuthenticatorBinding;
+  blobStore?: HttpBlobStoreBinding;
 };
 
 export const HTTP_ARTIFACT = createArtifactKey<HttpArtifact>("hono.http.v1");

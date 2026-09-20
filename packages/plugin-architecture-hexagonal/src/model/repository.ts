@@ -1,14 +1,19 @@
 import { pluralizeCamelCase, toKebabCase, unique } from "@hexkit/codegen";
 import type { ContractHttpMethod, ContractOperation } from "@hexkit/plugin-apical";
+import { hasBinaryRequestBody, hasNotFoundResponse } from "@hexkit/shared";
 
-import type { ApplicationParameter, PersistenceKind, ResultCardinality } from "../artifact.ts";
+import type {
+  ApplicationRepositoryParameter,
+  PersistenceKind,
+  ResultCardinality,
+} from "../artifact.ts";
 import { deriveParameters, deriveReturnType } from "./parameters.ts";
 
 export type RepositoryMethodModel = {
   operationId: string;
   name: string;
   action: string;
-  parameters: readonly ApplicationParameter[];
+  parameters: readonly ApplicationRepositoryParameter[];
   returnTypeExpression: string;
   resultCardinality: ResultCardinality;
   persistenceKind: PersistenceKind;
@@ -80,11 +85,35 @@ function deriveRepositoryMethod(
   const parameters = deriveParameters(operation);
   const returnType = deriveReturnType(operation);
   const action = operation.extension?.action ?? operation.operationId;
+  if (hasBinaryRequestBody(operation)) {
+    const pathParameters = parameters.parameters.filter(
+      (parameter) => parameter.location === "path",
+    );
+    const queryParameters = parameters.parameters.filter(
+      (parameter) => parameter.location === "query",
+    );
+    return {
+      operationId: operation.operationId,
+      name: operation.operationId,
+      action,
+      parameters: toRepositoryParameters([
+        ...pathParameters,
+        { name: "storageKey", typeExpression: "string" },
+        ...queryParameters,
+      ]),
+      returnTypeExpression: hasNotFoundResponse(operation) ? `${aggregate} | undefined` : aggregate,
+      resultCardinality: "one",
+      persistenceKind: "insert",
+      referencedSchemas: [aggregate],
+      successHeaders: [],
+    };
+  }
+
   return {
     operationId: operation.operationId,
     name: operation.operationId,
     action,
-    parameters: parameters.parameters,
+    parameters: toRepositoryParameters(parameters.parameters),
     returnTypeExpression: returnType.expression,
     resultCardinality: returnType.resultCardinality,
     persistenceKind: persistenceKindFromAction(
@@ -97,6 +126,23 @@ function deriveRepositoryMethod(
     referencedSchemas: unique([...parameters.referencedSchemas, ...returnType.referencedSchemas]),
     successHeaders: returnType.successHeaders,
   };
+}
+
+function toRepositoryParameters(
+  parameters: ReturnType<typeof deriveParameters>["parameters"],
+): ApplicationRepositoryParameter[] {
+  return parameters.map((parameter) => {
+    if (parameter.location === "body") {
+      throw new Error(
+        `Repository parameter "${parameter.name}" cannot receive a binary request body directly.`,
+      );
+    }
+    return {
+      name: parameter.name,
+      typeExpression: parameter.typeExpression,
+      ...(parameter.location === undefined ? {} : { location: parameter.location }),
+    };
+  });
 }
 
 function kindFromActionOrHttp(action: string, httpMethod: ContractHttpMethod): PersistenceKind {

@@ -16,6 +16,8 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
     .pathname;
   const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
     .pathname;
+  const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -57,13 +59,27 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
     ]),
   };
 
+  const uploadModules = {
+    schemas: new Map([
+      ["Widget", "schemas/Widget.ts"],
+      ["Document", "schemas/Document.ts"],
+      ["UploadReceipt", "schemas/UploadReceipt.ts"],
+    ]),
+    operations: new Map([
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["uploadDocument", "routes/uploadDocument.ts"],
+    ]),
+  };
+
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
+  let uploadContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
+      loadNormalizedContract(uploadOpenApi, uploadModules),
     ]);
   });
 
@@ -296,6 +312,61 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
           ],
         }),
       ]);
+    });
+  });
+
+  describe("Given the upload API contract", () => {
+    it("when the hexagonal plugin runs, then it emits the BlobStore port and two-port upload use case", async () => {
+      const { files, artifact } = await collectGeneratedFiles(uploadContract);
+
+      expect(files.find((file) => file.path === "src/core/ports/blob-store.ts")).toMatchObject({
+        ownership: "generated",
+        contents: `export type BlobPutResult = { key: string };
+
+export type BlobStore = {
+  put(bytes: Uint8Array): Promise<BlobPutResult>;
+  get(key: string): Promise<Uint8Array | undefined>;
+  delete(key: string): Promise<boolean>;
+};
+`,
+      });
+      expect(
+        files.find((file) => file.path === "src/core/ports/document-repository.ts")?.contents,
+      ).toContain(
+        "uploadDocument(widgetId: string, storageKey: string, additionalMetadata: string | undefined): Promise<Document | undefined>;",
+      );
+      expect(
+        files.find((file) => file.path === "src/core/application/upload-document.ts")?.contents,
+      ).toMatchInlineSnapshot(`
+        "import type { UploadReceipt } from "../domain/upload-receipt.ts";
+        import type { BlobStore } from "../ports/blob-store.ts";
+        import type { DocumentRepository } from "../ports/document-repository.ts";
+
+        export type UploadDocument = (widgetId: string, additionalMetadata: string | undefined, body: Uint8Array) => Promise<UploadReceipt | undefined>;
+
+        export function createUploadDocument(
+          blobs: BlobStore,
+          documents: DocumentRepository,
+        ): UploadDocument {
+          return async (widgetId, additionalMetadata, body) => {
+            const { key } = await blobs.put(body);
+            const saved = await documents.uploadDocument(widgetId, key, additionalMetadata);
+            if (saved === undefined) return undefined;
+            return { code: 200, type: "unknown", message: additionalMetadata ?? "" };
+          };
+        }
+        "
+      `);
+      expect(artifact.blobStorePort).toEqual({
+        name: "BlobStore",
+        filePath: "src/core/ports/blob-store.ts",
+      });
+      expect(artifact.useCases).toContainEqual(
+        expect.objectContaining({
+          operationId: "uploadDocument",
+          usesBlobStore: true,
+        }),
+      );
     });
   });
 

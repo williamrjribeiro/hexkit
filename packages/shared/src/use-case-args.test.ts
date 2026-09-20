@@ -13,7 +13,7 @@ describe("Given use-case argument derivation", () => {
             { name: "photoId", location: "path" },
           ],
         },
-        false,
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
       ),
     ).toEqual(["request.value.path.itemId", "request.value.path.photoId"]);
   });
@@ -28,7 +28,7 @@ describe("Given use-case argument derivation", () => {
             { name: "status", location: "query" },
           ],
         },
-        false,
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
       ),
     ).toEqual(["request.value.path.widgetId", "request.value.query?.status"]);
   });
@@ -37,7 +37,7 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: false, parameters: [{ name: "status", location: "query" }] },
-        false,
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
       ),
     ).toEqual(["request.value.query?.status"]);
   });
@@ -53,7 +53,7 @@ describe("Given use-case argument derivation", () => {
             { name: "status", location: "query" },
           ],
         },
-        false,
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
       ),
     ).toEqual([
       "request.value.path.petId",
@@ -69,7 +69,7 @@ describe("Given use-case argument derivation", () => {
           requiresAuth: false,
           parameters: [{ name: "sku", location: "path" }, { name: "item" }],
         },
-        true,
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
       ),
     ).toEqual(["request.value.path.sku", "request.value.body"]);
   });
@@ -78,7 +78,7 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: false, parameters: [{ name: "item" }] },
-        true,
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
       ),
     ).toEqual(["request.value.body"]);
   });
@@ -87,18 +87,35 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: true, parameters: [{ name: "itemId", location: "path" }] },
-        false,
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
       ),
     ).toEqual(["principal", "request.value.path.itemId"]);
-    expect(deriveUseCaseArgumentExpressions({ requiresAuth: true, parameters: [] }, true)).toEqual([
-      "principal",
-      "request.value.body",
-    ]);
+    expect(
+      deriveUseCaseArgumentExpressions(
+        { requiresAuth: true, parameters: [] },
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
+      ),
+    ).toEqual(["principal", "request.value.body"]);
   });
 
   it("when there are no parameters and no JSON body, then only an optional principal is emitted", () => {
     expect(
-      deriveUseCaseArgumentExpressions({ requiresAuth: false, parameters: [] }, false),
+      deriveUseCaseArgumentExpressions(
+        { requiresAuth: false, parameters: [] },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+      ),
     ).toEqual([]);
+  });
+
+  it("when the operation has a binary body, then path expressions precede the body", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        {
+          requiresAuth: false,
+          parameters: [{ name: "widgetId", location: "path" }],
+        },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: true },
+      ),
+    ).toEqual(["request.value.path.widgetId", "request.value.body"]);
   });
 });

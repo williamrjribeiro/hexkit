@@ -1,7 +1,9 @@
 import { toKebabCase, toPascalCase } from "@hexkit/codegen";
 import type { ContractOperation } from "@hexkit/plugin-apical";
+import { hasBinaryRequestBody } from "@hexkit/shared";
 
 import type { ApplicationParameter } from "../artifact.ts";
+import { deriveParameters, deriveReturnType } from "./parameters.ts";
 import type { RepositoryMethodModel, RepositoryModel } from "./repository.ts";
 
 export type UseCaseModel = {
@@ -14,6 +16,7 @@ export type UseCaseModel = {
   repositoryParameterName: string;
   methodName: string;
   requiresAuth: boolean;
+  usesBlobStore: boolean;
   parameters: readonly ApplicationParameter[];
   returnTypeExpression: string;
   referencedSchemas: readonly string[];
@@ -25,6 +28,9 @@ export function deriveUseCase(
   method: RepositoryMethodModel,
 ): UseCaseModel {
   const typeName = toPascalCase(operation.operationId);
+  const usesBlobStore = hasBinaryRequestBody(operation);
+  const transportParameters = usesBlobStore ? deriveParameters(operation) : undefined;
+  const transportReturnType = usesBlobStore ? deriveReturnType(operation) : undefined;
   return {
     operationId: operation.operationId,
     typeName,
@@ -35,9 +41,13 @@ export function deriveUseCase(
     repositoryParameterName: repository.parameterName,
     methodName: method.name,
     requiresAuth: requiresAuth(operation),
-    parameters: method.parameters,
-    returnTypeExpression: method.returnTypeExpression,
-    referencedSchemas: method.referencedSchemas,
+    usesBlobStore,
+    parameters: transportParameters?.parameters ?? method.parameters,
+    returnTypeExpression: transportReturnType?.expression ?? method.returnTypeExpression,
+    referencedSchemas:
+      transportReturnType === undefined
+        ? method.referencedSchemas
+        : [...transportParameters!.referencedSchemas, ...transportReturnType.referencedSchemas],
   };
 }
 

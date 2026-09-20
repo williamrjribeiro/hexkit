@@ -30,6 +30,8 @@ describe("@hexkit/plugin-hono", () => {
     .pathname;
   const libraryOpenApi = new URL("../../../apps/fixtures/library-api/openapi.yaml", import.meta.url)
     .pathname;
+  const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -71,15 +73,29 @@ describe("@hexkit/plugin-hono", () => {
     ]),
   };
 
+  const uploadModules = {
+    schemas: new Map([
+      ["Document", "schemas/Document.ts"],
+      ["UploadReceipt", "schemas/UploadReceipt.ts"],
+      ["Widget", "schemas/Widget.ts"],
+    ]),
+    operations: new Map([
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["uploadDocument", "routes/uploadDocument.ts"],
+    ]),
+  };
+
   const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
+  let uploadContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
+      loadNormalizedContract(uploadOpenApi, uploadModules),
     ]);
   });
 
@@ -441,6 +457,37 @@ describe("@hexkit/plugin-hono", () => {
           repositoryFilePath: "src/core/ports/book-repository.ts",
         },
       ]);
+    });
+  });
+
+  describe("Given ContractArtifact + ApplicationArtifact for Upload API", () => {
+    it("when Hono generation runs, then binary uploads use the octet-stream request helper", async () => {
+      const { files } = await collectGeneratedFiles(uploadContract);
+      const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+      const runtime = files.find((file) => file.path === "src/runtime/app.ts");
+
+      expect(routes?.contents).toContain(
+        "respond(await controllers.uploadDocument(await binaryRequest(context, [])))",
+      );
+      expect(routes?.contents).toContain(
+        'contentType.toLowerCase().startsWith("application/octet-stream")',
+      );
+      expect(routes?.contents).toContain(
+        "const body = new Uint8Array(await context.req.arrayBuffer())",
+      );
+      expect(routes?.contents).toContain("if (body.byteLength === 0)");
+      expect(routes?.contents).toContain('contentType: "application/octet-stream"');
+      expect(runtime?.contents).toContain(
+        'import type { BlobStore } from "../core/ports/blob-store.ts";',
+      );
+      expect(runtime?.contents).toContain(
+        'import { createDrizzleBlobStore } from "../adapters/persistence/drizzle-blob-store.ts";',
+      );
+      expect(runtime?.contents).toContain("blobStore: BlobStore = createDefaultBlobStore()");
+      expect(runtime?.contents).toContain("return createDrizzleBlobStore(db);");
+      expect(runtime?.contents).toContain(
+        "uploadDocument: createUploadDocument(blobStore, repositories.documents),",
+      );
     });
   });
 

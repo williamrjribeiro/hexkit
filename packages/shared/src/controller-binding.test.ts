@@ -8,6 +8,7 @@ import type { ContractSecurityScheme } from "./media.ts";
 describe("Given deriveHttpControllerBinding", () => {
   const itemReference = { kind: "reference", nullable: false, schema: "Item" } as const;
   const stringType = { kind: "string", nullable: false } as const;
+  const binaryType = { kind: "string", nullable: false, format: "binary" } as const;
 
   const publicSecurity = {
     overridesGlobal: true,
@@ -151,6 +152,54 @@ describe("Given deriveHttpControllerBinding", () => {
     expect(binding.responseMapName).toBeUndefined();
     expect(binding.successMediaType).toBeUndefined();
     expect(binding.successStatus).toBe("204");
+  });
+
+  it("when an octet-stream body operation has path parameters, then binary binding and arguments are set", () => {
+    const binding = deriveHttpControllerBinding(
+      operation({
+        operationId: "uploadDocument",
+        method: "post",
+        path: "/widgets/{widgetId}/documents",
+        parameters: [{ name: "widgetId", location: "path", required: true, type: stringType }],
+        requestBody: {
+          required: true,
+          media: [{ mediaType: "application/octet-stream", type: binaryType }],
+        },
+        responses: [{ status: "201", description: "created", media: [] }],
+      }),
+      useCase({
+        typeName: "UploadDocument",
+        parameters: [{ name: "widgetId", location: "path" }],
+      }),
+      [],
+    );
+
+    expect(binding).toMatchObject({
+      hasJsonRequestBody: false,
+      hasBinaryRequestBody: true,
+      successStatus: "201",
+      useCaseArgumentExpressions: ["request.value.path.widgetId", "request.value.body"],
+    });
+  });
+
+  it("when both JSON and binary request bodies are declared, then derivation throws", () => {
+    expect(() =>
+      deriveHttpControllerBinding(
+        operation({
+          operationId: "invalidUpload",
+          method: "post",
+          requestBody: {
+            required: true,
+            media: [
+              { mediaType: "application/json", type: itemReference },
+              { mediaType: "application/octet-stream", type: binaryType },
+            ],
+          },
+        }),
+        useCase({ typeName: "InvalidUpload" }),
+        [],
+      ),
+    ).toThrow(/cannot declare both JSON and binary request bodies/);
   });
 
   it("when query parameters include arrays and scalars, then only array names are listed", () => {

@@ -8,6 +8,7 @@ export function renderStaticRuntimeStatements(options: { hasAuth: boolean }): st
     renderToApicalQuery(),
     renderRequestHelper(contextType),
     renderJsonRequestHelper(contextType),
+    renderBinaryRequestHelper(contextType),
     ...(options.hasAuth
       ? [
           renderSecuritySchemeMetaType(),
@@ -53,7 +54,14 @@ function renderApicalRequestType(): string {
     "  path: unknown;",
     "  headers: unknown;",
     "  body?: unknown;",
-    '  contentType?: "application/json";',
+    "};",
+    "type JsonApicalRequest = ApicalRequest & {",
+    "  body: unknown;",
+    '  contentType: "application/json";',
+    "};",
+    "type BinaryApicalRequest = ApicalRequest & {",
+    "  body: Uint8Array;",
+    '  contentType: "application/octet-stream";',
     "};",
   ].join("\n");
 }
@@ -104,7 +112,7 @@ function renderRequestHelper(contextType: string): string {
 
 function renderJsonRequestHelper(contextType: string): string {
   return [
-    `async function jsonRequest(context: ${contextType}, arrayQueryKeys: readonly string[] = []): Promise<ApicalRequest> {`,
+    `async function jsonRequest(context: ${contextType}, arrayQueryKeys: readonly string[] = []): Promise<JsonApicalRequest> {`,
     '  const contentType = context.req.header("content-type")?.split(";", 1)[0]?.trim();',
     '  if (contentType !== "application/json") {',
     '    throw new RequestValidationError("body-error");',
@@ -119,6 +127,28 @@ function renderJsonRequestHelper(contextType: string): string {
     "  } catch {",
     '    throw new RequestValidationError("body-error");',
     "  }",
+    "}",
+  ].join("\n");
+}
+
+function renderBinaryRequestHelper(contextType: string): string {
+  return [
+    `async function binaryRequest(context: ${contextType}, arrayQueryKeys: readonly string[] = []): Promise<BinaryApicalRequest> {`,
+    '  const contentType = context.req.header("content-type") ?? "";',
+    '  if (!contentType.toLowerCase().startsWith("application/octet-stream")) {',
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  const body = new Uint8Array(await context.req.arrayBuffer());",
+    "  if (body.byteLength === 0) {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  return {",
+    "    ...request(context, arrayQueryKeys),",
+    "    body,",
+    '    contentType: "application/octet-stream",',
+    "  };",
     "}",
   ].join("\n");
 }

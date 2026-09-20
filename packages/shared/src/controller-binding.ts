@@ -4,6 +4,7 @@ import { deriveAuthSchemes, type HttpAuthSchemeBinding } from "./auth-schemes.ts
 import {
   findJsonMedia,
   findSuccessResponse,
+  hasBinaryRequestBody,
   hasJsonRequestBody,
   hasNotFoundResponse,
   type ContractSecurityScheme,
@@ -45,6 +46,7 @@ export type HttpControllerBinding = {
   successStatus: string;
   notFoundStatus?: string;
   hasJsonRequestBody: boolean;
+  hasBinaryRequestBody: boolean;
   hasJsonSuccessBody: boolean;
   successMediaType?: string;
   requiresAuth: boolean;
@@ -99,6 +101,12 @@ export function deriveHttpControllerBinding(
 
   const jsonSuccessMedia = findJsonMedia(successResponse.media);
   const jsonRequestBody = hasJsonRequestBody(operation);
+  const binaryRequestBody = hasBinaryRequestBody(operation);
+  if (jsonRequestBody && binaryRequestBody) {
+    throw new Error(
+      `Operation "${operation.operationId}" cannot declare both JSON and binary request bodies.`,
+    );
+  }
   const wrapperName = `${operation.operationId}Wrapper`;
   const responseMapName =
     jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
@@ -122,11 +130,15 @@ export function deriveHttpControllerBinding(
     successStatus: successResponse.status,
     ...(hasNotFoundResponse(operation) ? { notFoundStatus: "404" } : {}),
     hasJsonRequestBody: jsonRequestBody,
+    hasBinaryRequestBody: binaryRequestBody,
     hasJsonSuccessBody: jsonSuccessMedia !== undefined,
     ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
     requiresAuth: useCase.requiresAuth,
     authSchemes: deriveAuthSchemes(operation, securitySchemes),
-    useCaseArgumentExpressions: deriveUseCaseArgumentExpressions(useCase, jsonRequestBody),
+    useCaseArgumentExpressions: deriveUseCaseArgumentExpressions(useCase, {
+      hasJsonRequestBody: jsonRequestBody,
+      hasBinaryRequestBody: binaryRequestBody,
+    }),
     arrayQueryParameterNames: operation.parameters
       .filter((parameter) => parameter.location === "query" && parameter.type.kind === "array")
       .map((parameter) => parameter.name),

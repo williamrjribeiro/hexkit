@@ -74,6 +74,7 @@ describe("renderUseCaseFile", () => {
       repositoryParameterName: "orders",
       methodName: "compose",
       requiresAuth: false,
+      usesBlobStore: false,
       parameters: [
         { name: "pet", typeExpression: "Pet" },
         { name: "tag", typeExpression: "Tag" },

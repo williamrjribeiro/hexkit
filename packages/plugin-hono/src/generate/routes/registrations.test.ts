@@ -18,6 +18,7 @@ describe("Hono route registrations", () => {
       wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
       successStatus: "200",
       hasJsonRequestBody: false,
+      hasBinaryRequestBody: false,
       hasJsonSuccessBody: true,
       successMediaType: "application/json",
       requiresAuth: false,

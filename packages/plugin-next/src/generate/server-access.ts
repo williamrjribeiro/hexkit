@@ -20,6 +20,7 @@ export function renderServerAccessFile(
     compareText(left.operationId, right.operationId),
   );
   const hasSecuredUseCases = useCases.some((useCase) => useCase.requiresAuth);
+  const hasBlobStore = application.blobStorePort !== undefined;
 
   const imports: ImportDeclaration[] = [
     ...useCases.map((useCase) => ({
@@ -35,6 +36,22 @@ export function renderServerAccessFile(
           },
         ]
       : []),
+    ...(application.blobStorePort === undefined
+      ? []
+      : [
+          {
+            from: relativeImportPath(SERVER_ACCESS_FILE_PATH, application.blobStorePort.filePath),
+            names: [application.blobStorePort.name],
+            typeOnly: true,
+          },
+          {
+            from: relativeImportPath(
+              SERVER_ACCESS_FILE_PATH,
+              "src/adapters/persistence/drizzle-blob-store.ts",
+            ),
+            names: ["createDrizzleBlobStore"],
+          },
+        ]),
     ...collectSecuredDomainTypeImports(useCases, application.entities),
     ...model.repositories.map((repository) => ({
       from: relativeImportPath(SERVER_ACCESS_FILE_PATH, repository.filePath),
@@ -86,7 +103,9 @@ export function renderServerAccessFile(
       "}",
     ].join("\n"),
     [
-      "function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {",
+      hasBlobStore
+        ? "function composeServerAccess(repositories: RuntimeRepositories, blobStore: BlobStore = createDrizzleBlobStore(getDatabase())): ServerAccess {"
+        : "function composeServerAccess(repositories: RuntimeRepositories): ServerAccess {",
       "  return {",
       repositoryBindings,
       "  };",
@@ -152,7 +171,7 @@ function renderAccessField(useCase: ApplicationUseCase): string {
 }
 
 function renderAccessBinding(useCase: ApplicationUseCase): string {
-  const factoryCall = `${useCase.factoryName}(repositories.${useCase.repositoryParameterName})`;
+  const factoryCall = `${useCase.factoryName}(${useCase.usesBlobStore ? "blobStore, " : ""}repositories.${useCase.repositoryParameterName})`;
   if (!useCase.requiresAuth) {
     return `${useCase.operationId}: ${factoryCall}`;
   }

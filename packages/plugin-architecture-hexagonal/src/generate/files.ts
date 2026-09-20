@@ -4,6 +4,7 @@ import type { GeneratedFile } from "@hexkit/plugin-api";
 import type { ApplicationArtifact } from "../artifact.ts";
 import { deriveApplicationModel, toApplicationArtifact } from "../model/derive.ts";
 import { renderAuthenticatorPortFile } from "./authenticator-port.ts";
+import { renderBlobStorePortFile } from "./blob-store-port.ts";
 import { renderDomainFile } from "./domain.ts";
 import { renderPrincipalFile } from "./principal.ts";
 import { renderRepositoryFile } from "./repository.ts";
@@ -21,6 +22,7 @@ export function generateApplicationFromContract(contract: ContractArtifact): Gen
     ...(model.authenticatorPort === undefined ? [] : [renderPrincipalFile()]),
     ...model.repositories.map(renderRepositoryFile),
     ...(model.authenticatorPort === undefined ? [] : [renderAuthenticatorPortFile()]),
+    ...(model.blobStorePort === undefined ? [] : [renderBlobStorePortFile()]),
     ...model.useCases.map(renderUseCaseFile),
   ];
 

@@ -1,0 +1,89 @@
+openapi: 3.1.0
+info:
+  title: Upload API Fixture
+  version: 1.0.0
+paths:
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidgetById
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "404":
+          description: missing
+  /widgets/{widgetId}/documents:
+    post:
+      operationId: uploadDocument
+      x-hexkit:
+        operation:
+          aggregate: Document
+          action: insert
+      parameters:
+        - name: widgetId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: additionalMetadata
+          in: query
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadReceipt"
+        "400":
+          description: empty or invalid
+        "404":
+          description: widget missing
+components:
+  schemas:
+    Widget:
+      type: object
+      x-hexkit:
+        persistence:
+          table: widgets
+          identity: id
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    Document:
+      type: object
+      x-hexkit:
+        persistence:
+          table: documents
+          identity: id
+      required: [id, widgetId, storageKey]
+      properties:
+        id: { type: string }
+        widgetId:
+          type: string
+          x-hexkit:
+            reference: { schema: Widget, property: id }
+        storageKey: { type: string }
+        additionalMetadata: { type: string }
+    UploadReceipt:
+      type: object
+      properties:
+        code: { type: integer }
+        type: { type: string }
+        message: { type: string }

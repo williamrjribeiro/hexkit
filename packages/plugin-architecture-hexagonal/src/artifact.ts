@@ -9,6 +9,10 @@ export type ApplicationEntity = {
 export type ApplicationParameter = {
   name: string;
   typeExpression: string;
+  location?: "path" | "query" | "body";
+};
+
+export type ApplicationRepositoryParameter = Omit<ApplicationParameter, "location"> & {
   location?: "path" | "query";
 };
 
@@ -20,7 +24,7 @@ export type ApplicationRepositoryMethod = {
   operationId: string;
   name: string;
   action: string;
-  parameters: readonly ApplicationParameter[];
+  parameters: readonly ApplicationRepositoryParameter[];
   returnTypeExpression: string;
   resultCardinality: ResultCardinality;
   persistenceKind: PersistenceKind;
@@ -46,11 +50,17 @@ export type ApplicationUseCase = {
   methodName: string;
   parameters: readonly ApplicationParameter[];
   returnTypeExpression: string;
+  usesBlobStore?: boolean;
 };
 
 export type ApplicationAuthenticatorPort = {
   name: "Authenticator";
   filePath: "src/core/ports/authenticator.ts";
+};
+
+export type ApplicationBlobStorePort = {
+  name: "BlobStore";
+  filePath: "src/core/ports/blob-store.ts";
 };
 
 export type ApplicationArtifact = {
@@ -59,6 +69,7 @@ export type ApplicationArtifact = {
   repositories: readonly ApplicationRepository[];
   useCases: readonly ApplicationUseCase[];
   authenticatorPort?: ApplicationAuthenticatorPort;
+  blobStorePort?: ApplicationBlobStorePort;
 };
 
 export const APPLICATION_ARTIFACT = createArtifactKey<ApplicationArtifact>(
