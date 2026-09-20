@@ -19,6 +19,7 @@ describe("Hono route registrations", () => {
       successStatus: "200",
       hasJsonRequestBody: false,
       hasBinaryRequestBody: false,
+      requestBodyTransport: { kind: "none" },
       hasJsonSuccessBody: true,
       successMediaType: "application/json",
       requiresAuth: false,
