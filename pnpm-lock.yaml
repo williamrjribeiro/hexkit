@@ -537,10 +537,10 @@ importers:
       '@hexkit/plugin-architecture-hexagonal':
         specifier: workspace:*
         version: link:../plugin-architecture-hexagonal
-    devDependencies:
       '@hexkit/shared':
         specifier: workspace:*
         version: link:../shared
+    devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
