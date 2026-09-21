@@ -112,6 +112,39 @@ lint_next_app() {
   printf 'eslint-config-next passed for %s\n' "$label"
 }
 
+install_next_app() {
+  app_dir=$1
+  label=$2
+
+  printf 'Installing dependencies for %s\n' "$label"
+  (
+    cd "$app_dir"
+    vp install --no-frozen-lockfile
+  )
+}
+
+build_next_app() {
+  app_dir=$1
+  label=$2
+
+  printf 'Running next build on %s\n' "$label"
+
+  if [ ! -f "$app_dir/node_modules/next/dist/bin/next" ]; then
+    printf 'Error: next is not installed in %s.\n' "$app_dir" >&2
+    exit 1
+  fi
+
+  if ! (
+    cd "$app_dir"
+    vp node ./node_modules/next/dist/bin/next build
+  ); then
+    printf 'Error: next build failed for %s.\n' "$label" >&2
+    exit 1
+  fi
+
+  printf 'next build passed for %s\n' "$label"
+}
+
 wait_for_url() {
   url=$1
   expected_status=$2
@@ -162,7 +195,13 @@ vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT
 
 lint_next_app "$OUTPUT_DIR" "generated Next.js app"
 
+# Overlay PetShop UI onto the generated tree first, then install + `next build`
+# once. The overlaid tree is what Compose builds: fixture pages, generated
+# routes, and app/ui/** RSC scaffolds. Building before overlay and again on
+# apps/petstore-next duplicated ~20s of CI without extra coverage.
 sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
+install_next_app "$OUTPUT_DIR" "overlaid Next.js app"
+build_next_app "$OUTPUT_DIR" "overlaid Next.js app"
 
 rm -rf "$NEXT_DIR/src"
 mkdir -p "$NEXT_DIR/src"
@@ -172,11 +211,6 @@ copy_generated_routes
 vp install
 
 lint_next_app "$NEXT_DIR" "PetShop Next.js fixture"
-
-(
-  cd "$NEXT_DIR"
-  vp run build
-)
 
 if [ "$SKIP_COMPOSE" = "1" ]; then
   printf 'HEXKIT_SKIP_COMPOSE=1; skipping Docker Compose Next+Postgres stack after successful build.\n'

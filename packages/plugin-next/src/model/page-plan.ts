@@ -34,6 +34,10 @@ export function coercePageArgument(
   parameter: NextUiPageParameter,
   pathParamNames: readonly string[],
 ): string {
+  if (!pathParamNames.includes(parameter.name) && isArrayTypeExpression(parameter.typeExpression)) {
+    return `getSearchParamValues(searchParams, ${JSON.stringify(parameter.name)}) as ${parameter.typeExpression}`;
+  }
+
   const expression = pathParamNames.includes(parameter.name)
     ? `params[${JSON.stringify(parameter.name)}]`
     : `getSearchParam(searchParams, ${JSON.stringify(parameter.name)})`;
@@ -45,6 +49,10 @@ export function coercePageArgument(
     return `(${expression} ?? "false") === "true"`;
   }
   return `${expression} ?? ""`;
+}
+
+function isArrayTypeExpression(typeExpression: string): boolean {
+  return typeExpression.replace(/\s+/g, "").startsWith("Array<");
 }
 
 export function planPageFiles(model: NextHttpModel): readonly PagePlan[] {

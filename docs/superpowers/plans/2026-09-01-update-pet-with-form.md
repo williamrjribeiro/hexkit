@@ -490,7 +490,7 @@ it("when POST /pet/{petId} has an invalid status, then it returns 400", async ()
 
 Place them after the pet is created (and preferably before destructive delete), or use a dedicated form-update pet id from `createAcceptanceIds`.
 
-- [ ] **Step 2:** Run `vp run dogfood` — expect PASS.
+- [ ] **Step 2:** Run `vp run dogfood:petstore:hono` — expect PASS.
 
 - [ ] **Step 3:** Commit `test(petstore): Pactum coverage for updatePetWithForm`.
 
@@ -612,7 +612,7 @@ export async function updatePetWithFormAction(formData: FormData) {
 
 Import `updatePetWithFormAction` from `../actions`. Keep the existing **Edit pet** link (full PUT) and Delete form.
 
-- [ ] **Step 3:** Run `HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next` — expect PASS (ESLint + `next build`).
+- [ ] **Step 3:** Run `HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs` — expect PASS (ESLint + `next build`).
 
 - [ ] **Step 4:** Commit `feat(petstore-next): Quick update UI for updatePetWithForm`.
 
@@ -642,8 +642,8 @@ vp run --filter './packages/*' --filter './apps/cli' build
 vp check
 vp run --filter './packages/*' --filter './apps/cli' test
 vp run coverage
-vp run dogfood
-HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+vp run dogfood:petstore:hono
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs
 ```
 
 Expected: all green.

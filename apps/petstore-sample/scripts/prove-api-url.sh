@@ -13,7 +13,7 @@ run_task() {
     PETSTORE_API_URL="$1" \
     HEXKIT_KEEP_STACK=1 \
     HEXKIT_DOGFOOD_OUTPUT="$2" \
-      vp run dogfood --print-config
+      vp run dogfood:petstore:hono --print-config
   )
 }
 

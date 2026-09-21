@@ -35,21 +35,32 @@ lives under `src/`. The App Router UI stays in the package-root `app/` directory
 
 ## Dogfood generation
 
-From the repository root:
+From the repository root, preferred local entry (stable `/tmp` so `:down`
+works):
 
 ```bash
-vp run dogfood-petstore-next
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:nextjs
+# open http://127.0.0.1:3000
+vp run dogfood:petstore:nextjs:down
 ```
 
-That follows the Hono Petstore pattern: generate into a temp tree, overlay this
-fixture's UI, then (locally) `docker compose up --build` using the **generated**
-`Dockerfile` + `docker-compose.yml` (Next.js app + Postgres). After generate,
-dogfood runs `eslint-config-next` (Core Web Vitals + TypeScript +
-`@next/next/no-html-link-for-pages`) on the generated tree, then again on this
-PetShop fixture after merge, then `next build`. CI **Dogfood NextJS** sets
-`HEXKIT_SKIP_COMPOSE=1` so the job stops after lint/`next build` (no app tests).
-Locally, omit that env (or set `HEXKIT_SKIP_COMPOSE=0`) to also bring up Compose.
-`HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
+`dogfood:petstore:nextjs` generates into `/tmp/hexkit-dogfood-petstore-next` by
+default. The Compose file and Dockerfile are **generated packaging** (same as
+`hexkit generate --http next`), not committed under this fixture — dogfood
+builds the overlaid generated tree so packaging stays the source of truth.
+`HEXKIT_KEEP_STACK` is still honored (default `0` tears down on exit). Override
+the directory with `HEXKIT_DOGFOOD_OUTPUT` if needed. CI sets
+`HEXKIT_SKIP_COMPOSE=1` on the same task.
+
+That follows the Hono Petstore pattern: generate into a temp tree, lint the
+generated app, overlay this fixture's UI onto the temp tree, then install and
+`next build` **once** on that overlaid tree (PetShop pages + generated routes +
+`app/ui/**` RSC scaffolds — the same tree Compose would build). Dogfood then
+merges `src/**` and `app/**/route.ts` into this fixture and re-runs
+eslint-config-next there. CI **Dogfood NextJS** sets `HEXKIT_SKIP_COMPOSE=1` so
+the job stops after those host checks (no second fixture `next build`, no app
+tests). Locally, omit that env (or set `HEXKIT_SKIP_COMPOSE=0`) to also bring
+up Compose. `HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
 
 Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order + User JSON; nested
 Pet fields persist as JSONB).
@@ -80,10 +91,12 @@ are copied back onto this fixture.
    files under `app/` back onto the fixture. The fixture keeps ownership of `/`,
    `/pets/**`, and `/orders/**`.
 5. Confirm `tsconfig.json` still maps `@/*` to `./src/*`.
-6. From the repository root, run `vp install`, then lint and build this fixture
-   with `vp run petstore-next#lint` and `vp run petstore-next#build`.
-   Dogfood also lints the generated temp tree with the same `eslint-config-next`
-   rules before overlay.
+6. From the repository root, run `vp install`, then lint this fixture with
+   `vp run petstore-next#lint` (and `vp run petstore-next#build` when iterating
+   on the fixture alone). Dogfood lints the generated tree, overlays fixture UI,
+   then runs a **single** `next build` on the overlaid temp tree so PetShop pages
+   and generated `app/ui/**` RSC scaffolds are type-checked together. ESLint does
+   not type-check.
 7. `docker compose -f "$TMP/docker-compose.yml" up --build -d --wait`, then
    smoke `GET /`, `GET /pets`, and `POST /pet` (body includes required
    `photoUrls`, which may be an empty list).

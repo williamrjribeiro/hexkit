@@ -62,7 +62,7 @@ jobs:
       - name: Generate Hono Pet Shop, lint, typecheck, build, and Pactum
         # hexkit generate → generated app `vp lint` + `tsc` → Compose image build
         # → Pactum (`apps/petstore-sample/tests/api/**/*.test.ts`).
-        run: vp run dogfood
+        run: vp run dogfood:petstore:hono
 
   dogfood-nextjs:
     name: Dogfood NextJS
@@ -77,8 +77,9 @@ jobs:
           node-version: "24"
 
       - name: Generate Next Pet Shop, lint, typecheck, and build
-        # hexkit generate --http next → eslint-config-next + `next build`.
+        # hexkit generate --http next → overlay PetShop UI → one `next build` of
+        # the overlaid tree (fixture pages + generated routes + app/ui/**).
         # No app tests; skip Compose/runtime smoke in CI.
         env:
           HEXKIT_SKIP_COMPOSE: "1"
-        run: vp run dogfood-petstore-next
+        run: vp run dogfood:petstore:nextjs

@@ -41,13 +41,23 @@ tests alone do not prove the generated app works at runtime.
 
 ### Run dogfood (from the workspace root)
 
-Preferred entry (uncached root Vite+ task → `scripts/dogfood.sh`):
+Preferred local entry (stable `/tmp` output so `:down` works):
 
 ```bash
-vp run dogfood
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:hono
+# …
+vp run dogfood:petstore:hono:down
 ```
 
-If the nested `vp` task misbehaves, run the script directly from the repo root:
+`dogfood:petstore:hono` generates into `/tmp/hexkit-dogfood-petstore-hono` by
+default. Compose (`Dockerfile` + `docker-compose.yml`) is **generator packaging
+output**, not a committed fixture file — that way dogfood proves the same
+artifacts `hexkit generate` emits. Override with `HEXKIT_DOGFOOD_OUTPUT` if
+needed. `HEXKIT_KEEP_STACK` is still honored (default `0` tears the stack down
+when the script exits).
+
+If the nested `vp` task misbehaves, run the script directly from the repo root
+(set `HEXKIT_DOGFOOD_OUTPUT` yourself if you want a stable directory):
 
 ```bash
 apps/petstore-sample/scripts/dogfood.sh
@@ -81,6 +91,13 @@ Example — generate into a browsable folder and leave Compose running:
 HEXKIT_DOGFOOD_OUTPUT=/tmp/hexkit-petstore-poc \
 HEXKIT_KEEP_STACK=1 \
 apps/petstore-sample/scripts/dogfood.sh
+```
+
+With the stable local task, prefer:
+
+```bash
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:hono
+vp run dogfood:petstore:hono:down
 ```
 
 ## Package scripts (`vp run` from this package)
@@ -117,5 +134,5 @@ Cases live under `tests/api/<resource>/<method>.test.ts` (for example `tests/api
 | Command                                         | Role                                                                     |
 | ----------------------------------------------- | ------------------------------------------------------------------------ |
 | `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality)  |
-| `vp run dogfood`                                | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
+| `vp run dogfood:petstore:hono` / `:down`                       | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
 | `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)              |

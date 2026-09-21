@@ -42,8 +42,10 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality. CI uses Vitest's [GitHub Actions reporter](https://vitest.dev/guide/reporters.html#github-actions-reporter) (package-named projects + job summary) and appends a coverage-% table.
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
-- `vp run dogfood` — Hono Pet Shop: generate → Oxlint + `tsc` on the generated app → Compose build → Pactum (Docker required). CI job **Dogfood API**.
-- `vp run dogfood-petstore-next` — Next Pet Shop: generate → ESLint 9 + `next build`. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1` (no app tests). Locally, omit that env to also bring up Compose.
+- `vp run dogfood:petstore:hono` — Hono Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-hono` (Compose packaging is generated, not committed). Respects `HEXKIT_KEEP_STACK`. CI job **Dogfood API**.
+- `vp run dogfood:petstore:hono:down` — `docker compose down --volumes` for that Hono output dir.
+- `vp run dogfood:petstore:nextjs` — Next Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-next`. Respects `HEXKIT_KEEP_STACK` / `HEXKIT_SKIP_COMPOSE`. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1`.
+- `vp run dogfood:petstore:nextjs:down` — `docker compose down --volumes` for that Next output dir.
 - `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance (local; not a CI job).
 
 Gotchas:
@@ -51,8 +53,8 @@ Gotchas:
 - Running `vp install` executes the `prepare` script (`vp config` + `scripts/ensure-commit-hooks.sh`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` skips taking `core.hooksPath` when Cursor already owns it; `ensure-commit-hooks.sh` then chains Cursor's dispatcher to `.vite-hooks/_` so pre-commit still runs `vp staged` → `vp check --fix` (format + lint autofix on staged files).
 - Full Petstore OpenAPI coverage (beyond `openapi.poc.yaml`) is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md). Update that file whenever `@hexkit/plugin-hono` or `@hexkit/plugin-next` gains or loses Petstore-relevant OpenAPI support.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
-- GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
-- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory.
+- GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (overlaid Next Pet Shop ESLint + one `next build`).
+- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory. Next dogfood overlays fixture UI onto the generated temp tree, then runs a **single** host `next build` on that overlaid tree (PetShop pages + generated `app/ui/**` + routes). CI skips Compose, so that one build is the typecheck gate.
 
 ## Agent skills
 

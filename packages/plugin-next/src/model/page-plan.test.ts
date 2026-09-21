@@ -49,6 +49,29 @@ describe("Given page argument coercion", () => {
       'params["itemId"] ?? ""',
     );
   });
+
+  it("when a parameter is a query enum array, then values are collected and asserted", () => {
+    expect(
+      coercePageArgument(
+        { name: "status", typeExpression: 'Array<"available" | "pending" | "sold">' },
+        [],
+      ),
+    ).toBe(
+      'getSearchParamValues(searchParams, "status") as Array<"available" | "pending" | "sold">',
+    );
+  });
+
+  it("when a parameter is a query string array, then values are collected and asserted", () => {
+    expect(coercePageArgument({ name: "tags", typeExpression: "Array<string>" }, [])).toBe(
+      'getSearchParamValues(searchParams, "tags") as Array<string>',
+    );
+  });
+
+  it("when a query array is optional, then values are still collected with the union assertion", () => {
+    expect(
+      coercePageArgument({ name: "tags", typeExpression: "Array<string> | undefined" }, []),
+    ).toBe('getSearchParamValues(searchParams, "tags") as Array<string> | undefined');
+  });
 });
 
 describe("Given planPageFiles", () => {
@@ -85,6 +108,37 @@ describe("Given planPageFiles", () => {
         'Number(params["itemId"] ?? "0")',
         '(getSearchParam(searchParams, "active") ?? "false") === "true"',
         'getSearchParam(searchParams, "q") ?? ""',
+      ],
+    });
+  });
+
+  it("when a GET page has array query params, then the resource plan collects search param values", () => {
+    const searchPage = page({
+      filePath: "app/ui/pets/findByStatus/page.tsx",
+      openApiPath: "/pets/findByStatus",
+      operationId: "findPetsByStatus",
+      useCaseAccessorName: "findPetsByStatus",
+      paramNames: [],
+      parameters: [{ name: "status", typeExpression: 'Array<"available" | "pending" | "sold">' }],
+    });
+
+    const plans = planPageFiles(
+      model({
+        surface: "both",
+        uiPages: [searchPage],
+      }),
+    );
+    const resource = plans.find((entry) => entry.kind === "resource");
+
+    expect(resource).toEqual({
+      kind: "resource",
+      filePath: "app/ui/pets/findByStatus/page.tsx",
+      operationId: "findPetsByStatus",
+      useCaseAccessorName: "findPetsByStatus",
+      needsParams: false,
+      needsSearchHelper: true,
+      argumentExpressions: [
+        'getSearchParamValues(searchParams, "status") as Array<"available" | "pending" | "sold">',
       ],
     });
   });

@@ -94,7 +94,7 @@
 
 - [ ] Build CLI, generate from `openapi.poc.yaml --http next`, copy `src/**` and `app/**/route.ts` onto the fixture.
 - [ ] Confirm `get-pet-by-id.ts` has `Principal`; `server-access.ts` wraps; fixture pages still call `getPetById(id)`.
-- [ ] `vp check`; package tests; `HEXKIT_SKIP_COMPOSE=1` Next dogfood if feasible; Hono `vp run dogfood` for Pactum 401 proof.
+- [ ] `vp check`; package tests; `HEXKIT_SKIP_COMPOSE=1` Next dogfood if feasible; Hono `vp run dogfood:petstore:hono` for Pactum 401 proof.
 - [ ] Commit regenerated fixture.
 
 ## Spec coverage
