@@ -56,14 +56,8 @@ artifacts `hexkit generate` emits. Override with `HEXKIT_DOGFOOD_OUTPUT` if
 needed. `HEXKIT_KEEP_STACK` is still honored (default `0` tears the stack down
 when the script exits).
 
-CI and existing docs still use the uncached legacy task (random `/tmp` unless
-you set `HEXKIT_DOGFOOD_OUTPUT`):
-
-```bash
-vp run dogfood
-```
-
-If the nested `vp` task misbehaves, run the script directly from the repo root:
+If the nested `vp` task misbehaves, run the script directly from the repo root
+(set `HEXKIT_DOGFOOD_OUTPUT` yourself if you want a stable directory):
 
 ```bash
 apps/petstore-sample/scripts/dogfood.sh
@@ -140,5 +134,5 @@ Cases live under `tests/api/<resource>/<method>.test.ts` (for example `tests/api
 | Command                                         | Role                                                                     |
 | ----------------------------------------------- | ------------------------------------------------------------------------ |
 | `vp run ready`                                  | Hexkit build + check + unit tests + coverage (same scope as CI Quality)  |
-| `vp run dogfood`                                | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
+| `vp run dogfood:petstore:hono` / `:down`                       | Full Rich Pet + Order + User generate/lint/typecheck/Compose/Pactum loop |
 | `apps/petstore-sample/scripts/prove-api-url.sh` | Checks that dogfood task env propagation works (no Compose)              |

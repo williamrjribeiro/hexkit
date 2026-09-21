@@ -328,12 +328,12 @@ Notes: JSON + DB filter proven; `petstore_auth` / XML still absent. Refresh Summ
 | CI         | Quality + Dogfood API + Dogfood NextJS (parallel)                   |
 | Next UI    | Manual smoke: `/pets` status/tag filters update catalog (Task 10)   |
 
-Run locally: `vp run ready` then `vp run dogfood`.
+Run locally: `vp run ready` then `vp run dogfood:petstore:hono`.
 
 ## 8. Success criteria
 
 1. `hexkit generate apps/petstore-sample/openapi.poc.yaml <out>` emits find routes, use cases, ports, and filtered Drizzle repos.
-2. `vp run dogfood` passes with new Pactum cases.
+2. `vp run dogfood:petstore:hono` passes with new Pactum cases.
 3. Plugin unit tests use `filter-api` fixture — no Petstore strings in `@hexkit/plugin-*` production source.
 4. Tracker rows move to `partial` with accurate Notes.
 5. `@hexkit/plugin-apical` unchanged unless craft parity test gaps appear for array query params.

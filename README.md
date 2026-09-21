@@ -41,13 +41,12 @@ CLI tests cover the generator).
 | `vp run dogfood:petstore:hono:down`   | Tear down the Hono dogfood Compose stack                                                          |
 | `vp run dogfood:petstore:nextjs`      | Next PetShop; stable `/tmp/hexkit-dogfood-petstore-next` (Compose unless `HEXKIT_SKIP_COMPOSE=1`) |
 | `vp run dogfood:petstore:nextjs:down` | Tear down the Next dogfood Compose stack                                                          |
-| `vp run dogfood`                      | Same as Hono (CI / legacy; random `/tmp` unless `HEXKIT_DOGFOOD_OUTPUT` is set)                   |
-| `vp run dogfood-petstore-next`        | Same as Next (CI / legacy)                                                                        |
 | `vp run dogfood-auth`                 | Auth fixture with in-memory stub authenticator                                                    |
 
 Compose/`Dockerfile` are **generated packaging**, not committed under the fixtures.
-Local `:hono` / `:nextjs` tasks pin a stable `/tmp` dir so `:down` can find them.
-`HEXKIT_KEEP_STACK=1` keeps the stack after dogfood exits (default still tears down).
+Tasks pin a stable `/tmp` dir so `:down` can find them. `HEXKIT_KEEP_STACK=1`
+keeps the stack after dogfood exits (default still tears down). Override the
+directory with `HEXKIT_DOGFOOD_OUTPUT` when needed.
 
 **After PoC:** expand toward the full Petstore OpenAPI (Hono and Next.js
 progress is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md);
@@ -142,10 +141,10 @@ vp run dev
 
 ## Petstore dogfood
 
-Run the uncached root dogfood task from the workspace root:
-
 ```bash
-vp run dogfood
+vp run dogfood:petstore:hono
+# keep the stack: HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:hono
+vp run dogfood:petstore:hono:down
 ```
 
 The task generates a Hono Rich Pet + Order + User app from `openapi.poc.yaml` (nested
@@ -178,7 +177,9 @@ Handlers; Server Actions are fixture UI only, not the OpenAPI surface.
 Generate, merge, and start the vanilla create-next-app-shaped fixture:
 
 ```bash
-vp run dogfood-petstore-next
+vp run dogfood:petstore:nextjs
+# CI-shaped (no Compose): HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs
+vp run dogfood:petstore:nextjs:down
 ```
 
 Or manually:

@@ -667,7 +667,7 @@ Use actual snake_case column names emitted by Drizzle plugin.
 
 ```bash
 vp run --filter './packages/*' --filter './apps/cli' build
-vp run dogfood
+vp run dogfood:petstore:hono
 ```
 
 - [ ] **Step 4: Tracker + commit + open PR2** (base = PR1 branch)
@@ -698,7 +698,7 @@ Base branch: PR2. Create `cursor/blobstore-next-upload-7f96`.
 
 ```bash
 vp run --filter './packages/*' --filter './apps/cli' build
-HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs
 ```
 
 - [ ] **Step 2: Assert generated `app/pet/[petId]/uploadImage/route.ts` (or nested path) exists and binds BlobStore**

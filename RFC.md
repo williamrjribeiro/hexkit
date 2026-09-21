@@ -9,7 +9,7 @@ Implementation snapshot (August 2026)
 - Plugins implemented: apical, architecture-hexagonal, hono, next (opt-in), drizzle.
 - `@hexkit/shared` holds generator calculations used by more than one plugin (HTTP adapter model, status/media lookups) plus `@hexkit/shared/testing`. It is **not** a pipeline plugin.
 - `@hexkit/plugin-sst` remains scaffold-only; AWS/SST deploy deferred post-PoC.
-- Dogfood: Hono Rich Pet + Order (`vp run dogfood`), Next PetShop (`vp run dogfood-petstore-next`), auth fixture (`vp run dogfood-auth`).
+- Dogfood: Hono Rich Pet + Order (`vp run dogfood:petstore:hono`), Next PetShop (`vp run dogfood:petstore:nextjs`), auth fixture (`vp run dogfood-auth`).
 
 Authors
 

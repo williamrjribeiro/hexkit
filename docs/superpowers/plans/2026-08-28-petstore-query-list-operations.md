@@ -375,8 +375,8 @@ it("when only query parameters exist, then only query expressions are emitted", 
 
 ```bash
 vp run ready
-vp run dogfood
-HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+vp run dogfood:petstore:hono
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs
 ```
 
 - [ ] **Step 4:** Commit regenerated Next fixture + any fixups.
@@ -449,7 +449,7 @@ export async function loadPetCatalog(searchParams: {
 - [ ] **Step 6:** Manual smoke (no new test suite):
 
 ```bash
-HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs
 cd apps/petstore-next && pnpm next dev
 ```
 

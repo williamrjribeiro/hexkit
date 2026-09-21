@@ -42,12 +42,10 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp run coverage` — Vitest coverage for generator packages only (`packages/*` + `apps/cli`); **90%** thresholds on statements/branches/functions/lines (`coverage.config.ts`). Dogfood apps are out of scope. Also run by GitHub Actions Quality. CI uses Vitest's [GitHub Actions reporter](https://vitest.dev/guide/reporters.html#github-actions-reporter) (package-named projects + job summary) and appends a coverage-% table.
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
-- `vp run dogfood:petstore:hono` — Hono Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-hono` (Compose packaging is generated, not committed). Respects `HEXKIT_KEEP_STACK`.
+- `vp run dogfood:petstore:hono` — Hono Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-hono` (Compose packaging is generated, not committed). Respects `HEXKIT_KEEP_STACK`. CI job **Dogfood API**.
 - `vp run dogfood:petstore:hono:down` — `docker compose down --volumes` for that Hono output dir.
-- `vp run dogfood:petstore:nextjs` — Next Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-next`. Respects `HEXKIT_KEEP_STACK` / `HEXKIT_SKIP_COMPOSE`.
+- `vp run dogfood:petstore:nextjs` — Next Pet Shop dogfood with stable `/tmp/hexkit-dogfood-petstore-next`. Respects `HEXKIT_KEEP_STACK` / `HEXKIT_SKIP_COMPOSE`. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1`.
 - `vp run dogfood:petstore:nextjs:down` — `docker compose down --volumes` for that Next output dir.
-- `vp run dogfood` — Hono Pet Shop (CI / legacy; random `/tmp` unless `HEXKIT_DOGFOOD_OUTPUT` is set). CI job **Dogfood API**.
-- `vp run dogfood-petstore-next` — Next Pet Shop (CI / legacy). CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1`.
 - `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance (local; not a CI job).
 
 Gotchas:

@@ -4,7 +4,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make `vp run dogfood-petstore-next` bring up Next.js + Postgres with `docker compose up --build`, matching Hono `vp run dogfood`, while keeping the vanilla PetShop fixture UI.
+**Goal:** Make `vp run dogfood:petstore:nextjs` bring up Next.js + Postgres with `docker compose up --build`, matching Hono `vp run dogfood:petstore:hono`, while keeping the vanilla PetShop fixture UI.
 
 **Architecture:** Hexkit already emits `Dockerfile` + `docker-compose.yml` (service `next` + `postgres`) for `--http next`. The dogfood script currently ignores those artifacts and runs host `next start` against a handwritten Postgres-only compose file. Change the script to generate into TMP, overlay fixture-owned UI (and Tailwind build files) onto TMP, merge generated `src/**` + `route.ts` into `apps/petstore-next` for local `next dev`, then `docker compose -f "$TMP/docker-compose.yml" up --build -d --wait` like `apps/petstore-sample/scripts/dogfood.sh`.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Hono `vp run dogfood` remains unchanged and must stay green without Next.
+- Hono `vp run dogfood:petstore:hono` remains unchanged and must stay green without Next.
 - `plugin-next` stays domain-agnostic — no PetShop Docker literals in plugin production source.
 - PetShop UI stays fixture-owned under `apps/petstore-next`; do not copy generated `app/layout.tsx` / `app/page.tsx` over the fixture.
 - Overlay TMP with fixture UI **before** Compose build so the image contains `/`, `/pets`, `/orders` plus generated `/pet` and `/store/order` handlers.
@@ -294,9 +294,9 @@ docker compose -f "$COMPOSE_FILE" up --build -d --wait
 
 - [ ] **Step 4: `vp check` + `vp test apps/cli/src/next-generation.test.ts apps/cli/src/petstore-next-overlay.test.ts`**
 
-- [ ] **Step 5: Run `HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next` (must pass without Docker)**
+- [ ] **Step 5: Run `HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs` (must pass without Docker)**
 
-- [ ] **Step 6: If `docker info` works, run `vp run dogfood-petstore-next` and confirm `/`, `/pets`, `/pet` on port 3000. If Docker is missing, record DONE_WITH_CONCERNS — do not weaken Hono dogfood.**
+- [ ] **Step 6: If `docker info` works, run `vp run dogfood:petstore:nextjs` and confirm `/`, `/pets`, `/pet` on port 3000. If Docker is missing, record DONE_WITH_CONCERNS — do not weaken Hono dogfood.**
 
 - [ ] **Step 7: Commit**
 

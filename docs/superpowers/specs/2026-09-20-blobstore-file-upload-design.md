@@ -387,7 +387,7 @@ strings** in plugin tests (PRD §5.0).
 - Hono/Next plugin tests: binary request helper + route registration against
   fixture (no Compose).
 
-**PR2 — Hono dogfood (`vp run dogfood`)**
+**PR2 — Hono dogfood (`vp run dogfood:petstore:hono`)**
 
 Pactum (HTTP) + DB assertion helper:
 
@@ -398,7 +398,7 @@ application/octet-stream` and a known byte payload (+ optional query) →
    contains those exact bytes for the `storageKey` stored on `pet_images`.
 3. Unknown `petId` → 404; empty body → 400.
 
-**PR3 — Next (`vp run dogfood-petstore-next`)**
+**PR3 — Next (`vp run dogfood:petstore:nextjs`)**
 
 Regenerate → ESLint + `next build`. Compose optional locally; CI keeps
 `HEXKIT_SKIP_COMPOSE=1`.
@@ -440,8 +440,8 @@ each cell change.
 ## 8. Success criteria
 
 1. PR1: `vp run --filter './packages/*' --filter './apps/cli' test` + `vp check` green with `upload-api` coverage; no Petstore contract change.
-2. PR2: `vp run dogfood` green; DB proves blob bytes; tracker Hono `uploadFile` = `partial`.
-3. PR3: `vp run dogfood-petstore-next` green (generate + lint + build); tracker Next `uploadFile` = `partial`.
+2. PR2: `vp run dogfood:petstore:hono` green; DB proves blob bytes; tracker Hono `uploadFile` = `partial`.
+3. PR3: `vp run dogfood:petstore:nextjs` green (generate + lint + build); tracker Next `uploadFile` = `partial`.
 4. Plugins contain no Petstore literals (PRD §5.0).
 5. Classic Petstore HTTP surface for upload unchanged (no download route).
 6. Swapping `BlobStore` binding does not require regenerating use-case **types** (adapter-only change for S3 later).

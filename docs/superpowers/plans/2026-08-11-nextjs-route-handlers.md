@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- Hono remains the **default** pipeline; Petstore `vp run dogfood` must stay green without Next.
+- Hono remains the **default** pipeline; Petstore `vp run dogfood:petstore:hono` must stay green without Next.
 - **`@hexkit/plugin-next` is domain-agnostic (PRD §5.0 / design §3):** no Petstore, library, auth-api, or other sample-domain literals in plugin **production** source. Fixtures live under `apps/`. Plugin tests may feed sample OpenAPI as inputs and snapshot outputs only.
 - Changing fixture OpenAPI must change generated `route.ts` / `page.tsx` **without** editing `plugin-next` for that domain.
 - `apps/cli` domain-agnostic scanner **must** include `packages/plugin-next/src`.
@@ -495,7 +495,7 @@ git commit -m "feat(petstore-next): add vanilla Next.js PetShop dogfood app"
 **Files:**
 
 - Create: `apps/petstore-next/scripts/dogfood.sh`
-- Modify: root `vite.config.ts` / `package.json` — add `dogfood-petstore-next` task that runs the script
+- Modify: root `vite.config.ts` / `package.json` — add `dogfood:petstore:nextjs` task that runs the script
 - **Do not create** PetShop API/UI test files
 
 **Dogfood algorithm (normative):**
@@ -515,11 +515,11 @@ git commit -m "feat(petstore-next): add vanilla Next.js PetShop dogfood app"
 
 - [ ] **Step 1: Write `dogfood.sh` implementing the copy rules above; exit non-zero if generate or install fails**
 
-- [ ] **Step 2: Wire `vp run dogfood-petstore-next`**
+- [ ] **Step 2: Wire `vp run dogfood:petstore:nextjs`**
 
 - [ ] **Step 3: Run the script once manually; confirm shop UI at `/` and `/pets` and handlers at `/pet` coexist**
 
-- [ ] **Step 4: Confirm Hono `vp run dogfood` still green**
+- [ ] **Step 4: Confirm Hono `vp run dogfood:petstore:hono` still green**
 
 - [ ] **Step 5: Commit**
 
@@ -569,8 +569,8 @@ git commit -m "docs: record vanilla PetShop Next.js dogfood and plugin-next surf
 - [ ] **Step 1: `vp check`**
 - [ ] **Step 2: `vp run -r test`** (plugin/CLI only — PetShop has no tests)
 - [ ] **Step 3: `vp run -r build`**
-- [ ] **Step 4: Run `vp run dogfood-petstore-next` (generate + install + start; no test assertion)**
-- [ ] **Step 5: `vp run dogfood`** (Hono regression)
+- [ ] **Step 4: Run `vp run dogfood:petstore:nextjs` (generate + install + start; no test assertion)**
+- [ ] **Step 5: `vp run dogfood:petstore:hono`** (Hono regression)
 
 ---
 

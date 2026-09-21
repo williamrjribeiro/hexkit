@@ -61,4 +61,4 @@
 
 - [ ] `vp check` and `vp run -r test`
 - [ ] `vp run dogfood-auth` green
-- [ ] Petstore `vp run dogfood` still green (or at least generation/unit path if Docker time-constrained — prefer full if feasible)
+- [ ] Petstore `vp run dogfood:petstore:hono` still green (or at least generation/unit path if Docker time-constrained — prefer full if feasible)

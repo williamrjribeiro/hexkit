@@ -273,7 +273,7 @@ Stay inside the existing PetShop fixture look (stone / amber Tailwind already us
 
 ### 5.8 Dogfood / acceptance
 
-**Hono (`vp run dogfood`):** Pactum cases in `apps/petstore-sample/tests/api.test.ts`:
+**Hono (`vp run dogfood:petstore:hono`):** Pactum cases in `apps/petstore-sample/tests/api.test.ts`:
 
 1. Add a pet → `POST /pet/{id}?name=Renamed&status=pending` → 200 body reflects both fields; nested category/tags/photoUrls unchanged.
 2. `POST` with only `status` → name preserved.
@@ -281,7 +281,7 @@ Stay inside the existing PetShop fixture look (stone / amber Tailwind already us
 4. Missing id → 404.
 5. Invalid status enum → 400 (Apical validation).
 
-**Next (`vp run dogfood-petstore-next`):** regenerate → ESLint + `next build` (CI skips Compose). Manual/local Compose optional; UI proof is the fixture form wiring + typecheck of Server Action against `ServerAccess`.
+**Next (`vp run dogfood:petstore:nextjs`):** regenerate → ESLint + `next build` (CI skips Compose). Manual/local Compose optional; UI proof is the fixture form wiring + typecheck of Server Action against `ServerAccess`.
 
 ### 5.9 Tracker update
 
@@ -317,7 +317,7 @@ Notes stay: query `name` / `status`; still need `petstore_auth` (and form-urlenc
 ## 8. Success criteria
 
 1. `vp run --filter './packages/*' --filter './apps/cli' test` green with patch-api coverage.
-2. `vp run dogfood` green including new Pactum cases.
-3. `HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next` green.
+2. `vp run dogfood:petstore:hono` green including new Pactum cases.
+3. `HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs` green.
 4. Pet detail page offers Quick update wired to `updatePetWithForm`; full Edit still uses `updatePet`.
 5. Tracker cells for `updatePetWithForm` are `partial` for Hono and Next.

@@ -58,7 +58,6 @@ The CLI is exercised end-to-end by:
 
 - `vp run dogfood:petstore:hono` / `:down` — Hono Pet Shop (stable `/tmp/hexkit-dogfood-petstore-hono`)
 - `vp run dogfood:petstore:nextjs` / `:down` — Next PetShop (stable `/tmp/hexkit-dogfood-petstore-next`)
-- `vp run dogfood` / `dogfood-petstore-next` — CI / legacy names (random `/tmp` unless `HEXKIT_DOGFOOD_OUTPUT` is set)
 - `vp run dogfood-auth` — auth fixture (`apps/fixtures/auth-api/scripts/dogfood.sh`)
 
 Compose/`Dockerfile` come from generate packaging into the output dir (not
