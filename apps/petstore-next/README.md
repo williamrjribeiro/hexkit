@@ -35,7 +35,30 @@ lives under `src/`. The App Router UI stays in the package-root `app/` directory
 
 ## Dogfood generation
 
-From the repository root:
+From the repository root, preferred local entry (stable `/tmp` so `:down`
+works):
+
+```bash
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:nextjs
+# open http://127.0.0.1:3000
+vp run dogfood:petstore:nextjs:down
+```
+
+`dogfood:petstore:nextjs` generates into `/tmp/hexkit-dogfood-petstore-next` by
+default. The Compose file and Dockerfile are **generated packaging** (same as
+`hexkit generate --http next`), not committed under this fixture — dogfood
+builds the overlaid generated tree so packaging stays the source of truth.
+`HEXKIT_KEEP_STACK` is still honored (default `0` tears down on exit). Override
+the directory with `HEXKIT_DOGFOOD_OUTPUT` if needed.
+
+CI still uses the legacy task name with `HEXKIT_SKIP_COMPOSE=1`:
+
+```bash
+HEXKIT_SKIP_COMPOSE=1 vp run dogfood-petstore-next
+```
+
+Local full dogfood (legacy name, random `/tmp` unless you set
+`HEXKIT_DOGFOOD_OUTPUT`):
 
 ```bash
 vp run dogfood-petstore-next

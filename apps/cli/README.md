@@ -56,8 +56,10 @@ CLI tests that import `@hexkit/plugin-next` require that package to be built fir
 
 The CLI is exercised end-to-end by:
 
-- `vp run dogfood` — Hono Rich Pet + Order + User (`apps/petstore-sample/scripts/dogfood.sh`)
-- `vp run dogfood-petstore-next` — Next PetShop (`apps/petstore-next/scripts/dogfood.sh`)
+- `vp run dogfood:petstore:hono` / `:down` — Hono Pet Shop (stable `/tmp/hexkit-dogfood-petstore-hono`)
+- `vp run dogfood:petstore:nextjs` / `:down` — Next PetShop (stable `/tmp/hexkit-dogfood-petstore-next`)
+- `vp run dogfood` / `dogfood-petstore-next` — CI / legacy names (random `/tmp` unless `HEXKIT_DOGFOOD_OUTPUT` is set)
 - `vp run dogfood-auth` — auth fixture (`apps/fixtures/auth-api/scripts/dogfood.sh`)
 
-See [README.md](../../README.md) § Project status.
+Compose/`Dockerfile` come from generate packaging into the output dir (not
+committed under the fixtures). See [README.md](../../README.md) § Project status.

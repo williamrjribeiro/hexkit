@@ -35,11 +35,19 @@ CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
-| Command                        | What it proves                                                                                   |
-| ------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `vp run dogfood`               | Hono Rich Pet + Order + User from `openapi.poc.yaml` → Compose → Pactum                          |
-| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` skips Compose after generated+fixture `next build` |
-| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                                                   |
+| Command                               | What it proves                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `vp run dogfood:petstore:hono`        | Hono Pet Shop → Compose → Pactum; stable `/tmp/hexkit-dogfood-petstore-hono`                      |
+| `vp run dogfood:petstore:hono:down`   | Tear down the Hono dogfood Compose stack                                                          |
+| `vp run dogfood:petstore:nextjs`      | Next PetShop; stable `/tmp/hexkit-dogfood-petstore-next` (Compose unless `HEXKIT_SKIP_COMPOSE=1`) |
+| `vp run dogfood:petstore:nextjs:down` | Tear down the Next dogfood Compose stack                                                          |
+| `vp run dogfood`                      | Same as Hono (CI / legacy; random `/tmp` unless `HEXKIT_DOGFOOD_OUTPUT` is set)                   |
+| `vp run dogfood-petstore-next`        | Same as Next (CI / legacy)                                                                        |
+| `vp run dogfood-auth`                 | Auth fixture with in-memory stub authenticator                                                    |
+
+Compose/`Dockerfile` are **generated packaging**, not committed under the fixtures.
+Local `:hono` / `:nextjs` tasks pin a stable `/tmp` dir so `:down` can find them.
+`HEXKIT_KEEP_STACK=1` keeps the stack after dogfood exits (default still tears down).
 
 **After PoC:** expand toward the full Petstore OpenAPI (Hono and Next.js
 progress is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md);

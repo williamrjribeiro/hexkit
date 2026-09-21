@@ -41,7 +41,23 @@ tests alone do not prove the generated app works at runtime.
 
 ### Run dogfood (from the workspace root)
 
-Preferred entry (uncached root Vite+ task → `scripts/dogfood.sh`):
+Preferred local entry (stable `/tmp` output so `:down` works):
+
+```bash
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:hono
+# …
+vp run dogfood:petstore:hono:down
+```
+
+`dogfood:petstore:hono` generates into `/tmp/hexkit-dogfood-petstore-hono` by
+default. Compose (`Dockerfile` + `docker-compose.yml`) is **generator packaging
+output**, not a committed fixture file — that way dogfood proves the same
+artifacts `hexkit generate` emits. Override with `HEXKIT_DOGFOOD_OUTPUT` if
+needed. `HEXKIT_KEEP_STACK` is still honored (default `0` tears the stack down
+when the script exits).
+
+CI and existing docs still use the uncached legacy task (random `/tmp` unless
+you set `HEXKIT_DOGFOOD_OUTPUT`):
 
 ```bash
 vp run dogfood
@@ -81,6 +97,13 @@ Example — generate into a browsable folder and leave Compose running:
 HEXKIT_DOGFOOD_OUTPUT=/tmp/hexkit-petstore-poc \
 HEXKIT_KEEP_STACK=1 \
 apps/petstore-sample/scripts/dogfood.sh
+```
+
+With the stable local task, prefer:
+
+```bash
+HEXKIT_KEEP_STACK=1 vp run dogfood:petstore:hono
+vp run dogfood:petstore:hono:down
 ```
 
 ## Package scripts (`vp run` from this package)

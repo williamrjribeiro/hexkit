@@ -24,6 +24,7 @@ export default defineConfig({
   run: {
     cache: true,
     tasks: {
+      // CI + legacy names: random /tmp unless HEXKIT_DOGFOOD_OUTPUT is set.
       dogfood: {
         command: "apps/petstore-sample/scripts/dogfood.sh",
         // Uncached Vite+ tasks inherit caller env. The task schema rejects
@@ -41,6 +42,24 @@ export default defineConfig({
         command: "apps/petstore-next/scripts/dogfood.sh",
         // Same uncached env inheritance as dogfood; covers PETSTORE_NEXT_URL,
         // HEXKIT_SKIP_COMPOSE, HEXKIT_KEEP_STACK, and HEXKIT_DOGFOOD_OUTPUT.
+        cache: false,
+      },
+      // Local convenience: stable /tmp dirs so :down can find Compose.
+      // HEXKIT_KEEP_STACK is still honored (default 0 tears down on exit).
+      "dogfood:petstore:hono": {
+        command: "scripts/dogfood-petstore-hono.sh",
+        cache: false,
+      },
+      "dogfood:petstore:hono:down": {
+        command: "scripts/dogfood-down.sh /tmp/hexkit-dogfood-petstore-hono 'Petstore Hono'",
+        cache: false,
+      },
+      "dogfood:petstore:nextjs": {
+        command: "scripts/dogfood-petstore-nextjs.sh",
+        cache: false,
+      },
+      "dogfood:petstore:nextjs:down": {
+        command: "scripts/dogfood-down.sh /tmp/hexkit-dogfood-petstore-next 'Petstore Next'",
         cache: false,
       },
     },
