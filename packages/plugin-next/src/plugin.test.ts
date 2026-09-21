@@ -471,6 +471,29 @@ describe("@hexkit/plugin-next", () => {
       expect(generatedSource).not.toMatch(/\bBook\b|createBook|getBook|\/books/);
     });
 
+    it("when a GET operation has array query params, then the UI page collects search param values", async () => {
+      const { files } = await collectGeneratedFiles(petstoreContract, "both");
+      const filesByPath = fileMap(files);
+      const findByStatus = filesByPath.get("app/ui/pet/findByStatus/page.tsx");
+      const findByTags = filesByPath.get("app/ui/pet/findByTags/page.tsx");
+      const login = filesByPath.get("app/ui/user/login/page.tsx");
+
+      expect(findByStatus?.contents).toContain("function getSearchParamValues(");
+      expect(findByStatus?.contents).not.toContain("function getSearchParam(");
+      expect(findByStatus?.contents).toContain(
+        'access.findPetsByStatus(getSearchParamValues(searchParams, "status") as Array<"available" | "pending" | "sold">)',
+      );
+
+      expect(findByTags?.contents).toContain("function getSearchParamValues(");
+      expect(findByTags?.contents).not.toContain("function getSearchParam(");
+      expect(findByTags?.contents).toContain(
+        'access.findPetsByTags(getSearchParamValues(searchParams, "tags") as Array<string>)',
+      );
+
+      expect(login?.contents).toContain("function getSearchParam(");
+      expect(login?.contents).not.toContain("function getSearchParamValues(");
+    });
+
     it("when surface is routes, then routes and server-access are derived with empty uiPages", () => {
       const application = generateApplicationFromContract(petstoreContract).artifact;
       const model = deriveNextHttpModel(petstoreContract, application, { surface: "routes" });

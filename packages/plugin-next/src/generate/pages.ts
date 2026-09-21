@@ -114,6 +114,7 @@ function renderHubPageEntry(page: NextUiPage): string {
 
 function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
   const argumentsList = plan.argumentExpressions.join(", ");
+  const searchHelpers = renderSearchParamHelpers(plan);
   const pagePropsType = [
     ...(plan.needsParams ? ["  params: Promise<Record<string, string>>;"] : []),
     ...(plan.needsSearchHelper
@@ -126,7 +127,7 @@ function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
     contents: [
       'import { getServerAccess } from "@/adapters/http-next/server-access";',
       "",
-      ...(plan.needsSearchHelper ? [renderSearchParamHelper(), ""] : []),
+      ...(searchHelpers.length > 0 ? [searchHelpers.join("\n\n"), ""] : []),
       'export const dynamic = "force-dynamic";',
       "",
       ...(pagePropsType.length > 0
@@ -154,7 +155,25 @@ function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
   };
 }
 
-function renderSearchParamHelper(): string {
+function renderSearchParamHelpers(plan: ResourcePagePlan): string[] {
+  const helpers: string[] = [];
+  if (usesSearchHelper(plan, "getSearchParam")) {
+    helpers.push(renderGetSearchParamHelper());
+  }
+  if (usesSearchHelper(plan, "getSearchParamValues")) {
+    helpers.push(renderGetSearchParamValuesHelper());
+  }
+  return helpers;
+}
+
+function usesSearchHelper(
+  plan: ResourcePagePlan,
+  helperName: "getSearchParam" | "getSearchParamValues",
+): boolean {
+  return plan.argumentExpressions.some((expression) => expression.includes(`${helperName}(`));
+}
+
+function renderGetSearchParamHelper(): string {
   return [
     "function getSearchParam(",
     "  searchParams: Record<string, string | string[] | undefined>,",
@@ -162,6 +181,21 @@ function renderSearchParamHelper(): string {
     "): string | undefined {",
     "  const value = searchParams[name];",
     "  return Array.isArray(value) ? value[0] : value;",
+    "}",
+  ].join("\n");
+}
+
+function renderGetSearchParamValuesHelper(): string {
+  return [
+    "function getSearchParamValues(",
+    "  searchParams: Record<string, string | string[] | undefined>,",
+    "  name: string,",
+    "): string[] {",
+    "  const value = searchParams[name];",
+    "  if (value === undefined) {",
+    "    return [];",
+    "  }",
+    "  return Array.isArray(value) ? value : [value];",
     "}",
   ].join("\n");
 }
