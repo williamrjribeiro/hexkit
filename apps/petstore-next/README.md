@@ -45,11 +45,13 @@ That follows the Hono Petstore pattern: generate into a temp tree, overlay this
 fixture's UI, then (locally) `docker compose up --build` using the **generated**
 `Dockerfile` + `docker-compose.yml` (Next.js app + Postgres). After generate,
 dogfood runs `eslint-config-next` (Core Web Vitals + TypeScript +
-`@next/next/no-html-link-for-pages`) on the generated tree, then again on this
-PetShop fixture after merge, then `next build`. CI **Dogfood NextJS** sets
-`HEXKIT_SKIP_COMPOSE=1` so the job stops after lint/`next build` (no app tests).
-Locally, omit that env (or set `HEXKIT_SKIP_COMPOSE=0`) to also bring up Compose.
-`HEXKIT_KEEP_STACK=1` leaves the Compose stack running.
+`@next/next/no-html-link-for-pages`) **and** `next build` on the generated tree
+(so RSC pages under `app/ui/**` are type-checked even though they are not copied
+onto this fixture). It then overlays, merges, and repeats lint/`next build` on
+this PetShop fixture. CI **Dogfood NextJS** sets `HEXKIT_SKIP_COMPOSE=1` so the
+job stops after those host checks (no app tests). Locally, omit that env (or set
+`HEXKIT_SKIP_COMPOSE=0`) to also bring up Compose. `HEXKIT_KEEP_STACK=1` leaves
+the Compose stack running.
 
 Input contract: `../petstore-sample/openapi.poc.yaml` (Rich Pet + Order + User JSON; nested
 Pet fields persist as JSONB).
@@ -82,8 +84,10 @@ are copied back onto this fixture.
 5. Confirm `tsconfig.json` still maps `@/*` to `./src/*`.
 6. From the repository root, run `vp install`, then lint and build this fixture
    with `vp run petstore-next#lint` and `vp run petstore-next#build`.
-   Dogfood also lints the generated temp tree with the same `eslint-config-next`
-   rules before overlay.
+   Dogfood also lints **and** `next build`s the generated temp tree with the same
+   `eslint-config-next` / Next.js toolchain before overlay. ESLint does not
+   type-check; the generated `next build` is what catches RSC TypeScript errors
+   that the fixture build never sees.
 7. `docker compose -f "$TMP/docker-compose.yml" up --build -d --wait`, then
    smoke `GET /`, `GET /pets`, and `POST /pet` (body includes required
    `photoUrls`, which may be an empty list).

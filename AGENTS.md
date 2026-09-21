@@ -43,7 +43,7 @@ Common commands (all standard, defined in root `package.json` / per-package scri
 - `vp run dev` — runs the root `dev` script = `@hexkit/cli` in watch mode (`vp pack --watch`). There is no long-lived HTTP server in the monorepo; validate generated apps via dogfood or by executing rebuilt `dist/index.mjs`.
 - `vp run ready` — convenience script that chains build + check + test + coverage.
 - `vp run dogfood` — Hono Pet Shop: generate → Oxlint + `tsc` on the generated app → Compose build → Pactum (Docker required). CI job **Dogfood API**.
-- `vp run dogfood-petstore-next` — Next Pet Shop: generate → ESLint 9 + `next build`. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1` (no app tests). Locally, omit that env to also bring up Compose.
+- `vp run dogfood-petstore-next` — Next Pet Shop: generate → ESLint 9 + `next build` on the **generated** tree (including RSC pages not copied to the fixture) and the PetShop fixture. CI job **Dogfood NextJS** uses `HEXKIT_SKIP_COMPOSE=1` (no Compose/runtime smoke). Locally, omit that env to also bring up Compose.
 - `vp run dogfood-auth` — auth fixture Compose + Pactum acceptance (local; not a CI job).
 
 Gotchas:
@@ -51,8 +51,8 @@ Gotchas:
 - Running `vp install` executes the `prepare` script (`vp config` + `scripts/ensure-commit-hooks.sh`), which rewrites the tool-managed `<!--VITE PLUS ... -->` block in `AGENTS.md`/`CLAUDE.md`. Keep custom docs (like this section) outside that block. `vp config` skips taking `core.hooksPath` when Cursor already owns it; `ensure-commit-hooks.sh` then chains Cursor's dispatcher to `.vite-hooks/_` so pre-commit still runs `vp staged` → `vp check --fix` (format + lint autofix on staged files).
 - Full Petstore OpenAPI coverage (beyond `openapi.poc.yaml`) is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md). Update that file whenever `@hexkit/plugin-hono` or `@hexkit/plugin-next` gains or loses Petstore-relevant OpenAPI support.
 - `dist/` output is git-ignored, so a clean `git status` after a build/watch is expected.
-- GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build`).
-- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory.
+- GitHub Actions runs three **parallel** jobs: **Quality** (Hexkit build/lint/types/unit tests/coverage), **Dogfood API** (generated Hono Pet Shop lint/types/Compose/Pactum), **Dogfood NextJS** (generated Next Pet Shop ESLint + `next build` of generated tree and fixture).
+- `apps/petstore-next` is a vanilla create-next-app-shaped dogfood app. Validate it with **its** ESLint 9 (`eslint-config-next`) and TypeScript 5 (`next build`), not monorepo Oxlint/`vp check`. Generated Hono apps use Oxlint + `tsc` from the generate output directory. Next dogfood must `next build` the generated temp tree **before** overlay: fixture `next build` does not include generated `app/ui/**` pages, and CI skips the Compose image that would otherwise type-check them.
 
 ## Agent skills
 

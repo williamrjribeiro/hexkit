@@ -112,6 +112,39 @@ lint_next_app() {
   printf 'eslint-config-next passed for %s\n' "$label"
 }
 
+install_next_app() {
+  app_dir=$1
+  label=$2
+
+  printf 'Installing dependencies for %s\n' "$label"
+  (
+    cd "$app_dir"
+    vp install --no-frozen-lockfile
+  )
+}
+
+build_next_app() {
+  app_dir=$1
+  label=$2
+
+  printf 'Running next build on %s\n' "$label"
+
+  if [ ! -f "$app_dir/node_modules/next/dist/bin/next" ]; then
+    printf 'Error: next is not installed in %s.\n' "$app_dir" >&2
+    exit 1
+  fi
+
+  if ! (
+    cd "$app_dir"
+    vp node ./node_modules/next/dist/bin/next build
+  ); then
+    printf 'Error: next build failed for %s.\n' "$label" >&2
+    exit 1
+  fi
+
+  printf 'next build passed for %s\n' "$label"
+}
+
 wait_for_url() {
   url=$1
   expected_status=$2
@@ -161,6 +194,13 @@ vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT
   --http next --next-surface both
 
 lint_next_app "$OUTPUT_DIR" "generated Next.js app"
+# Install into the generated tree before `next build`. Fixture ESLint uses a
+# temporary node_modules symlink (TypeScript 5); Turbopack rejects that symlink
+# because it points outside the project, and generated TypeScript 7 cannot drive
+# eslint-config-next. CI skips Compose, so this host `next build` typechecks
+# RSC pages (e.g. app/ui/**) that are not copied onto the PetShop fixture.
+install_next_app "$OUTPUT_DIR" "generated Next.js app"
+build_next_app "$OUTPUT_DIR" "generated Next.js app"
 
 sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
 

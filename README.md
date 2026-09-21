@@ -35,11 +35,11 @@ CLI tests cover the generator).
 
 **Dogfood loops** (Docker required unless noted):
 
-| Command                        | What it proves                                                          |
-| ------------------------------ | ----------------------------------------------------------------------- |
-| `vp run dogfood`               | Hono Rich Pet + Order + User from `openapi.poc.yaml` → Compose → Pactum |
-| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` for generate-only         |
-| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                          |
+| Command                        | What it proves                                                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `vp run dogfood`               | Hono Rich Pet + Order + User from `openapi.poc.yaml` → Compose → Pactum                          |
+| `vp run dogfood-petstore-next` | Next PetShop fixture; `HEXKIT_SKIP_COMPOSE=1` skips Compose after generated+fixture `next build` |
+| `vp run dogfood-auth`          | Auth fixture with in-memory stub authenticator                                                   |
 
 **After PoC:** expand toward the full Petstore OpenAPI (Hono and Next.js
 progress is tracked in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md);
@@ -105,7 +105,7 @@ and on pull requests:
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Quality**        | Hexkit only: pack, Oxlint/`tsc`, unit tests, 90% coverage; Vitest GitHub Actions reporter (package-named) + coverage-% table |
 | **Dogfood API**    | `hexkit generate` Hono Pet Shop → Oxlint + `tsc` → Compose build → Pactum                                                    |
-| **Dogfood NextJS** | `hexkit generate --http next` Pet Shop → ESLint 9 + `next build` (no app tests)                                              |
+| **Dogfood NextJS** | `hexkit generate --http next` Pet Shop → ESLint 9 + `next build` of generated tree and fixture (no app tests)                |
 
 Run Hexkit quality locally (same scope as the Quality job):
 
