@@ -10,22 +10,22 @@ export function createHonoPackageManifest(packageName: string, migrationPath: st
       start: "node src/runtime/server.ts",
     },
     dependencies: {
-      "@hono/node-server": "2.0.12",
+      "@hono/node-server": "2.1.1",
       "@standard-schema/spec": "1.1.0",
-      "drizzle-orm": "0.45.2",
-      hono: "4.13.0",
-      pg: "8.22.0",
-      zod: "4.4.3",
+      "drizzle-orm": "0.45.3",
+      hono: "4.13.8",
+      pg: "8.23.0",
+      zod: "4.6.5",
     },
     devDependencies: {
-      "@types/node": "26.1.2",
-      "@types/pg": "8.20.3",
+      "@types/node": "26.6.2",
+      "@types/pg": "8.23.1",
       typescript: "7.0.2",
     },
     engines: {
       node: ">=24.18.1",
     },
-    packageManager: "pnpm@11.24.0",
+    packageManager: "pnpm@11.27.1",
   };
 }
 
@@ -45,25 +45,25 @@ export function createNextPackageManifest(packageName: string, migrationPath: st
     },
     dependencies: {
       "@standard-schema/spec": "1.1.0",
-      "drizzle-orm": "0.45.2",
-      next: "16.3.0",
-      pg: "8.22.0",
-      react: "19.2.8",
-      "react-dom": "19.2.8",
-      zod: "4.4.3",
+      "drizzle-orm": "0.45.3",
+      next: "16.3.5",
+      pg: "8.23.0",
+      react: "19.3.0",
+      "react-dom": "19.3.0",
+      zod: "4.6.5",
     },
     devDependencies: {
-      "@types/node": "26.1.2",
-      "@types/pg": "8.20.3",
-      "@types/react": "19.2.18",
-      "@types/react-dom": "19.2.4",
+      "@types/node": "26.6.2",
+      "@types/pg": "8.23.1",
+      "@types/react": "19.3.0",
+      "@types/react-dom": "19.3.0",
       eslint: "^9",
-      "eslint-config-next": "16.3.0",
+      "eslint-config-next": "16.3.5",
       typescript: "7.0.2",
     },
     engines: {
       node: ">=24.18.1",
     },
-    packageManager: "pnpm@11.24.0",
+    packageManager: "pnpm@11.27.1",
   };
 }

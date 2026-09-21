@@ -236,23 +236,23 @@ describe("Given the canonical Petstore contract", () => {
     expect(manifest).toMatchInlineSnapshot(`
       {
         "dependencies": {
-          "@hono/node-server": "2.0.12",
+          "@hono/node-server": "2.1.1",
           "@standard-schema/spec": "1.1.0",
-          "drizzle-orm": "0.45.2",
-          "hono": "4.13.0",
-          "pg": "8.22.0",
-          "zod": "4.4.3",
+          "drizzle-orm": "0.45.3",
+          "hono": "4.13.8",
+          "pg": "8.23.0",
+          "zod": "4.6.5",
         },
         "devDependencies": {
-          "@types/node": "26.1.2",
-          "@types/pg": "8.20.3",
+          "@types/node": "26.6.2",
+          "@types/pg": "8.23.1",
           "typescript": "7.0.2",
         },
         "engines": {
           "node": ">=24.18.1",
         },
         "name": "generated-hexkit-petstore-poc",
-        "packageManager": "pnpm@11.24.0",
+        "packageManager": "pnpm@11.27.1",
         "private": true,
         "scripts": {
           "check": "tsc --noEmit",
