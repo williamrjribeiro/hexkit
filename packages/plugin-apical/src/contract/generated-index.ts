@@ -75,7 +75,8 @@ export function inspectSchemaIndex(source: string): ReadonlyMap<string, string> 
         specifier.exported.type === "Identifier"
           ? specifier.exported.name
           : specifier.exported.value;
-      const localName = specifier.local.name;
+      const localName =
+        specifier.local.type === "Identifier" ? specifier.local.name : specifier.local.value;
 
       if (statement.source !== null && statement.source !== undefined) {
         schemas.set(exportedName, generatedModulePath("schemas", statement.source.value));

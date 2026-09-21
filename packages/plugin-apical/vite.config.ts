@@ -8,7 +8,7 @@ export default defineConfig({
       testing: "src/testing.ts",
     },
     dts: {
-      tsgo: true,
+      tsgo: {},
     },
     exports: false,
   },

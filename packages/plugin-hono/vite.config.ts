@@ -4,7 +4,7 @@ import { hexkitTest } from "../../coverage.config.ts";
 export default defineConfig({
   pack: {
     dts: {
-      tsgo: true,
+      tsgo: {},
     },
     exports: false,
   },

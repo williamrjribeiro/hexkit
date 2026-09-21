@@ -1068,12 +1068,12 @@ describe("CLI generate command", () => {
         'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f drizzle/0000_hexkit-petstore-poc.sql',
       );
       expect(manifest.dependencies).toEqual({
-        "@hono/node-server": "2.0.12",
+        "@hono/node-server": "2.1.1",
         "@standard-schema/spec": "1.1.0",
-        "drizzle-orm": "0.45.2",
-        hono: "4.13.0",
-        pg: "8.22.0",
-        zod: "4.4.3",
+        "drizzle-orm": "0.45.3",
+        hono: "4.13.8",
+        pg: "8.23.0",
+        zod: "4.6.5",
       });
     });
 
