@@ -194,15 +194,14 @@ vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT
   --http next --next-surface both
 
 lint_next_app "$OUTPUT_DIR" "generated Next.js app"
-# Install into the generated tree before `next build`. Fixture ESLint uses a
-# temporary node_modules symlink (TypeScript 5); Turbopack rejects that symlink
-# because it points outside the project, and generated TypeScript 7 cannot drive
-# eslint-config-next. CI skips Compose, so this host `next build` typechecks
-# RSC pages (e.g. app/ui/**) that are not copied onto the PetShop fixture.
-install_next_app "$OUTPUT_DIR" "generated Next.js app"
-build_next_app "$OUTPUT_DIR" "generated Next.js app"
 
+# Overlay PetShop UI onto the generated tree first, then install + `next build`
+# once. The overlaid tree is what Compose builds: fixture pages, generated
+# routes, and app/ui/** RSC scaffolds. Building before overlay and again on
+# apps/petstore-next duplicated ~20s of CI without extra coverage.
 sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
+install_next_app "$OUTPUT_DIR" "overlaid Next.js app"
+build_next_app "$OUTPUT_DIR" "overlaid Next.js app"
 
 rm -rf "$NEXT_DIR/src"
 mkdir -p "$NEXT_DIR/src"
@@ -212,11 +211,6 @@ copy_generated_routes
 vp install
 
 lint_next_app "$NEXT_DIR" "PetShop Next.js fixture"
-
-(
-  cd "$NEXT_DIR"
-  vp run build
-)
 
 if [ "$SKIP_COMPOSE" = "1" ]; then
   printf 'HEXKIT_SKIP_COMPOSE=1; skipping Docker Compose Next+Postgres stack after successful build.\n'
