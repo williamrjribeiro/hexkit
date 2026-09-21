@@ -77,9 +77,9 @@ jobs:
           node-version: "24"
 
       - name: Generate Next Pet Shop, lint, typecheck, and build
-        # hexkit generate --http next → eslint-config-next + `next build` on the
-        # generated tree (RSC pages not copied to the fixture) and the PetShop
-        # fixture. No app tests; skip Compose/runtime smoke in CI.
+        # hexkit generate --http next → overlay PetShop UI → one `next build` of
+        # the overlaid tree (fixture pages + generated routes + app/ui/**).
+        # No app tests; skip Compose/runtime smoke in CI.
         env:
           HEXKIT_SKIP_COMPOSE: "1"
         run: vp run dogfood:petstore:nextjs
