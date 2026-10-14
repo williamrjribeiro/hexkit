@@ -19,6 +19,7 @@ describe("Hono route registrations", () => {
       successStatus: "200",
       hasJsonRequestBody: false,
       hasBinaryRequestBody: false,
+      hasXmlRequestBody: false,
       requestBodyTransport: { kind: "none" },
       hasJsonSuccessBody: true,
       successMediaType: "application/json",
@@ -42,7 +43,7 @@ describe("Hono route registrations", () => {
       expect(renderRouteRegistration(operation)).toBe(
         [
           '  app.get("/items/:itemId", async (context) =>',
-          "    respond(await controllers.getItem(request(context, []))),",
+          `    respond(await controllers.getItem(request(context, [])), context.req.header("accept")),`,
           "  );",
         ].join("\n"),
       );
@@ -63,7 +64,7 @@ describe("Hono route registrations", () => {
       expect(renderRouteRegistration(operation)).toBe(
         [
           '  app.post("/items", async (context) =>',
-          "    respond(await controllers.createItem(await jsonRequest(context, []))),",
+          `    respond(await controllers.createItem(await jsonRequest(context, [])), context.req.header("accept")),`,
           "  );",
         ].join("\n"),
       );
@@ -87,7 +88,7 @@ describe("Hono route registrations", () => {
         [
           '  const authenticateCreateItem = createAuthenticateMiddleware(authenticator, { schemes: [{ name: "internalKey", type: "apiKey", headerName: "X-Internal-Key" }] });',
           '  app.post("/items", authenticateCreateItem, async (context) =>',
-          "    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal)),",
+          `    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal), context.req.header("accept")),`,
           "  );",
         ].join("\n"),
       );
@@ -107,7 +108,7 @@ describe("Hono route registrations", () => {
       expect(renderRouteRegistration(operation)).toBe(
         [
           '  app.get("/items/:itemId", async (context) =>',
-          "    respond(await controllers.getItem(request(context, []), context.var.principal)),",
+          `    respond(await controllers.getItem(request(context, []), context.var.principal), context.req.header("accept")),`,
           "  );",
         ].join("\n"),
       );
@@ -127,7 +128,7 @@ describe("Hono route registrations", () => {
       expect(renderRouteRegistration(operation)).toBe(
         [
           '  app.get("/pet/findByStatus", async (context) =>',
-          '    respond(await controllers.findPetsByStatus(request(context, ["status"]))),',
+          `    respond(await controllers.findPetsByStatus(request(context, ["status"])), context.req.header("accept")),`,
           "  );",
         ].join("\n"),
       );
@@ -151,6 +152,66 @@ describe("Hono route registrations", () => {
       expect(renderSecurityMeta(operation)).toBe(
         '{ schemes: [{ name: "internalKey", type: "apiKey", headerName: "X-Internal-Key" }, { name: "adminBearer", type: "http", scheme: "bearer", headerName: "Authorization" }] }',
       );
+    });
+  });
+
+  describe("Given XML request bodies", () => {
+    it("when a body declares JSON and XML, then typedRequest receives both content type lists", () => {
+      const operation = binding({
+        operationId: "createWidget",
+        method: "post",
+        honoPath: "/widgets",
+        hasJsonRequestBody: true,
+        hasXmlRequestBody: true,
+        requestBodyTransport: {
+          kind: "json",
+          contentTypes: ["application/json"],
+          xmlContentTypes: ["application/xml"],
+        },
+        useCaseArgumentExpressions: ["request.value.body"],
+      });
+
+      expect(renderRouteRegistration(operation)).toBe(
+        [
+          '  app.post("/widgets", async (context) =>',
+          `    respond(await controllers.createWidget(await typedRequest(context, ["application/json"], ["application/xml"], [])), context.req.header("accept")),`,
+          "  );",
+        ].join("\n"),
+      );
+    });
+
+    it("when a body declares only XML, then xmlRequest parses the declared content types", () => {
+      const operation = binding({
+        operationId: "setWidgetLabel",
+        method: "put",
+        honoPath: "/widgets/:widgetId/label",
+        hasXmlRequestBody: true,
+        requestBodyTransport: { kind: "xml", contentTypes: ["application/xml"] },
+        useCaseArgumentExpressions: ["request.value.path.widgetId", "request.value.body"],
+      });
+
+      expect(renderRouteRegistration(operation)).toBe(
+        [
+          '  app.put("/widgets/:widgetId/label", async (context) =>',
+          `    respond(await controllers.setWidgetLabel(await xmlRequest(context, ["application/xml"], [])), context.req.header("accept")),`,
+          "  );",
+        ].join("\n"),
+      );
+    });
+
+    it("when a JSON body has no XML entries, then jsonRequest stays unchanged", () => {
+      const operation = binding({
+        operationId: "createWidgetJson",
+        method: "post",
+        honoPath: "/widgets",
+        hasJsonRequestBody: true,
+        requestBodyTransport: { kind: "json", contentTypes: ["application/json"] },
+        useCaseArgumentExpressions: ["request.value.body"],
+      });
+
+      expect(renderRouteRegistration(operation)).toContain("await jsonRequest(context, [])");
+      expect(renderRouteRegistration(operation)).not.toContain("xmlRequest");
+      expect(renderRouteRegistration(operation)).not.toContain("typedRequest");
     });
   });
 });

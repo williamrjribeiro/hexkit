@@ -33,6 +33,8 @@ describe("@hexkit/plugin-hono", () => {
     .pathname;
   const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
     .pathname;
+  const xmlOpenApi = new URL("../../../apps/fixtures/xml-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -89,17 +91,31 @@ describe("@hexkit/plugin-hono", () => {
     ]),
   };
 
+  const xmlModules = {
+    schemas: new Map([
+      ["Label", "schemas/Label.ts"],
+      ["Widget", "schemas/Widget.ts"],
+    ]),
+    operations: new Map([
+      ["createWidget", "routes/createWidget.ts"],
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["setWidgetLabel", "routes/setWidgetLabel.ts"],
+    ]),
+  };
+
   const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
   let uploadContract: ContractArtifact;
+  let xmlContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract, xmlContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
       loadNormalizedContract(uploadOpenApi, uploadModules),
+      loadNormalizedContract(xmlOpenApi, xmlModules),
     ]);
   });
 
@@ -481,7 +497,7 @@ describe("@hexkit/plugin-hono", () => {
       const runtime = files.find((file) => file.path === "src/runtime/app.ts");
 
       expect(routes?.contents).toContain(
-        'respond(await controllers.uploadDocument(await binaryRequest(context, ["application/octet-stream","image/png","image/jpeg"], [])))',
+        `respond(await controllers.uploadDocument(await binaryRequest(context, ["application/octet-stream","image/png","image/jpeg"], [])), context.req.header("accept"))`,
       );
       expect(routes?.contents).toContain(
         'const normalizedContentType = context.req.header("content-type")?.split(";", 1)[0]?.trim().toLowerCase()',
@@ -508,6 +524,45 @@ describe("@hexkit/plugin-hono", () => {
       expect(runtime?.contents).toContain(
         "uploadDocument: createUploadDocument(blobStore, repositories.documents),",
       );
+    });
+  });
+
+  describe("Given ContractArtifact + ApplicationArtifact for XML API", () => {
+    it("when Hono generation runs, then XML bodies parse per content type and responses negotiate", async () => {
+      const { files } = await collectGeneratedFiles(xmlContract);
+      const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+      const controllers = files.find((file) => file.path === "src/adapters/http/controllers.ts");
+
+      expect(routes?.contents).toContain('from "fast-xml-parser"');
+      expect(routes?.contents).toContain("function parseXmlPayload(text: string): unknown");
+      expect(routes?.contents).toContain(
+        "function serializeXmlPayload(data: unknown, rootName: string): string",
+      );
+      expect(routes?.contents).toContain(
+        "function prefersXmlResponse(accept: string | undefined): boolean",
+      );
+      expect(routes?.contents).toContain(
+        `await typedRequest(context, ["application/json"], ["application/xml"], [])`,
+      );
+      expect(routes?.contents).toContain(`await xmlRequest(context, ["application/xml"], [])`);
+      expect(routes?.contents).toContain(
+        'respond(await controllers.getWidgetById(request(context, [])), context.req.header("accept"))',
+      );
+      expect(routes?.contents).toContain(
+        "if (result.xmlRoot !== undefined && prefersXmlResponse(accept))",
+      );
+      expect(controllers?.contents).toContain('xmlRoot: "Widget",');
+      expect(controllers?.contents).toContain("if (!request.isValid || !request.value.body)");
+    });
+
+    it("when a contract has no XML media, then the XML runtime stays out of the output", async () => {
+      const { files } = await collectGeneratedFiles(libraryContract);
+      const routes = files.find((file) => file.path === "src/adapters/http/routes.ts");
+
+      expect(routes?.contents).not.toContain("fast-xml-parser");
+      expect(routes?.contents).not.toContain("parseXmlPayload");
+      expect(routes?.contents).not.toContain("prefersXmlResponse");
+      expect(routes?.contents).not.toContain("XmlApicalRequest");
     });
   });
 
@@ -562,7 +617,7 @@ describe("@hexkit/plugin-hono", () => {
         '  app.post("/items", authenticateCreateItem, async (context) =>',
       );
       expect(routes?.contents).toContain(
-        "    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal)),",
+        `    respond(await controllers.createItem(await jsonRequest(context, []), context.var.principal), context.req.header("accept")),`,
       );
       expect(routes?.contents).toContain('  app.get("/health/:itemId", async (context) =>');
     });
@@ -644,6 +699,11 @@ describe("@hexkit/plugin-hono", () => {
 
     it("when the generated Library runtime is type checked, then every preceding generator import contract resolves", async () => {
       const outputDirectory = await materializeGeneratedApp(libraryOpenApi);
+      expect(typecheckRuntime(outputDirectory)).toEqual({ status: 0, stdout: "", stderr: "" });
+    });
+
+    it("when the generated XML runtime is type checked, then every preceding generator import contract resolves", async () => {
+      const outputDirectory = await materializeGeneratedApp(xmlOpenApi);
       expect(typecheckRuntime(outputDirectory)).toEqual({ status: 0, stdout: "", stderr: "" });
     });
 

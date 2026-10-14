@@ -1,14 +1,26 @@
-export function renderStaticRuntimeStatements(options: { hasAuth: boolean }): string[] {
+import { renderXmlRuntimeStatements } from "@hexkit/shared";
+
+export function renderStaticRuntimeStatements(options: {
+  hasAuth: boolean;
+  hasXmlRuntime: boolean;
+}): string[] {
   const contextType = options.hasAuth ? "AppContext" : "Context";
 
   return [
     ...(options.hasAuth ? renderAppBindingTypes() : []),
-    renderApicalRequestType(),
+    renderApicalRequestType({ hasXmlRuntime: options.hasXmlRuntime }),
     renderToApicalHeaders(),
     renderToApicalQuery(),
     renderRequestHelper(contextType),
     renderJsonRequestHelper(contextType),
     renderBinaryRequestHelper(contextType),
+    ...(options.hasXmlRuntime
+      ? [
+          ...renderXmlRuntimeStatements(),
+          renderXmlRequestHelper(contextType),
+          renderTypedRequestHelper(contextType),
+        ]
+      : []),
     ...(options.hasAuth
       ? [
           renderSecuritySchemeMetaType(),
@@ -17,7 +29,7 @@ export function renderStaticRuntimeStatements(options: { hasAuth: boolean }): st
           renderCreateAuthenticateMiddleware(),
         ]
       : []),
-    renderRespond(),
+    renderRespond({ hasXmlRuntime: options.hasXmlRuntime }),
   ];
 }
 
@@ -47,7 +59,7 @@ function renderAppBindingTypes(): string[] {
   ];
 }
 
-function renderApicalRequestType(): string {
+function renderApicalRequestType(options: { hasXmlRuntime: boolean }): string {
   return [
     "type ApicalRequest = {",
     "  query: unknown;",
@@ -59,6 +71,14 @@ function renderApicalRequestType(): string {
     "  body: unknown;",
     '  contentType: "application/json";',
     "};",
+    ...(options.hasXmlRuntime
+      ? [
+          "type XmlApicalRequest<ContentType extends string = string> = ApicalRequest & {",
+          "  body: unknown;",
+          "  contentType: ContentType;",
+          "};",
+        ]
+      : []),
     "type BinaryApicalRequest<ContentType extends string = string> = ApicalRequest & {",
     "  body: Blob;",
     "  contentType: ContentType;",
@@ -158,6 +178,97 @@ function renderBinaryRequestHelper(contextType: string): string {
   ].join("\n");
 }
 
+function renderXmlRequestHelper(contextType: string): string {
+  return [
+    "async function xmlRequest<const ContentTypes extends readonly string[]>(",
+    `  context: ${contextType},`,
+    "  contentTypes: ContentTypes,",
+    "  arrayQueryKeys: readonly string[] = [],",
+    "): Promise<XmlApicalRequest<ContentTypes[number]>> {",
+    '  const normalizedContentType = context.req.header("content-type")?.split(";", 1)[0]?.trim().toLowerCase();',
+    "  const contentType = contentTypes.find((declared) => declared.toLowerCase() === normalizedContentType);",
+    "  if (contentType === undefined) {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  let text: string;",
+    "  try {",
+    "    text = await context.req.text();",
+    "  } catch {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "  if (text.trim().length === 0) {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  try {",
+    "    return {",
+    "      ...request(context, arrayQueryKeys),",
+    "      body: parseXmlPayload(text),",
+    "      contentType,",
+    "    };",
+    "  } catch {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "}",
+  ].join("\n");
+}
+
+function renderTypedRequestHelper(contextType: string): string {
+  return [
+    "async function typedRequest<const JsonTypes extends readonly string[], const XmlTypes extends readonly string[]>(",
+    `  context: ${contextType},`,
+    "  jsonContentTypes: JsonTypes,",
+    "  xmlContentTypes: XmlTypes,",
+    "  arrayQueryKeys: readonly string[] = [],",
+    "): Promise<JsonApicalRequest | XmlApicalRequest<JsonTypes[number] | XmlTypes[number]>> {",
+    '  const normalizedContentType = context.req.header("content-type")?.split(";", 1)[0]?.trim().toLowerCase();',
+    "",
+    "  const jsonContentType = jsonContentTypes.find(",
+    "    (declared) => declared.toLowerCase() === normalizedContentType,",
+    "  );",
+    "  if (jsonContentType !== undefined) {",
+    "    try {",
+    "      return {",
+    "        ...request(context, arrayQueryKeys),",
+    "        body: await context.req.json(),",
+    "        contentType: jsonContentType,",
+    "      };",
+    "    } catch {",
+    '      throw new RequestValidationError("body-error");',
+    "    }",
+    "  }",
+    "",
+    "  const xmlContentType = xmlContentTypes.find(",
+    "    (declared) => declared.toLowerCase() === normalizedContentType,",
+    "  );",
+    "  if (xmlContentType === undefined) {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  let text: string;",
+    "  try {",
+    "    text = await context.req.text();",
+    "  } catch {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "  if (text.trim().length === 0) {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "",
+    "  try {",
+    "    return {",
+    "      ...request(context, arrayQueryKeys),",
+    "      body: parseXmlPayload(text),",
+    "      contentType: xmlContentType,",
+    "    };",
+    "  } catch {",
+    '    throw new RequestValidationError("body-error");',
+    "  }",
+    "}",
+  ].join("\n");
+}
+
 function renderSecuritySchemeMetaType(): string {
   return [
     "type SecuritySchemeMeta =",
@@ -223,20 +334,32 @@ function renderCreateAuthenticateMiddleware(): string {
   ].join("\n");
 }
 
-function renderRespond(): string {
+function renderRespond(options: { hasXmlRuntime: boolean }): string {
   return [
     "function respond(result: {",
     "  status: string;",
-    '  contentType?: "application/json";',
+    '  contentType?: "application/json" | "application/xml";',
+    "  xmlRoot?: string;",
     "  data?: unknown;",
     "  headers?: Record<string, string | number | boolean>;",
-    "}): Response {",
+    "}, accept?: string): Response {",
     "  const status = Number(result.status);",
     "  const headers: Record<string, string> = {};",
     "  for (const [name, value] of Object.entries(result.headers ?? {})) {",
     "    headers[name] = String(value);",
     "  }",
     "  if (result.data === undefined) return new Response(null, { status, headers });",
+    ...(options.hasXmlRuntime
+      ? [
+          "  if (result.xmlRoot !== undefined && prefersXmlResponse(accept)) {",
+          '    headers["content-type"] = "application/xml";',
+          "    return new Response(serializeXmlPayload(result.data, result.xmlRoot), {",
+          "      status,",
+          "      headers,",
+          "    });",
+          "  }",
+        ]
+      : []),
     '  headers["content-type"] = result.contentType ?? "application/json";',
     "  return new Response(JSON.stringify(result.data), {",
     "    status,",

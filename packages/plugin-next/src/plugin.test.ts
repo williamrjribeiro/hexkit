@@ -20,6 +20,8 @@ describe("@hexkit/plugin-next", () => {
     .pathname;
   const uploadOpenApi = new URL("../../../apps/fixtures/upload-api/openapi.yaml", import.meta.url)
     .pathname;
+  const xmlOpenApi = new URL("../../../apps/fixtures/xml-api/openapi.yaml", import.meta.url)
+    .pathname;
 
   const petstoreModules = {
     schemas: new Map([
@@ -76,17 +78,31 @@ describe("@hexkit/plugin-next", () => {
     ]),
   };
 
+  const xmlModules = {
+    schemas: new Map([
+      ["Label", "schemas/Label.ts"],
+      ["Widget", "schemas/Widget.ts"],
+    ]),
+    operations: new Map([
+      ["createWidget", "routes/createWidget.ts"],
+      ["getWidgetById", "routes/getWidgetById.ts"],
+      ["setWidgetLabel", "routes/setWidgetLabel.ts"],
+    ]),
+  };
+
   const productionSourceRoots = ["artifact.ts", "generate", "model", "plugin.ts", "index.ts"];
 
   let petstoreContract: ContractArtifact;
   let libraryContract: ContractArtifact;
   let uploadContract: ContractArtifact;
+  let xmlContract: ContractArtifact;
 
   beforeAll(async () => {
-    [petstoreContract, libraryContract, uploadContract] = await Promise.all([
+    [petstoreContract, libraryContract, uploadContract, xmlContract] = await Promise.all([
       loadNormalizedContract(petstoreOpenApi, petstoreModules),
       loadNormalizedContract(libraryOpenApi, libraryModules),
       loadNormalizedContract(uploadOpenApi, uploadModules),
+      loadNormalizedContract(xmlOpenApi, xmlModules),
     ]);
   });
 
@@ -861,6 +877,60 @@ describe("@hexkit/plugin-next", () => {
       expect(helpers?.contents).not.toContain("AuthenticationError");
       expect(helpers?.contents).not.toContain("AuthCredentials");
       expect(helpers?.contents).not.toContain("extractCredentials");
+      expect(helpers?.contents).not.toContain("fast-xml-parser");
+      expect(helpers?.contents).not.toContain("parseXmlPayload");
+    });
+  });
+
+  describe("Given ContractArtifact + ApplicationArtifact for XML API", () => {
+    it("when Next generation runs, then helpers parse XML bodies and negotiate responses", async () => {
+      const { files } = await collectGeneratedFiles(xmlContract, "routes");
+      const helpers = fileMap(files).get("src/adapters/http-next/helpers.ts");
+      const routeSources = files.filter(
+        (file) => file.path.endsWith("/route.ts") && file.path.startsWith("app/"),
+      );
+      const postRoute = routeSources.find((file) =>
+        file.contents.includes("export async function POST"),
+      );
+      const putRoute = routeSources.find((file) =>
+        file.contents.includes("export async function PUT"),
+      );
+      const getRoute = routeSources.find((file) =>
+        file.contents.includes("export async function GET"),
+      );
+
+      expect(helpers?.contents).toContain('from "fast-xml-parser"');
+      expect(helpers?.contents).toContain("function parseXmlPayload(text: string): unknown");
+      expect(helpers?.contents).toContain(
+        "function serializeXmlPayload(data: unknown, rootName: string): string",
+      );
+      expect(helpers?.contents).toContain(
+        "function prefersXmlResponse(accept: string | undefined): boolean",
+      );
+      expect(helpers?.contents).toContain("xmlContentTypes: XmlTypes");
+      expect(helpers?.contents).toContain("xmlBody: true; contentTypes: ContentTypes");
+      expect(helpers?.contents).toContain("if (options.xmlBody) {");
+      expect(helpers?.contents).toContain("options.xmlContentTypes.find(");
+      expect(helpers?.contents).toContain("body: parseXmlPayload(text)");
+      expect(helpers?.contents).toContain("accept?: string | null");
+      expect(helpers?.contents).toContain(
+        "if (result.xmlRoot !== undefined && prefersXmlResponse(accept ?? undefined))",
+      );
+
+      expect(postRoute?.contents).toContain(
+        `toApicalRequest(request, params, { jsonBody: true, xmlContentTypes: ["application/xml"], arrayQueryKeys: [] })`,
+      );
+      expect(putRoute?.contents).toContain(
+        `toApicalRequest(request, params, { jsonBody: false, xmlBody: true, contentTypes: ["application/xml"], arrayQueryKeys: [] })`,
+      );
+      expect(getRoute?.contents).toContain(
+        `toApicalRequest(request, params, { jsonBody: false, arrayQueryKeys: [] })`,
+      );
+      for (const route of routeSources) {
+        expect(route.contents).toContain(
+          'handleControllerResult(result, request.headers.get("accept"))',
+        );
+      }
     });
   });
 });

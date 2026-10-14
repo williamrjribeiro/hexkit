@@ -36,10 +36,7 @@ function renderRouteSource(route: NextRouteFile): string {
 
 function renderMethodHandler(method: NextMethodBinding): string {
   const methodName = method.method.toUpperCase();
-  const jsonBody = method.hasJsonRequestBody ? "true" : "false";
-  const binaryBodyOption = method.hasBinaryRequestBody
-    ? ` binaryBody: true, contentTypes: ${renderBinaryContentTypes(method)},`
-    : "";
+  const requestOptions = renderRequestOptions(method);
   const arrayKeysLiteral = JSON.stringify(method.arrayQueryParameterNames);
   const controllerArguments = method.requiresAuth ? "apicalRequest, principal" : "apicalRequest";
 
@@ -51,15 +48,29 @@ function renderMethodHandler(method: NextMethodBinding): string {
     "  const params = await ctx.params;",
     "  const runtime = getRuntime();",
     "  try {",
-    `    const apicalRequest = await toApicalRequest(request, params, { jsonBody: ${jsonBody},${binaryBodyOption} arrayQueryKeys: ${arrayKeysLiteral} });`,
+    `    const apicalRequest = await toApicalRequest(request, params, { ${requestOptions} arrayQueryKeys: ${arrayKeysLiteral} });`,
     ...renderAuthentication(method),
     `    const result = await runtime.controllers.${method.operationId}(${controllerArguments});`,
-    "    return handleControllerResult(result);",
+    '    return handleControllerResult(result, request.headers.get("accept"));',
     "  } catch (error) {",
     "    return handleControllerError(error);",
     "  }",
     "}",
   ].join("\n");
+}
+
+function renderRequestOptions(method: NextMethodBinding): string {
+  if (method.hasBinaryRequestBody) {
+    return `jsonBody: false, binaryBody: true, contentTypes: ${renderBinaryContentTypes(method)},`;
+  }
+  const transport = method.requestBodyTransport;
+  if (transport.kind === "xml") {
+    return `jsonBody: false, xmlBody: true, contentTypes: ${JSON.stringify(transport.contentTypes)},`;
+  }
+  if (transport.kind === "json" && transport.xmlContentTypes !== undefined) {
+    return `jsonBody: true, xmlContentTypes: ${JSON.stringify(transport.xmlContentTypes)},`;
+  }
+  return `jsonBody: ${method.hasJsonRequestBody ? "true" : "false"},`;
 }
 
 function renderBinaryContentTypes(method: NextMethodBinding): string {

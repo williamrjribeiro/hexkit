@@ -163,7 +163,11 @@ function renderSecuredControllerEntry(operation: HttpControllerOperation): strin
 }
 
 function renderValidation(operation: HttpControllerOperation): string[] {
-  if (operation.hasJsonRequestBody || operation.hasBinaryRequestBody) {
+  if (
+    operation.hasJsonRequestBody ||
+    operation.hasBinaryRequestBody ||
+    operation.hasXmlRequestBody
+  ) {
     return [
       "      if (!request.isValid || !request.value.body) {",
       ...renderAuthenticationValidation(operation),
@@ -230,6 +234,9 @@ function renderSuccess(operation: HttpControllerOperation): string[] {
   lines.push("      return {");
   lines.push(`        status: "${operation.successStatus}",`);
   lines.push(`        contentType: "${mediaType}",`);
+  if (operation.successXmlRootName !== undefined) {
+    lines.push(`        xmlRoot: "${operation.successXmlRootName}",`);
+  }
   lines.push(`        data: ${dataExpression},`);
   if (operation.successResponseHeaders.length > 0) {
     lines.push("        headers: result.headers,");

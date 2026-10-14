@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: Hexkit XML API Fixture
+  version: 1.0.0
+paths:
+  /widgets:
+    post:
+      operationId: createWidget
+      x-hexkit:
+        operation:
+          aggregate: Widget
+          action: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Widget"
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Widget"
+      responses:
+        "201":
+          description: Widget created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/Widget"
+  /widgets/{widgetId}:
+    get:
+      operationId: getWidgetById
+      parameters:
+        - $ref: "#/components/parameters/WidgetId"
+      responses:
+        "200":
+          description: Widget found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Widget"
+            application/xml:
+              schema:
+                $ref: "#/components/schemas/Widget"
+        "404":
+          description: Widget not found
+  /widgets/{widgetId}/label:
+    put:
+      operationId: setWidgetLabel
+      x-hexkit:
+        operation:
+          aggregate: Widget
+          action: update
+      parameters:
+        - $ref: "#/components/parameters/WidgetId"
+      requestBody:
+        required: true
+        content:
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Label"
+      responses:
+        "204":
+          description: Label stored
+components:
+  parameters:
+    WidgetId:
+      name: widgetId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    Widget:
+      type: object
+      x-hexkit:
+        persistence:
+          table: widgets
+          identity: id
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    Label:
+      type: object
+      properties:
+        text:
+          type: string

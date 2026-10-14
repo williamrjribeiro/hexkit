@@ -1,6 +1,11 @@
 import { toCamelCase, unique } from "@hexkit/codegen";
 import type { ContractOperation, ContractParameter, ContractType } from "@hexkit/plugin-apical";
-import { deriveRequestBodyTransport, findJsonMedia, isSuccessStatus } from "@hexkit/shared";
+import {
+  deriveRequestBodyTransport,
+  findJsonMedia,
+  findXmlMedia,
+  isSuccessStatus,
+} from "@hexkit/shared";
 
 import type { ApplicationParameter, ResultCardinality } from "../artifact.ts";
 import { renderContractType } from "./type-render.ts";
@@ -19,8 +24,12 @@ export function deriveParameters(operation: ContractOperation): {
   }
 
   const transport = deriveRequestBodyTransport(operation);
-  const jsonMedia =
-    transport.kind === "json" ? findJsonMedia(operation.requestBody?.media) : undefined;
+  const bodyMedia =
+    transport.kind === "json"
+      ? findJsonMedia(operation.requestBody?.media)
+      : transport.kind === "xml"
+        ? findXmlMedia(operation.requestBody?.media)
+        : undefined;
 
   const pathParameters = operation.parameters.filter((parameter) => parameter.location === "path");
   const queryParameters = operation.parameters.filter(
@@ -32,7 +41,7 @@ export function deriveParameters(operation: ContractOperation): {
 
   const body =
     transport.kind !== "binary"
-      ? deriveBodyParameter(jsonMedia?.type)
+      ? deriveBodyParameter(bodyMedia?.type)
       : {
           parameter: {
             name: "body",

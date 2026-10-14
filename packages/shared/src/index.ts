@@ -10,9 +10,12 @@ export {
   findJsonMedia,
   findOctetStreamMedia,
   findSuccessResponse,
+  findXmlMedia,
   hasBinaryRequestBody,
   hasJsonRequestBody,
+  hasXmlRequestBody,
   hasNotFoundResponse,
+  isXmlMediaType,
 } from "./media.ts";
 export type { ContractSecurityScheme } from "./media.ts";
 export { deriveRequestBodyTransport, type RequestBodyTransport } from "./request-body-transport.ts";
@@ -25,6 +28,7 @@ export {
 export type { OpenApiRouteRegistrationKey } from "./openapi-path.ts";
 export { renderInMemoryAuthAdapterFile } from "./render-auth-adapter.ts";
 export { renderHttpControllersFile } from "./render-controllers.ts";
+export { renderXmlRuntimeStatements, usesXmlMedia, XML_RUNTIME_IMPORT } from "./render-xml.ts";
 export {
   collectApiKeyHeaderNames,
   IN_MEMORY_AUTH_ADAPTER_PATH,

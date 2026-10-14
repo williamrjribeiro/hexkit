@@ -4,6 +4,7 @@ import { deriveAuthSchemes, type HttpAuthSchemeBinding } from "./auth-schemes.ts
 import {
   findJsonMedia,
   findSuccessResponse,
+  findXmlMedia,
   hasNotFoundResponse,
   type ContractSecurityScheme,
 } from "./media.ts";
@@ -46,9 +47,12 @@ export type HttpControllerBinding = {
   notFoundStatus?: string;
   hasJsonRequestBody: boolean;
   hasBinaryRequestBody: boolean;
+  hasXmlRequestBody: boolean;
   requestBodyTransport: RequestBodyTransport;
   hasJsonSuccessBody: boolean;
   successMediaType?: string;
+  /** Root element name for XML success serialization (reference schema name). */
+  successXmlRootName?: string;
   requiresAuth: boolean;
   authSchemes: readonly HttpAuthSchemeBinding[];
   useCaseArgumentExpressions: readonly string[];
@@ -72,10 +76,12 @@ export type HttpControllerOperation = Pick<
   | "responseMapImportPath"
   | "hasJsonRequestBody"
   | "hasBinaryRequestBody"
+  | "hasXmlRequestBody"
   | "hasJsonSuccessBody"
   | "successStatus"
   | "notFoundStatus"
   | "successMediaType"
+  | "successXmlRootName"
   | "requiresAuth"
   | "useCaseArgumentExpressions"
   | "arrayQueryParameterNames"
@@ -101,9 +107,15 @@ export function deriveHttpControllerBinding(
   }
 
   const jsonSuccessMedia = findJsonMedia(successResponse.media);
+  const xmlSuccessMedia = findXmlMedia(successResponse.media);
   const requestBodyTransport = deriveRequestBodyTransport(operation);
   const jsonRequestBody = requestBodyTransport.kind === "json";
   const binaryRequestBody = requestBodyTransport.kind === "binary";
+  const xmlRequestBody =
+    requestBodyTransport.kind === "xml" ||
+    (requestBodyTransport.kind === "json" && requestBodyTransport.xmlContentTypes !== undefined);
+  const successXmlRootName =
+    xmlSuccessMedia?.type?.kind === "reference" ? xmlSuccessMedia.type.schema : undefined;
   const wrapperName = `${operation.operationId}Wrapper`;
   const responseMapName =
     jsonSuccessMedia === undefined ? undefined : `${operation.operationId}ResponseMap`;
@@ -128,14 +140,17 @@ export function deriveHttpControllerBinding(
     ...(hasNotFoundResponse(operation) ? { notFoundStatus: "404" } : {}),
     hasJsonRequestBody: jsonRequestBody,
     hasBinaryRequestBody: binaryRequestBody,
+    hasXmlRequestBody: xmlRequestBody,
     requestBodyTransport,
     hasJsonSuccessBody: jsonSuccessMedia !== undefined,
     ...(jsonSuccessMedia === undefined ? {} : { successMediaType: jsonSuccessMedia.mediaType }),
+    ...(successXmlRootName === undefined ? {} : { successXmlRootName }),
     requiresAuth: useCase.requiresAuth,
     authSchemes: deriveAuthSchemes(operation, securitySchemes),
     useCaseArgumentExpressions: deriveUseCaseArgumentExpressions(useCase, {
       hasJsonRequestBody: jsonRequestBody,
       hasBinaryRequestBody: binaryRequestBody,
+      hasXmlRequestBody: xmlRequestBody,
     }),
     arrayQueryParameterNames: operation.parameters
       .filter((parameter) => parameter.location === "query" && parameter.type.kind === "array")

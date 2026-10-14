@@ -1,6 +1,7 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
 import { renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
+import { usesXmlMedia, XML_RUNTIME_IMPORT } from "@hexkit/shared";
 
 import type { HttpModel } from "../model/derive.ts";
 import { ROUTES_FILE_PATH } from "../model/derive.ts";
@@ -12,6 +13,7 @@ export { renderOnErrorHandler } from "./routes/static-runtime.ts";
 
 export function renderRoutesFile(model: HttpModel): GeneratedFile {
   const hasAuth = model.authenticator !== undefined;
+  const hasXmlRuntime = model.operations.some(usesXmlMedia);
   const imports: ImportDeclaration[] = [
     {
       from: "hono",
@@ -53,12 +55,13 @@ export function renderRoutesFile(model: HttpModel): GeneratedFile {
       names: ["HttpControllers", "HttpUseCases"],
       typeOnly: true,
     },
+    ...(hasXmlRuntime ? [XML_RUNTIME_IMPORT] : []),
   ];
 
   const routeRegistrations = model.operations.map(renderRouteRegistration).join("\n");
 
   const statements = [
-    ...renderStaticRuntimeStatements({ hasAuth }),
+    ...renderStaticRuntimeStatements({ hasAuth, hasXmlRuntime }),
     [
       hasAuth
         ? "export function registerJsonRoutes(app: Hono<AppBindings>, controllers: HttpControllers, authenticator: Authenticator): void {"

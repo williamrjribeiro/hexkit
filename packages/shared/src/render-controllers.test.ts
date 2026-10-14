@@ -14,6 +14,7 @@ describe("Given renderHttpControllersFile", () => {
       wrapperImportPath: `src/generated/contracts/server/${overrides.operationId}.ts`,
       hasJsonRequestBody: false,
       hasBinaryRequestBody: false,
+      hasXmlRequestBody: false,
       hasJsonSuccessBody: true,
       successStatus: "200",
       successMediaType: "application/json",
@@ -173,5 +174,56 @@ describe("Given renderHttpControllersFile", () => {
     const zeta = file.contents.indexOf("zeta:");
     expect(alpha).toBeGreaterThan(-1);
     expect(zeta).toBeGreaterThan(alpha);
+  });
+
+  it("when a success binding declares an XML root, then the controller result carries xmlRoot", () => {
+    const file = renderHttpControllersFile({
+      filePath: "src/adapters/http/controllers.ts",
+      hasAuthenticator: false,
+      operations: [
+        operation({
+          operationId: "createItem",
+          responseMapName: "createItemResponseMap",
+          responseMapImportPath: "src/generated/contracts/routes/createItem.ts",
+          successXmlRootName: "Item",
+        }),
+      ],
+    });
+
+    expect(file.contents).toContain('contentType: "application/json",');
+    expect(file.contents).toContain('xmlRoot: "Item",');
+  });
+
+  it("when a success binding has no XML root, then the controller result omits xmlRoot", () => {
+    const file = renderHttpControllersFile({
+      filePath: "src/adapters/http/controllers.ts",
+      hasAuthenticator: false,
+      operations: [
+        operation({
+          operationId: "createItem",
+          responseMapName: "createItemResponseMap",
+          responseMapImportPath: "src/generated/contracts/routes/createItem.ts",
+        }),
+      ],
+    });
+
+    expect(file.contents).not.toContain("xmlRoot");
+  });
+
+  it("when an XML-only body operation is rendered, then validation requires the body", () => {
+    const file = renderHttpControllersFile({
+      filePath: "src/adapters/http/controllers.ts",
+      hasAuthenticator: false,
+      operations: [
+        operation({
+          operationId: "setItemLabel",
+          hasXmlRequestBody: true,
+          useCaseArgumentExpressions: ["request.value.body"],
+        }),
+      ],
+    });
+
+    expect(file.contents).toContain("if (!request.isValid || !request.value.body) {");
+    expect(file.contents).toContain("await useCases.setItemLabel(request.value.body)");
   });
 });
