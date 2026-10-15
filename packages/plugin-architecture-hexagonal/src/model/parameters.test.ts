@@ -180,7 +180,9 @@ describe("operation parameter derivation", () => {
             },
           }),
         ),
-      ).toThrow(/must declare a typed application\/json schema or a string schema/);
+      ).toThrow(
+        /must declare a typed application\/json schema, a typed application\/xml schema, or a string schema/,
+      );
     });
 
     it("when a request body declares both json and octet-stream, then the calculation throws", () => {
@@ -204,7 +206,7 @@ describe("operation parameter derivation", () => {
             },
           }),
         ),
-      ).toThrow("cannot declare both JSON and binary request bodies");
+      ).toThrow("cannot declare both JSON or XML and binary request bodies");
     });
 
     it("when request body has multiple binary content types, then contentType precedes body", () => {

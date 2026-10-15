@@ -1,21 +1,22 @@
 import type { GeneratedFile } from "@hexkit/plugin-api";
-import { renderSecurityMetaLiteral } from "@hexkit/shared";
+import { renderSecurityMetaLiteral, usesXmlMedia } from "@hexkit/shared";
 
 import type { NextMethodBinding, NextRouteFile } from "../artifact.ts";
 
 export function renderRouteFiles(routes: readonly NextRouteFile[]): GeneratedFile[] {
-  return routes.map(renderRouteFile);
+  const hasXmlRuntime = routes.some((route) => route.methods.some(usesXmlMedia));
+  return routes.map((route) => renderRouteFile(route, hasXmlRuntime));
 }
 
-function renderRouteFile(route: NextRouteFile): GeneratedFile {
+function renderRouteFile(route: NextRouteFile, hasXmlRuntime: boolean): GeneratedFile {
   return {
     path: route.filePath,
-    contents: renderRouteSource(route),
+    contents: renderRouteSource(route, hasXmlRuntime),
     ownership: "generated",
   };
 }
 
-function renderRouteSource(route: NextRouteFile): string {
+function renderRouteSource(route: NextRouteFile, hasXmlRuntime: boolean): string {
   const hasAuth = route.methods.some((method) => method.requiresAuth);
 
   return [
@@ -29,17 +30,14 @@ function renderRouteSource(route: NextRouteFile): string {
     "  toApicalRequest,",
     '} from "@/adapters/http-next/helpers";',
     "",
-    route.methods.map(renderMethodHandler).join("\n\n"),
+    route.methods.map((method) => renderMethodHandler(method, hasXmlRuntime)).join("\n\n"),
     "",
   ].join("\n");
 }
 
-function renderMethodHandler(method: NextMethodBinding): string {
+function renderMethodHandler(method: NextMethodBinding, hasXmlRuntime: boolean): string {
   const methodName = method.method.toUpperCase();
-  const jsonBody = method.hasJsonRequestBody ? "true" : "false";
-  const binaryBodyOption = method.hasBinaryRequestBody
-    ? ` binaryBody: true, contentTypes: ${renderBinaryContentTypes(method)},`
-    : "";
+  const requestOptions = renderRequestOptions(method);
   const arrayKeysLiteral = JSON.stringify(method.arrayQueryParameterNames);
   const controllerArguments = method.requiresAuth ? "apicalRequest, principal" : "apicalRequest";
 
@@ -51,15 +49,31 @@ function renderMethodHandler(method: NextMethodBinding): string {
     "  const params = await ctx.params;",
     "  const runtime = getRuntime();",
     "  try {",
-    `    const apicalRequest = await toApicalRequest(request, params, { jsonBody: ${jsonBody},${binaryBodyOption} arrayQueryKeys: ${arrayKeysLiteral} });`,
+    `    const apicalRequest = await toApicalRequest(request, params, { ${requestOptions} arrayQueryKeys: ${arrayKeysLiteral} });`,
     ...renderAuthentication(method),
     `    const result = await runtime.controllers.${method.operationId}(${controllerArguments});`,
-    "    return handleControllerResult(result);",
+    hasXmlRuntime
+      ? '    return handleControllerResult(result, request.headers.get("accept"));'
+      : "    return handleControllerResult(result);",
     "  } catch (error) {",
     "    return handleControllerError(error);",
     "  }",
     "}",
   ].join("\n");
+}
+
+function renderRequestOptions(method: NextMethodBinding): string {
+  if (method.hasBinaryRequestBody) {
+    return `jsonBody: false, binaryBody: true, contentTypes: ${renderBinaryContentTypes(method)},`;
+  }
+  const transport = method.requestBodyTransport;
+  if (transport.kind === "xml") {
+    return `jsonBody: false, xmlBody: true, contentTypes: ${JSON.stringify(transport.contentTypes)},`;
+  }
+  if (transport.kind === "json" && transport.xmlContentTypes !== undefined) {
+    return `jsonBody: true, xmlContentTypes: ${JSON.stringify(transport.xmlContentTypes)},`;
+  }
+  return `jsonBody: ${method.hasJsonRequestBody ? "true" : "false"},`;
 }
 
 function renderBinaryContentTypes(method: NextMethodBinding): string {

@@ -13,6 +13,7 @@ export type UseCaseArgumentInput = {
 export type UseCaseArgumentBodyFlags = {
   hasJsonRequestBody: boolean;
   hasBinaryRequestBody: boolean;
+  hasXmlRequestBody: boolean;
 };
 
 /**
@@ -27,14 +28,14 @@ export type UseCaseArgumentBodyFlags = {
  * application port.
  *
  * @param useCase - Auth flag and path/body parameter names.
- * @param bodyFlags - Whether the operation's request body is JSON or binary.
+ * @param bodyFlags - Whether the operation's request body is JSON, binary, or XML.
  */
 export function deriveUseCaseArgumentExpressions(
   useCase: UseCaseArgumentInput,
   bodyFlags: UseCaseArgumentBodyFlags,
 ): readonly string[] {
-  const { hasJsonRequestBody, hasBinaryRequestBody } = bodyFlags;
-  const hasRequestBody = hasJsonRequestBody || hasBinaryRequestBody;
+  const { hasJsonRequestBody, hasBinaryRequestBody, hasXmlRequestBody } = bodyFlags;
+  const hasRequestBody = hasJsonRequestBody || hasBinaryRequestBody || hasXmlRequestBody;
   const principalExpression = useCase.requiresAuth ? ["principal"] : [];
   const pathExpressions = useCase.parameters
     .filter((parameter) =>
@@ -46,7 +47,7 @@ export function deriveUseCaseArgumentExpressions(
     .map((parameter) => `request.value.query?.${parameter.name}`);
   const bodyExpressions = hasBinaryRequestBody
     ? ["apicalRequest.contentType!", "new Uint8Array(await request.value.body.arrayBuffer())"]
-    : hasJsonRequestBody
+    : hasJsonRequestBody || hasXmlRequestBody
       ? ["request.value.body"]
       : [];
 

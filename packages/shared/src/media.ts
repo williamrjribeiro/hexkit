@@ -5,8 +5,11 @@ import type {
   ContractResponse,
 } from "@hexkit/plugin-apical";
 
+import { isXmlMediaType } from "./media-type.ts";
 import { deriveRequestBodyTransport } from "./request-body-transport.ts";
 import { isSuccessStatus } from "./status.ts";
+
+export { isXmlMediaType } from "./media-type.ts";
 
 /**
  * First `application/json` media entry that declares a schema type.
@@ -20,6 +23,20 @@ export function findJsonMedia(
   media: readonly ContractMedia[] | undefined,
 ): ContractMedia | undefined {
   return media?.find((entry) => entry.mediaType === "application/json" && entry.type !== undefined);
+}
+
+/**
+ * First XML media entry that declares a schema type.
+ *
+ * Entries that name XML but omit `type` are ignored so adapters never bind an
+ * empty body as XML.
+ *
+ * @param media - Request or response media list. `undefined` is treated as empty.
+ */
+export function findXmlMedia(
+  media: readonly ContractMedia[] | undefined,
+): ContractMedia | undefined {
+  return media?.find((entry) => isXmlMediaType(entry.mediaType) && entry.type !== undefined);
 }
 
 /**
@@ -38,6 +55,15 @@ export function findSuccessResponse(operation: ContractOperation): ContractRespo
  */
 export function hasJsonRequestBody(operation: ContractOperation): boolean {
   return findJsonMedia(operation.requestBody?.media) !== undefined;
+}
+
+/**
+ * True when the operation declares an XML request body with a schema type.
+ *
+ * @param operation - Contract operation to inspect.
+ */
+export function hasXmlRequestBody(operation: ContractOperation): boolean {
+  return findXmlMedia(operation.requestBody?.media) !== undefined;
 }
 
 /**

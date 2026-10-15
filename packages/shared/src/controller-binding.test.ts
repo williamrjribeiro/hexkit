@@ -210,7 +210,7 @@ describe("Given deriveHttpControllerBinding", () => {
         useCase({ typeName: "InvalidUpload" }),
         [],
       ),
-    ).toThrow(/cannot declare both JSON and binary request bodies/);
+    ).toThrow(/cannot declare both JSON or XML and binary request bodies/);
   });
 
   it("when query parameters include arrays and scalars, then only array names are listed", () => {
@@ -249,5 +249,94 @@ describe("Given deriveHttpControllerBinding", () => {
     );
 
     expect(binding.arrayQueryParameterNames).toEqual(["tags"]);
+  });
+
+  it("when a body declares JSON and XML, then both transports and the XML root are bound", () => {
+    const binding = deriveHttpControllerBinding(
+      operation({
+        operationId: "createItem",
+        method: "post",
+        requestBody: {
+          required: true,
+          media: [
+            { mediaType: "application/json", type: itemReference },
+            { mediaType: "application/xml", type: itemReference },
+          ],
+        },
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              { mediaType: "application/xml", type: itemReference },
+              { mediaType: "application/json", type: itemReference },
+            ],
+          },
+        ],
+      }),
+      useCase({ typeName: "CreateItem", parameters: [{ name: "item" }] }),
+      [],
+    );
+
+    expect(binding).toMatchObject({
+      hasJsonRequestBody: true,
+      hasXmlRequestBody: true,
+      requestBodyTransport: {
+        kind: "json",
+        contentTypes: ["application/json"],
+        xmlContentTypes: ["application/xml"],
+      },
+      successMediaType: "application/json",
+      successXmlRootName: "Item",
+      useCaseArgumentExpressions: ["request.value.body"],
+    });
+  });
+
+  it("when a body declares only XML, then transport is xml and arguments carry the body", () => {
+    const binding = deriveHttpControllerBinding(
+      operation({
+        operationId: "setItemLabel",
+        method: "put",
+        requestBody: {
+          required: true,
+          media: [{ mediaType: "application/xml", type: itemReference }],
+        },
+      }),
+      useCase({ typeName: "SetItemLabel", parameters: [{ name: "item" }] }),
+      [],
+    );
+
+    expect(binding).toMatchObject({
+      hasJsonRequestBody: false,
+      hasXmlRequestBody: true,
+      requestBodyTransport: { kind: "xml", contentTypes: ["application/xml"] },
+      useCaseArgumentExpressions: ["request.value.body"],
+    });
+  });
+
+  it("when XML success media uses an inline schema, then no XML root is bound", () => {
+    const binding = deriveHttpControllerBinding(
+      operation({
+        operationId: "createItem",
+        method: "post",
+        responses: [
+          {
+            status: "200",
+            description: "ok",
+            media: [
+              { mediaType: "application/json", type: itemReference },
+              {
+                mediaType: "application/xml",
+                type: { kind: "object", nullable: false, properties: [] },
+              },
+            ],
+          },
+        ],
+      }),
+      useCase({ typeName: "CreateItem", parameters: [] }),
+      [],
+    );
+
+    expect(binding.successXmlRootName).toBeUndefined();
   });
 });

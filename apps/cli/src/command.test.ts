@@ -1071,6 +1071,7 @@ describe("CLI generate command", () => {
         "@hono/node-server": "2.1.1",
         "@standard-schema/spec": "1.1.0",
         "drizzle-orm": "0.45.3",
+        "fast-xml-parser": "5.11.2",
         hono: "4.13.8",
         pg: "8.23.0",
         zod: "4.6.5",

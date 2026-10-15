@@ -17,7 +17,9 @@ describe("Given an unauthenticated app", () => {
   });
 
   it("when static runtime is rendered, then request helpers use Context", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: false }).join("\n");
+    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: false }).join(
+      "\n",
+    );
     expect(source).toContain("function toApicalHeaders(headers: Headers)");
     expect(source).toContain("function toApicalQuery(");
     expect(source).toContain(
@@ -32,6 +34,41 @@ describe("Given an unauthenticated app", () => {
     expect(source).not.toContain("createAuthenticateMiddleware");
     expect(source).not.toContain("AppBindings");
     expect(source).toContain("headers[name] = String(value)");
+  });
+
+  it("when no operation uses XML, then the XML runtime stays out of the source", () => {
+    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: false }).join(
+      "\n",
+    );
+
+    expect(source).not.toContain("XMLParser");
+    expect(source).not.toContain("parseXmlPayload");
+    expect(source).not.toContain("serializeXmlPayload");
+    expect(source).not.toContain("prefersXmlResponse");
+    expect(source).not.toContain("function xmlRequest");
+    expect(source).not.toContain("function typedRequest");
+    expect(source).not.toContain("XmlApicalRequest");
+    expect(source).not.toContain("xmlRoot !== undefined");
+  });
+
+  it("when an operation uses XML, then parse, serialize, and negotiation helpers are emitted", () => {
+    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: true }).join(
+      "\n",
+    );
+
+    expect(source).toContain("type XmlApicalRequest<ContentType extends string = string>");
+    expect(source).toContain("function parseXmlPayload(text: string): unknown");
+    expect(source).toContain("function serializeXmlPayload(data: unknown, rootName: string)");
+    expect(source).toContain("function prefersXmlResponse(accept: string | undefined): boolean");
+    expect(source).toContain(
+      "async function xmlRequest<const ContentTypes extends readonly string[]>(",
+    );
+    expect(source).toContain(
+      "async function typedRequest<const JsonTypes extends readonly string[], const XmlTypes extends readonly string[]>(",
+    );
+    expect(source).toContain("body: parseXmlPayload(text)");
+    expect(source).toContain("if (result.xmlRoot !== undefined && prefersXmlResponse(accept))");
+    expect(source).toContain('headers["content-type"] = "application/xml"');
   });
 });
 
@@ -53,7 +90,9 @@ describe("Given an authenticated app", () => {
   });
 
   it("when static runtime is rendered, then auth middleware helpers are included", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: true }).join("\n");
+    const source = renderStaticRuntimeStatements({ hasAuth: true, hasXmlRuntime: false }).join(
+      "\n",
+    );
     expect(source).toContain("type AppVariables = { principal: Principal };");
     expect(source).toContain(
       "function request(context: AppContext, arrayQueryKeys: readonly string[] = []): ApicalRequest",

@@ -1,6 +1,7 @@
 import type { ImportDeclaration } from "@hexkit/codegen";
 import { renderSourceFile } from "@hexkit/codegen";
 import type { GeneratedFile } from "@hexkit/plugin-api";
+import { renderXmlRuntimeStatements, usesXmlMedia, XML_RUNTIME_IMPORT } from "@hexkit/shared";
 
 import type { NextHttpModel } from "../artifact.ts";
 import { HELPERS_FILE_PATH } from "../model/derive.ts";
@@ -8,6 +9,7 @@ import { relativeImportPath } from "../model/paths.ts";
 
 export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
   const hasAuth = model.authenticator !== undefined;
+  const hasXmlRuntime = model.routes.some((route) => route.methods.some(usesXmlMedia));
   const imports: ImportDeclaration[] = [
     ...(hasAuth
       ? [
@@ -27,6 +29,7 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       from: "./controllers.ts",
       names: [...(hasAuth ? ["AuthenticationError"] : []), "RequestValidationError"],
     },
+    ...(hasXmlRuntime ? [XML_RUNTIME_IMPORT] : []),
   ];
 
   const statements = [
@@ -45,7 +48,16 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       "  body: Blob;",
       "  contentType: ContentType;",
       "};",
+      ...(hasXmlRuntime
+        ? [
+            "type XmlApicalRequest<ContentType extends string = string> = ApicalRequest & {",
+            "  body: unknown;",
+            "  contentType: ContentType;",
+            "};",
+          ]
+        : []),
     ].join("\n"),
+    ...(hasXmlRuntime ? renderXmlRuntimeStatements() : []),
     [
       "function toApicalHeaders(headers: Headers): Record<string, string> {",
       "  const result: Record<string, string> = {};",
@@ -115,25 +127,54 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       "export function toApicalRequest(",
       "  request: NextRequest,",
       "  params: Record<string, string>,",
-      "  options: { jsonBody: true; binaryBody?: false; arrayQueryKeys?: readonly string[] },",
+      "  options: { jsonBody: true; binaryBody?: false; xmlContentTypes?: never; arrayQueryKeys?: readonly string[] },",
       "): Promise<JsonApicalRequest>;",
+      ...(hasXmlRuntime
+        ? [
+            "export function toApicalRequest<const XmlTypes extends readonly string[]>(",
+            "  request: NextRequest,",
+            "  params: Record<string, string>,",
+            "  options: { jsonBody: true; binaryBody?: false; xmlContentTypes: XmlTypes; arrayQueryKeys?: readonly string[] },",
+            "): Promise<JsonApicalRequest | XmlApicalRequest<XmlTypes[number]>>;",
+          ]
+        : []),
       "export function toApicalRequest<const ContentTypes extends readonly string[]>(",
       "  request: NextRequest,",
       "  params: Record<string, string>,",
       "  options: { jsonBody: false; binaryBody: true; contentTypes: ContentTypes; arrayQueryKeys?: readonly string[] },",
       "): Promise<BinaryApicalRequest<ContentTypes[number]>>;",
+      ...(hasXmlRuntime
+        ? [
+            "export function toApicalRequest<const ContentTypes extends readonly string[]>(",
+            "  request: NextRequest,",
+            "  params: Record<string, string>,",
+            "  options: { jsonBody: false; xmlBody: true; contentTypes: ContentTypes; arrayQueryKeys?: readonly string[] },",
+            "): Promise<XmlApicalRequest<ContentTypes[number]>>;",
+          ]
+        : []),
       "export function toApicalRequest(",
       "  request: NextRequest,",
       "  params: Record<string, string>,",
-      "  options: { jsonBody: false; binaryBody?: false; arrayQueryKeys?: readonly string[] },",
+      "  options: { jsonBody: false; binaryBody?: false; xmlBody?: false; arrayQueryKeys?: readonly string[] },",
       "): Promise<ApicalRequest>;",
       "export async function toApicalRequest(",
       "  request: NextRequest,",
       "  params: Record<string, string>,",
       "  options:",
-      "    | { jsonBody: false; binaryBody: true; contentTypes: readonly string[]; arrayQueryKeys?: readonly string[] }",
-      "    | { jsonBody: boolean; binaryBody?: false; contentTypes?: never; arrayQueryKeys?: readonly string[] },",
-      "): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest> {",
+      "    | { jsonBody: false; binaryBody: true; xmlBody?: false; xmlContentTypes?: never; contentTypes: readonly string[]; arrayQueryKeys?: readonly string[] }",
+      ...(hasXmlRuntime
+        ? [
+            "    | { jsonBody: false; xmlBody: true; binaryBody?: false; xmlContentTypes?: never; contentTypes: readonly string[]; arrayQueryKeys?: readonly string[] }",
+            "    | { jsonBody: boolean; binaryBody?: false; xmlBody?: false; xmlContentTypes?: readonly string[]; contentTypes?: never; arrayQueryKeys?: readonly string[] },",
+          ]
+        : [
+            "    | { jsonBody: boolean; binaryBody?: false; contentTypes?: never; arrayQueryKeys?: readonly string[] },",
+          ]),
+      ...(hasXmlRuntime
+        ? [
+            "): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest | XmlApicalRequest> {",
+          ]
+        : ["): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest> {"]),
       "  const query = parseApicalQuery(request.nextUrl.searchParams, options.arrayQueryKeys ?? []);",
       "  const baseRequest: ApicalRequest = {",
       "    query,",
@@ -157,9 +198,72 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       "      contentType,",
       "    };",
       "  }",
+      ...(hasXmlRuntime
+        ? [
+            "",
+            "  if (options.xmlBody) {",
+            '    const normalizedContentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();',
+            "    const contentType = options.contentTypes.find(",
+            "      (declared) => declared.toLowerCase() === normalizedContentType,",
+            "    );",
+            "    if (contentType === undefined) {",
+            '      throw new RequestValidationError("body-error");',
+            "    }",
+            "    let text: string;",
+            "    try {",
+            "      text = await request.text();",
+            "    } catch {",
+            '      throw new RequestValidationError("body-error");',
+            "    }",
+            "    if (text.trim().length === 0) {",
+            '      throw new RequestValidationError("body-error");',
+            "    }",
+            "    try {",
+            "      return {",
+            "        ...baseRequest,",
+            "        body: parseXmlPayload(text),",
+            "        contentType,",
+            "      };",
+            "    } catch {",
+            '      throw new RequestValidationError("body-error");',
+            "    }",
+            "  }",
+          ]
+        : []),
       "",
       "  if (!options.jsonBody) return baseRequest;",
       "",
+      ...(hasXmlRuntime
+        ? [
+            "  if (options.xmlContentTypes !== undefined) {",
+            '    const normalizedContentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();',
+            "    const xmlContentType = options.xmlContentTypes.find(",
+            "      (declared) => declared.toLowerCase() === normalizedContentType,",
+            "    );",
+            "    if (xmlContentType !== undefined) {",
+            "      let text: string;",
+            "      try {",
+            "        text = await request.text();",
+            "      } catch {",
+            '        throw new RequestValidationError("body-error");',
+            "      }",
+            "      if (text.trim().length === 0) {",
+            '        throw new RequestValidationError("body-error");',
+            "      }",
+            "      try {",
+            "        return {",
+            "          ...baseRequest,",
+            "          body: parseXmlPayload(text),",
+            "          contentType: xmlContentType,",
+            "        };",
+            "      } catch {",
+            '        throw new RequestValidationError("body-error");',
+            "      }",
+            "    }",
+            "  }",
+            "",
+          ]
+        : []),
       '  const contentType = request.headers.get("content-type")?.split(";", 1)[0]?.trim();',
       '  if (contentType !== "application/json") {',
       '    throw new RequestValidationError("body-error");',
@@ -177,18 +281,33 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       "}",
     ].join("\n"),
     [
-      "export function handleControllerResult(result: {",
-      "  status: string;",
-      '  contentType?: "application/json";',
-      "  data?: unknown;",
-      "  headers?: Record<string, string | number | boolean>;",
-      "}): Response {",
+      "export function handleControllerResult(",
+      "  result: {",
+      "    status: string;",
+      '    contentType?: "application/json" | "application/xml";',
+      "    xmlRoot?: string;",
+      "    data?: unknown;",
+      "    headers?: Record<string, string | number | boolean>;",
+      "  },",
+      ...(hasXmlRuntime ? ["  accept?: string | null,"] : []),
+      "): Response {",
       "  const status = Number(result.status);",
       "  const headers: Record<string, string> = {};",
       "  for (const [name, value] of Object.entries(result.headers ?? {})) {",
       "    headers[name] = String(value);",
       "  }",
       "  if (result.data === undefined) return new Response(null, { status, headers });",
+      ...(hasXmlRuntime
+        ? [
+            "  if (result.xmlRoot !== undefined && prefersXmlResponse(accept ?? undefined)) {",
+            '    headers["content-type"] = "application/xml";',
+            "    return new Response(serializeXmlPayload(result.data, result.xmlRoot), {",
+            "      status,",
+            "      headers,",
+            "    });",
+            "  }",
+          ]
+        : []),
       '  headers["content-type"] = result.contentType ?? "application/json";',
       "  return Response.json(result.data, {",
       "    status,",

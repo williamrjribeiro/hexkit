@@ -12,6 +12,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "fast-xml-parser": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

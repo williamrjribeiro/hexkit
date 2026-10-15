@@ -13,7 +13,7 @@ describe("Given use-case argument derivation", () => {
             { name: "photoId", location: "path" },
           ],
         },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["request.value.path.itemId", "request.value.path.photoId"]);
   });
@@ -28,7 +28,7 @@ describe("Given use-case argument derivation", () => {
             { name: "status", location: "query" },
           ],
         },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["request.value.path.widgetId", "request.value.query?.status"]);
   });
@@ -37,7 +37,7 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: false, parameters: [{ name: "status", location: "query" }] },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["request.value.query?.status"]);
   });
@@ -53,7 +53,7 @@ describe("Given use-case argument derivation", () => {
             { name: "status", location: "query" },
           ],
         },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual([
       "request.value.path.petId",
@@ -69,7 +69,7 @@ describe("Given use-case argument derivation", () => {
           requiresAuth: false,
           parameters: [{ name: "sku", location: "path" }, { name: "item" }],
         },
-        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["request.value.path.sku", "request.value.body"]);
   });
@@ -78,7 +78,7 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: false, parameters: [{ name: "item" }] },
-        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["request.value.body"]);
   });
@@ -87,13 +87,13 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: true, parameters: [{ name: "itemId", location: "path" }] },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["principal", "request.value.path.itemId"]);
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: true, parameters: [] },
-        { hasJsonRequestBody: true, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: true, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual(["principal", "request.value.body"]);
   });
@@ -102,7 +102,7 @@ describe("Given use-case argument derivation", () => {
     expect(
       deriveUseCaseArgumentExpressions(
         { requiresAuth: false, parameters: [] },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: false },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: false },
       ),
     ).toEqual([]);
   });
@@ -114,12 +114,21 @@ describe("Given use-case argument derivation", () => {
           requiresAuth: false,
           parameters: [{ name: "widgetId", location: "path" }],
         },
-        { hasJsonRequestBody: false, hasBinaryRequestBody: true },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: true, hasXmlRequestBody: false },
       ),
     ).toEqual([
       "request.value.path.widgetId",
       "apicalRequest.contentType!",
       "new Uint8Array(await request.value.body.arrayBuffer())",
     ]);
+  });
+
+  it("when the operation has an XML-only body, then the parsed body expression is emitted", () => {
+    expect(
+      deriveUseCaseArgumentExpressions(
+        { requiresAuth: false, parameters: [{ name: "label" }] },
+        { hasJsonRequestBody: false, hasBinaryRequestBody: false, hasXmlRequestBody: true },
+      ),
+    ).toEqual(["request.value.body"]);
   });
 });

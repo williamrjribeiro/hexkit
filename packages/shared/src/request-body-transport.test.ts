@@ -97,6 +97,78 @@ describe("Given request body transport derivation", () => {
           },
         }),
       ),
-    ).toThrow(/both JSON and binary request bodies/i);
+    ).toThrow(/both JSON or XML and binary request bodies/i);
+  });
+
+  it("when typed XML media exists alone, then transport is xml with its content type", () => {
+    expect(
+      deriveRequestBodyTransport(
+        operation({
+          operationId: "setWidgetLabel",
+          requestBody: {
+            required: true,
+            media: [{ mediaType: "application/xml", type: itemReference }],
+          },
+        }),
+      ),
+    ).toEqual({ kind: "xml", contentTypes: ["application/xml"] });
+  });
+
+  it("when JSON and XML media coexist, then JSON transport carries the XML content types", () => {
+    expect(
+      deriveRequestBodyTransport(
+        operation({
+          operationId: "createWidget",
+          requestBody: {
+            required: true,
+            media: [
+              { mediaType: "application/json", type: itemReference },
+              { mediaType: "application/xml", type: itemReference },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      kind: "json",
+      contentTypes: ["application/json"],
+      xmlContentTypes: ["application/xml"],
+    });
+  });
+
+  it("when XML media carries charset parameters, then detection is case-insensitive", () => {
+    expect(
+      deriveRequestBodyTransport(
+        operation({
+          operationId: "createWidget",
+          requestBody: {
+            required: true,
+            media: [
+              { mediaType: "application/xml; charset=utf-8", type: itemReference },
+              { mediaType: "Application/XML", type: itemReference },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      kind: "xml",
+      contentTypes: ["application/xml; charset=utf-8", "Application/XML"],
+    });
+  });
+
+  it("when XML and binary media coexist, then derivation rejects the body", () => {
+    expect(() =>
+      deriveRequestBodyTransport(
+        operation({
+          operationId: "invalidXmlUpload",
+          requestBody: {
+            required: true,
+            media: [
+              { mediaType: "application/xml", type: itemReference },
+              { mediaType: "image/png", type: binaryType },
+            ],
+          },
+        }),
+      ),
+    ).toThrow(/both JSON or XML and binary request bodies/i);
   });
 });

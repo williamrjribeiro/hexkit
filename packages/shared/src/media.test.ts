@@ -6,9 +6,12 @@ import {
   findJsonMedia,
   findOctetStreamMedia,
   findSuccessResponse,
+  findXmlMedia,
   hasBinaryRequestBody,
   hasJsonRequestBody,
+  hasXmlRequestBody,
   hasNotFoundResponse,
+  isXmlMediaType,
 } from "./media.ts";
 
 const stringType = { kind: "string", nullable: false } as const;
@@ -52,6 +55,63 @@ describe("Given contract media lists", () => {
   it("when the list is missing or empty, then the result is undefined", () => {
     expect(findJsonMedia(undefined)).toBeUndefined();
     expect(findJsonMedia([])).toBeUndefined();
+  });
+});
+
+describe("Given XML media detection", () => {
+  it("when the media type is application/xml, then it is XML", () => {
+    expect(isXmlMediaType("application/xml")).toBe(true);
+    expect(isXmlMediaType("application/xml; charset=utf-8")).toBe(true);
+    expect(isXmlMediaType("Application/XML")).toBe(true);
+  });
+
+  it("when the media type is not XML, then it is not XML", () => {
+    expect(isXmlMediaType("application/json")).toBe(false);
+    expect(isXmlMediaType("text/xml")).toBe(false);
+    expect(isXmlMediaType("application/xhtml+xml")).toBe(false);
+  });
+
+  it("when an XML entry has a type, then that entry is returned", () => {
+    expect(
+      findXmlMedia([
+        { mediaType: "application/json", type: itemReference },
+        { mediaType: "application/xml", type: stringType },
+      ]),
+    ).toEqual({ mediaType: "application/xml", type: stringType });
+  });
+
+  it("when XML is present without a type, then the result is undefined", () => {
+    expect(findXmlMedia([{ mediaType: "application/xml" }])).toBeUndefined();
+    expect(findXmlMedia(undefined)).toBeUndefined();
+  });
+
+  it("when the operation declares an XML request body, then hasXmlRequestBody is true", () => {
+    expect(
+      hasXmlRequestBody(
+        operation({
+          operationId: "createWidget",
+          requestBody: {
+            required: true,
+            media: [{ mediaType: "application/xml", type: itemReference }],
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("when the operation has no XML request body, then hasXmlRequestBody is false", () => {
+    expect(
+      hasXmlRequestBody(
+        operation({
+          operationId: "createWidget",
+          requestBody: {
+            required: true,
+            media: [{ mediaType: "application/json", type: itemReference }],
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(hasXmlRequestBody(operation({ operationId: "listWidgets" }))).toBe(false);
   });
 });
 
