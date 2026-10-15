@@ -17,9 +17,12 @@ describe("Given an unauthenticated app", () => {
   });
 
   it("when static runtime is rendered, then request helpers use Context", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: false }).join(
-      "\n",
-    );
+    const source = renderStaticRuntimeStatements({
+      hasAuth: false,
+      hasXmlRuntime: false,
+      hasXmlOnlyRequestBody: false,
+      hasMixedXmlRequestBody: false,
+    }).join("\n");
     expect(source).toContain("function toApicalHeaders(headers: Headers)");
     expect(source).toContain("function toApicalQuery(");
     expect(source).toContain(
@@ -37,9 +40,12 @@ describe("Given an unauthenticated app", () => {
   });
 
   it("when no operation uses XML, then the XML runtime stays out of the source", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: false }).join(
-      "\n",
-    );
+    const source = renderStaticRuntimeStatements({
+      hasAuth: false,
+      hasXmlRuntime: false,
+      hasXmlOnlyRequestBody: false,
+      hasMixedXmlRequestBody: false,
+    }).join("\n");
 
     expect(source).not.toContain("XMLParser");
     expect(source).not.toContain("parseXmlPayload");
@@ -51,10 +57,13 @@ describe("Given an unauthenticated app", () => {
     expect(source).not.toContain("xmlRoot !== undefined");
   });
 
-  it("when an operation uses XML, then parse, serialize, and negotiation helpers are emitted", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: false, hasXmlRuntime: true }).join(
-      "\n",
-    );
+  it("when operations use both XML-only and mixed request bodies, then both request helpers are emitted", () => {
+    const source = renderStaticRuntimeStatements({
+      hasAuth: false,
+      hasXmlRuntime: true,
+      hasXmlOnlyRequestBody: true,
+      hasMixedXmlRequestBody: true,
+    }).join("\n");
 
     expect(source).toContain("type XmlApicalRequest<ContentType extends string = string>");
     expect(source).toContain("function parseXmlPayload(text: string): unknown");
@@ -69,6 +78,36 @@ describe("Given an unauthenticated app", () => {
     expect(source).toContain("body: parseXmlPayload(text)");
     expect(source).toContain("if (result.xmlRoot !== undefined && prefersXmlResponse(accept))");
     expect(source).toContain('headers["content-type"] = "application/xml"');
+  });
+
+  it("when only mixed JSON/XML request bodies use XML, then only typedRequest is emitted", () => {
+    const source = renderStaticRuntimeStatements({
+      hasAuth: false,
+      hasXmlRuntime: true,
+      hasXmlOnlyRequestBody: false,
+      hasMixedXmlRequestBody: true,
+    }).join("\n");
+
+    expect(source).toContain(
+      "async function typedRequest<const JsonTypes extends readonly string[], const XmlTypes extends readonly string[]>(",
+    );
+    expect(source).not.toContain("function xmlRequest");
+    expect(source).toContain("function parseXmlPayload(text: string): unknown");
+  });
+
+  it("when only XML-only request bodies use XML, then only xmlRequest is emitted", () => {
+    const source = renderStaticRuntimeStatements({
+      hasAuth: false,
+      hasXmlRuntime: true,
+      hasXmlOnlyRequestBody: true,
+      hasMixedXmlRequestBody: false,
+    }).join("\n");
+
+    expect(source).toContain(
+      "async function xmlRequest<const ContentTypes extends readonly string[]>(",
+    );
+    expect(source).not.toContain("function typedRequest");
+    expect(source).toContain("function parseXmlPayload(text: string): unknown");
   });
 });
 
@@ -90,9 +129,12 @@ describe("Given an authenticated app", () => {
   });
 
   it("when static runtime is rendered, then auth middleware helpers are included", () => {
-    const source = renderStaticRuntimeStatements({ hasAuth: true, hasXmlRuntime: false }).join(
-      "\n",
-    );
+    const source = renderStaticRuntimeStatements({
+      hasAuth: true,
+      hasXmlRuntime: false,
+      hasXmlOnlyRequestBody: false,
+      hasMixedXmlRequestBody: false,
+    }).join("\n");
     expect(source).toContain("type AppVariables = { principal: Principal };");
     expect(source).toContain(
       "function request(context: AppContext, arrayQueryKeys: readonly string[] = []): ApicalRequest",

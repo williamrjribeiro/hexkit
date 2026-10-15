@@ -3,6 +3,8 @@ import { renderXmlRuntimeStatements } from "@hexkit/shared";
 export function renderStaticRuntimeStatements(options: {
   hasAuth: boolean;
   hasXmlRuntime: boolean;
+  hasXmlOnlyRequestBody: boolean;
+  hasMixedXmlRequestBody: boolean;
 }): string[] {
   const contextType = options.hasAuth ? "AppContext" : "Context";
 
@@ -14,13 +16,9 @@ export function renderStaticRuntimeStatements(options: {
     renderRequestHelper(contextType),
     renderJsonRequestHelper(contextType),
     renderBinaryRequestHelper(contextType),
-    ...(options.hasXmlRuntime
-      ? [
-          ...renderXmlRuntimeStatements(),
-          renderXmlRequestHelper(contextType),
-          renderTypedRequestHelper(contextType),
-        ]
-      : []),
+    ...(options.hasXmlRuntime ? renderXmlRuntimeStatements() : []),
+    ...(options.hasXmlOnlyRequestBody ? [renderXmlRequestHelper(contextType)] : []),
+    ...(options.hasMixedXmlRequestBody ? [renderTypedRequestHelper(contextType)] : []),
     ...(options.hasAuth
       ? [
           renderSecuritySchemeMetaType(),
