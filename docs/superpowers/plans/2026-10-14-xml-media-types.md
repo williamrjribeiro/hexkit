@@ -151,12 +151,15 @@ apps/cli/src/next-generation.test.ts               PR3: XML generation proof
 
 ### Task 10: Generation-level proof + tracker (same PR)
 
-- [ ] `apps/cli/src/next-generation.test.ts`: assert the regenerated Next app
+- [x] `apps/cli/src/next-generation.test.ts`: assert the regenerated Next app
       emits the XML runtime helpers, `xmlContentTypes`/`xmlBody` route options,
       Accept wiring, and the `fast-xml-parser` manifest dependency for the
-      Petstore contract
-- [ ] Tracker XML row, **Next cell** → `partial` with an honest note
-- [ ] `vp run dogfood:petstore:nextjs` stays green; **no**
+      Petstore contract (Petstore asserts the mixed `xmlContentTypes` option —
+      no op is XML-only; the `xmlBody` option stays covered by the `xml-api`
+      fixture in `plugin-next`)
+- [x] Tracker XML row, **Next cell** → `partial` with an honest note
+- [x] `vp run dogfood:petstore:nextjs` stays green (`HEXKIT_SKIP_COMPOSE=1`,
+      CI parity — a foreign dev server holds `:3000` locally); **no**
       `apps/petstore-next/**` changes
 
 ## Self-review checklist (agents)
@@ -170,7 +173,10 @@ apps/cli/src/next-generation.test.ts               PR3: XML generation proof
 
 ## Execution handoff
 
-PR1 is green on `feat/xml-request-response`; PR2 is green on
-`feat/xml-petstore-hono` (cut from PR1's tip), including the dogfood gate with
-zero lint warnings in generated output. Continue with Task 10 on a new branch
-cut from PR2's tip.
+All three plan branches are green, each including its dogfood gate with zero
+lint warnings in generated output: PR1 `feat/xml-request-response` and PR2
+`feat/xml-petstore-hono` (cut from PR1's tip) in CI, and PR3
+`feat/xml-petstore-next` (cut from PR2's tip) on the local gates. Merge the
+stacked PRs bottom-up (`feat/xml-request-response` → `feat/xml-petstore-hono`
+→ `feat/xml-petstore-next`) as their bases advance, then update the tracker if
+follow-up XML work (e.g. Next runtime E2E, `petstore_auth`) lands.
