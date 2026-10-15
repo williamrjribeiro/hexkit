@@ -2,7 +2,7 @@ import { spec } from "pactum";
 import { describe, it } from "vite-plus/test";
 
 import { createAcceptanceIds } from "../../api-fixtures.ts";
-import { configurePactum, expectPersistedPet, runAgainstApi } from "../helpers.ts";
+import { configurePactum, expectPersistedPet, goodApiKey, runAgainstApi } from "../helpers.ts";
 
 describe("POST /pet", () => {
   configurePactum();
@@ -236,6 +236,88 @@ describe("POST /pet", () => {
           .post(`/pet/${String(petId)}`)
           .withQueryParams({ status: "not-a-status" })
           .expectStatus(400),
+      );
+    });
+  });
+
+  describe.sequential("XML request bodies", () => {
+    const photoUrl = `https://example.test/pets/${String(ids.xmlAddPetId)}.jpg`;
+    const secondPhotoUrl = `https://example.test/pets/${String(ids.xmlAddPetId)}-2.jpg`;
+    const xmlAddPet = {
+      id: ids.xmlAddPetId,
+      name: `XML-added pet ${String(ids.xmlAddPetId)}`,
+      status: "available",
+      category: { id: 5, name: "Reptiles" },
+      photoUrls: [photoUrl, secondPhotoUrl],
+      tags: [
+        { id: 50, name: "scaly" },
+        { id: 51, name: "sunny" },
+      ],
+    };
+    const xmlAddBody = [
+      "<Pet>",
+      `  <id>${String(xmlAddPet.id)}</id>`,
+      `  <name>${xmlAddPet.name}</name>`,
+      "  <status>available</status>",
+      "  <category>",
+      "    <id>5</id>",
+      "    <name>Reptiles</name>",
+      "  </category>",
+      `  <photoUrls>${photoUrl}</photoUrls>`,
+      `  <photoUrls>${secondPhotoUrl}</photoUrls>`,
+      "  <tags><id>50</id><name>scaly</name></tags>",
+      "  <tags><id>51</id><name>sunny</name></tags>",
+      "</Pet>",
+    ].join("\n");
+
+    it("when a Pet is added with an application/xml body, then it round-trips as JSON", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withHeaders("Content-Type", "application/xml")
+          .withBody(xmlAddBody)
+          .expectStatus(201)
+          .expectJson(xmlAddPet),
+      );
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(xmlAddPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
+          .expectStatus(200)
+          .expectJson(xmlAddPet),
+      );
+    });
+
+    it("when the XML body is truncated, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withHeaders("Content-Type", "application/xml")
+          .withBody("<Pet><name>Truncated")
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
+
+    it("when the body is not XML, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withHeaders("Content-Type", "application/xml")
+          .withBody("definitely-not-xml")
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
+      );
+    });
+
+    it("when the declared content type is neither JSON nor XML, then the request is rejected", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .post("/pet")
+          .withHeaders("Content-Type", "text/plain")
+          .withBody(xmlAddBody)
+          .expectStatus(400)
+          .expectJson({ error: "Bad Request" }),
       );
     });
   });

@@ -24,6 +24,9 @@ export type AcceptanceIds = {
   userId: number;
   listUserId: number;
   missingUserId: number;
+  xmlAddPetId: number;
+  xmlPutPetId: number;
+  xmlGetPetId: number;
 };
 
 export type AcceptanceIdDraw = () => number;
@@ -35,7 +38,7 @@ function drawRandomInt32(): number {
 export function createAcceptanceIds(draw: AcceptanceIdDraw = drawRandomInt32): AcceptanceIds {
   const values: number[] = [];
 
-  while (values.length < 21) {
+  while (values.length < 24) {
     const value = draw();
     if (!Number.isSafeInteger(value) || value < 1 || value > INT32_MAX) {
       throw new Error(`Acceptance ID must be a positive int32: ${String(value)}`);
@@ -65,6 +68,9 @@ export function createAcceptanceIds(draw: AcceptanceIdDraw = drawRandomInt32): A
     userId,
     listUserId,
     missingUserId,
+    xmlAddPetId,
+    xmlPutPetId,
+    xmlGetPetId,
   ] = values;
   if (
     petId === undefined ||
@@ -87,7 +93,10 @@ export function createAcceptanceIds(draw: AcceptanceIdDraw = drawRandomInt32): A
     filterBothTagsPetId === undefined ||
     userId === undefined ||
     listUserId === undefined ||
-    missingUserId === undefined
+    missingUserId === undefined ||
+    xmlAddPetId === undefined ||
+    xmlPutPetId === undefined ||
+    xmlGetPetId === undefined
   ) {
     throw new Error("Failed to create acceptance IDs");
   }
@@ -114,5 +123,8 @@ export function createAcceptanceIds(draw: AcceptanceIdDraw = drawRandomInt32): A
     userId,
     listUserId,
     missingUserId,
+    xmlAddPetId,
+    xmlPutPetId,
+    xmlGetPetId,
   };
 }

@@ -12,11 +12,17 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Pet"
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Pet"
       responses:
         "201":
           description: Pet created
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+            application/xml:
               schema:
                 $ref: "#/components/schemas/Pet"
     put:
@@ -27,11 +33,17 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Pet"
+          application/xml:
+            schema:
+              $ref: "#/components/schemas/Pet"
       responses:
         "200":
           description: Pet updated
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+            application/xml:
               schema:
                 $ref: "#/components/schemas/Pet"
   /pet/{petId}:
@@ -46,6 +58,9 @@ paths:
           description: Pet found
           content:
             application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+            application/xml:
               schema:
                 $ref: "#/components/schemas/Pet"
         "404":
