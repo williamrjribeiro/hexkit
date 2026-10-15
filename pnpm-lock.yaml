@@ -254,6 +254,9 @@ catalogs:
 overrides:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.3
 
+patchedDependencies:
+  '@apical-ts/craft@0.26.1': 964cf1270c0fb0f374039268e76afbaa67e9328723e07575001ae1449898e287
+
 importers:
 
   .:
@@ -465,7 +468,7 @@ importers:
     dependencies:
       '@apical-ts/craft':
         specifier: 'catalog:'
-        version: 0.26.1(@types/json-schema@7.0.15)
+        version: 0.26.1(patch_hash=964cf1270c0fb0f374039268e76afbaa67e9328723e07575001ae1449898e287)(@types/json-schema@7.0.15)
       '@babel/parser':
         specifier: 'catalog:'
         version: 8.0.6
@@ -4198,7 +4201,7 @@ snapshots:
 
   '@alloc/quick-lru@5.3.0': {}
 
-  '@apical-ts/craft@0.26.1(@types/json-schema@7.0.15)':
+  '@apical-ts/craft@0.26.1(patch_hash=964cf1270c0fb0f374039268e76afbaa67e9328723e07575001ae1449898e287)(@types/json-schema@7.0.15)':
     dependencies:
       '@apidevtools/json-schema-ref-parser': 15.5.2(@types/json-schema@7.0.15)
       commander: 14.0.3
