@@ -141,7 +141,7 @@ apps/cli/src/next-generation.test.ts               PR3: XML generation proof
       schema-name root element; `Accept` absent → JSON; JSON requests
       unchanged (regression) - malformed XML body → 400; declared-free Content-Type on these ops → 400
 - [ ] Dogfood gates: `vp run --filter './packages/*' --filter './apps/cli'
-  build`, `vp run --filter @hexkit/plugin-apical test`,
+build`, `vp run --filter @hexkit/plugin-apical test`,
       `vp run dogfood:petstore:hono` (lint + types + Compose + Pactum)
 
 ### Task 9: Tracker (same PR)
