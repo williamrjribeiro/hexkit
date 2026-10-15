@@ -174,7 +174,7 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
         ? [
             "): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest | XmlApicalRequest> {",
           ]
-        : ["}): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest> {"]),
+        : ["): Promise<ApicalRequest | JsonApicalRequest | BinaryApicalRequest> {"]),
       "  const query = parseApicalQuery(request.nextUrl.searchParams, options.arrayQueryKeys ?? []);",
       "  const baseRequest: ApicalRequest = {",
       "    query,",
@@ -289,7 +289,7 @@ export function renderHelpersFile(model: NextHttpModel): GeneratedFile {
       "    data?: unknown;",
       "    headers?: Record<string, string | number | boolean>;",
       "  },",
-      "  accept?: string | null,",
+      ...(hasXmlRuntime ? ["  accept?: string | null,"] : []),
       "): Response {",
       "  const status = Number(result.status);",
       "  const headers: Record<string, string> = {};",

@@ -43,6 +43,7 @@
     "@hexkit/shared": "workspace:*"
   },
   "devDependencies": {
+    "@babel/parser": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
