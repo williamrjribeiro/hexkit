@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { parse } from "@babel/parser";
 import { beforeAll, describe, expect, it } from "vite-plus/test";
 
 import { generateApplicationFromContract } from "@hexkit/plugin-architecture-hexagonal";
@@ -879,6 +880,39 @@ describe("@hexkit/plugin-next", () => {
       expect(helpers?.contents).not.toContain("extractCredentials");
       expect(helpers?.contents).not.toContain("fast-xml-parser");
       expect(helpers?.contents).not.toContain("parseXmlPayload");
+    });
+  });
+
+  describe("Given generated route helpers for XML and non-XML contracts", () => {
+    it("when emitted, then both helper variants parse as valid TypeScript", async () => {
+      const application = generateApplicationFromContract(libraryContract).artifact;
+      const { files: jsonFiles } = generateNextDalFromArtifacts(libraryContract, application, {
+        surface: "routes",
+      });
+      const jsonHelpers =
+        fileMap(jsonFiles).get("src/adapters/http-next/helpers.ts")?.contents ?? "";
+      const { files: xmlFiles } = await collectGeneratedFiles(xmlContract, "routes");
+      const xmlHelpers = fileMap(xmlFiles).get("src/adapters/http-next/helpers.ts")?.contents ?? "";
+
+      expect(jsonHelpers).not.toBe("");
+      expect(xmlHelpers).not.toBe("");
+      expect(() =>
+        parse(jsonHelpers, { sourceType: "module", plugins: ["typescript"] }),
+      ).not.toThrow();
+      expect(() =>
+        parse(xmlHelpers, { sourceType: "module", plugins: ["typescript"] }),
+      ).not.toThrow();
+
+      expect(jsonHelpers).not.toContain("accept?: string | null");
+      expect(xmlHelpers).toContain("accept?: string | null");
+
+      const jsonRoutes = jsonFiles.filter(
+        (file) => file.path.endsWith("/route.ts") && file.path.startsWith("app/"),
+      );
+      expect(jsonRoutes.length).toBeGreaterThan(0);
+      for (const route of jsonRoutes) {
+        expect(route.contents).not.toContain('headers.get("accept")');
+      }
     });
   });
 
