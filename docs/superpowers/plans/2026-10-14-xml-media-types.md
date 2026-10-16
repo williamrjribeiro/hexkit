@@ -127,26 +127,24 @@ apps/cli/src/next-generation.test.ts               PR3: XML generation proof
 
 ### Task 7: Contract + contract-layer assertion
 
-- [ ] Add `application/xml` entries (same `$ref` schemas) to
+- [x] Add `application/xml` entries (same `$ref` schemas) to
       `apps/petstore-sample/openapi.poc.yaml` for `PUT /pet`, `POST /pet`,
       `GET /pet/{petId}` request/response content maps — **only** the three
       ops that already declare XML in `openapi.yaml`
-- [ ] Flip `packages/plugin-apical/src/plugin.test.ts` (~line 170) from
+- [x] Flip `packages/plugin-apical/src/plugin.test.ts` (~line 170) from
       `not.toContain("application/xml")` to a positive assertion
 
 ### Task 8: Pactum E2E (user-required)
 
-- [ ] `apps/petstore-sample/tests/api/pet/` XML suites: - `POST /pet` add with `content-type: application/xml` (nested
-      `category`/`tags`/`photoUrls` round-trip, ≥2 repeated elements) - `PUT /pet` update over XML - `GET /pet/{petId}` with `Accept: application/xml` → XML body +
-      schema-name root element; `Accept` absent → JSON; JSON requests
-      unchanged (regression) - malformed XML body → 400; declared-free Content-Type on these ops → 400
-- [ ] Dogfood gates: `vp run --filter './packages/*' --filter './apps/cli'
-build`, `vp run --filter @hexkit/plugin-apical test`,
-      `vp run dogfood:petstore:hono` (lint + types + Compose + Pactum)
+- [x] `POST /pet` add with `content-type: application/xml` — nested `category` / `tags` / `photoUrls` round-trip (≥2 repeated elements)
+- [x] `PUT /pet` update over XML with `Accept: application/xml` response negotiation
+- [x] `GET /pet/{petId}` with `Accept: application/xml` → XML body + schema-name root element; absent / `*/*` `Accept` → JSON; existing JSON requests unchanged (regression)
+- [x] Malformed or non-XML body → 400; declared-free Content-Type on these ops → 400 (errors stay JSON)
+- [x] Dogfood gates: `vp run --filter './packages/*' --filter './apps/cli' build` + `vp run --filter @hexkit/plugin-apical test` + `vp run dogfood:petstore:hono` (lint + types + Compose + Pactum)
 
 ### Task 9: Tracker (same PR)
 
-- [ ] `docs/petstore-openapi-progress.md` XML row, **Hono cell** → `partial`
+- [x] `docs/petstore-openapi-progress.md` XML row, **Hono cell** → `partial`
       (`petstore_auth` still missing on these Pet ops); refresh tallies
 
 # PR 3 — Next dogfood (base PR2)
@@ -172,5 +170,7 @@ build`, `vp run --filter @hexkit/plugin-apical test`,
 
 ## Execution handoff
 
-PR1 is implemented and green on branch `feat/xml-request-response`. Continue
-with Task 7 on a new branch cut from PR1's tip.
+PR1 is green on `feat/xml-request-response`; PR2 is green on
+`feat/xml-petstore-hono` (cut from PR1's tip), including the dogfood gate with
+zero lint warnings in generated output. Continue with Task 10 on a new branch
+cut from PR2's tip.

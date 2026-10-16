@@ -1,3 +1,4 @@
+import { XMLParser } from "fast-xml-parser";
 import { spec } from "pactum";
 import { describe, expect, it } from "vite-plus/test";
 
@@ -56,6 +57,54 @@ describe("GET /pet", () => {
         .expectStatus(200)
         .expectJson(addedPet),
     );
+  });
+
+  describe.sequential("Accept negotiation", () => {
+    const xmlParser = new XMLParser({ ignoreAttributes: true, trimValues: true });
+    const seedPhotoUrl = `https://example.test/pets/${String(ids.xmlGetPetId)}.jpg`;
+    const seedSecondPhotoUrl = `https://example.test/pets/${String(ids.xmlGetPetId)}-2.jpg`;
+    const xmlFetchPet = {
+      id: ids.xmlGetPetId,
+      name: `XML-fetched pet ${String(ids.xmlGetPetId)}`,
+      status: "pending",
+      category: { id: 6, name: "Birds" },
+      photoUrls: [seedPhotoUrl, seedSecondPhotoUrl],
+      tags: [
+        { id: 70, name: "chirpy" },
+        { id: 71, name: "bright" },
+      ],
+    };
+
+    it("seeds a Pet for XML content negotiation", async () => {
+      await runAgainstApi(() =>
+        spec().post("/pet").withJson(xmlFetchPet).expectStatus(201).expectJson(xmlFetchPet),
+      );
+    });
+
+    it("when the Pet is fetched with Accept application/xml, then the response is XML", async () => {
+      await runAgainstApi(async () => {
+        const responseBody = await spec()
+          .get(`/pet/${String(xmlFetchPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
+          .withHeaders("Accept", "application/xml")
+          .expectStatus(200)
+          .expectHeader("content-type", "application/xml")
+          .returns((ctx) => ctx.res.text as string);
+        expect(xmlParser.parse(responseBody)).toEqual({ Pet: xmlFetchPet });
+      });
+    });
+
+    it("when the Pet is fetched with Accept */*, then the response stays JSON", async () => {
+      await runAgainstApi(() =>
+        spec()
+          .get(`/pet/${String(xmlFetchPet.id)}`)
+          .withHeaders("api_key", goodApiKey)
+          .withHeaders("Accept", "*/*")
+          .expectStatus(200)
+          .expectHeader("content-type", "application/json")
+          .expectJson(xmlFetchPet),
+      );
+    });
   });
 
   describe.sequential("Pet list filters", () => {

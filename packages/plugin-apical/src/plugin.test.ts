@@ -167,7 +167,7 @@ describe("@hexkit/plugin-apical", () => {
       expect(contract).toContain("    Order:");
       expect(contract).toContain("    User:");
       expect(contract).toContain("      petId:");
-      expect(contract).not.toContain("application/xml");
+      expect(contract).toContain("application/xml:");
       expect(contract).not.toMatch(/^security:/m);
       expect(contract).toContain("  securitySchemes:\n    api_key:");
       expect(contract).toContain("      security:\n        - api_key: []");

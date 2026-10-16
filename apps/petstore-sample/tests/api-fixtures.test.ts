@@ -4,7 +4,10 @@ import { createAcceptanceIds, INT32_MAX } from "./api-fixtures.ts";
 
 describe("Given deterministic acceptance ID draws", () => {
   it("when a collision occurs, then four distinct safe int32 IDs are produced", () => {
-    const draws = [17, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107];
+    const draws = [
+      17, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
+      109, 113, 127,
+    ];
     let index = 0;
 
     const ids = createAcceptanceIds(() => {
@@ -38,6 +41,9 @@ describe("Given deterministic acceptance ID draws", () => {
         "replaceUrlsPetId": 67,
         "tagsOnlyPetId": 43,
         "userId": 101,
+        "xmlAddPetId": 109,
+        "xmlGetPetId": 127,
+        "xmlPutPetId": 113,
       }
     `);
     expect(new Set(values).size).toBe(values.length);

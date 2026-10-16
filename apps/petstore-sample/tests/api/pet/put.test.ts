@@ -1,5 +1,6 @@
+import { XMLParser } from "fast-xml-parser";
 import { spec } from "pactum";
-import { describe, it } from "vite-plus/test";
+import { describe, expect, it } from "vite-plus/test";
 
 import { createAcceptanceIds } from "../../api-fixtures.ts";
 import { configurePactum, expectPersistedPet, goodApiKey, runAgainstApi } from "../helpers.ts";
@@ -122,6 +123,65 @@ describe.sequential("PUT /pet", () => {
         .withHeaders("api_key", goodApiKey)
         .expectStatus(200)
         .expectJson(updatedPet),
+    );
+  });
+
+  it("when a Pet is replaced with an application/xml body, then it round-trips over Accept application/xml", async () => {
+    const xmlParser = new XMLParser({ ignoreAttributes: true, trimValues: true });
+    const seedPhotoUrl = `https://example.test/pets/${String(ids.xmlPutPetId)}.jpg`;
+    const seedSecondPhotoUrl = `https://example.test/pets/${String(ids.xmlPutPetId)}-2.jpg`;
+    const xmlSeedPet = {
+      id: ids.xmlPutPetId,
+      name: `XML-seeded pet ${String(ids.xmlPutPetId)}`,
+      photoUrls: [seedPhotoUrl, seedSecondPhotoUrl],
+    };
+    const xmlUpdatedPet = {
+      id: ids.xmlPutPetId,
+      name: `XML-updated pet ${String(ids.xmlPutPetId)}`,
+      status: "sold",
+      category: { id: 7, name: "Working Cats" },
+      photoUrls: [seedPhotoUrl, seedSecondPhotoUrl],
+      tags: [
+        { id: 60, name: "xml" },
+        { id: 61, name: "round-trip" },
+      ],
+    };
+    const xmlUpdateBody = [
+      "<Pet>",
+      `  <id>${String(xmlUpdatedPet.id)}</id>`,
+      `  <name>${xmlUpdatedPet.name}</name>`,
+      "  <status>sold</status>",
+      "  <category>",
+      "    <id>7</id>",
+      "    <name>Working Cats</name>",
+      "  </category>",
+      `  <photoUrls>${seedPhotoUrl}</photoUrls>`,
+      `  <photoUrls>${seedSecondPhotoUrl}</photoUrls>`,
+      "  <tags><id>60</id><name>xml</name></tags>",
+      "  <tags><id>61</id><name>round-trip</name></tags>",
+      "</Pet>",
+    ].join("\n");
+
+    await runAgainstApi(() =>
+      spec().post("/pet").withJson(xmlSeedPet).expectStatus(201).expectJson(xmlSeedPet),
+    );
+    await runAgainstApi(async () => {
+      const responseBody = await spec()
+        .put("/pet")
+        .withHeaders("Content-Type", "application/xml")
+        .withHeaders("Accept", "application/xml")
+        .withBody(xmlUpdateBody)
+        .expectStatus(200)
+        .expectHeader("content-type", "application/xml")
+        .returns((ctx) => ctx.res.text as string);
+      expect(xmlParser.parse(responseBody)).toEqual({ Pet: xmlUpdatedPet });
+    });
+    await runAgainstApi(() =>
+      spec()
+        .get(`/pet/${String(xmlSeedPet.id)}`)
+        .withHeaders("api_key", goodApiKey)
+        .expectStatus(200)
+        .expectJson(xmlUpdatedPet),
     );
   });
 });

@@ -14,6 +14,14 @@ export { renderOnErrorHandler } from "./routes/static-runtime.ts";
 export function renderRoutesFile(model: HttpModel): GeneratedFile {
   const hasAuth = model.authenticator !== undefined;
   const hasXmlRuntime = model.operations.some(usesXmlMedia);
+  const hasXmlOnlyRequestBody = model.operations.some(
+    (operation) => operation.requestBodyTransport.kind === "xml",
+  );
+  const hasMixedXmlRequestBody = model.operations.some(
+    (operation) =>
+      operation.requestBodyTransport.kind === "json" &&
+      operation.requestBodyTransport.xmlContentTypes !== undefined,
+  );
   const imports: ImportDeclaration[] = [
     {
       from: "hono",
@@ -61,7 +69,12 @@ export function renderRoutesFile(model: HttpModel): GeneratedFile {
   const routeRegistrations = model.operations.map(renderRouteRegistration).join("\n");
 
   const statements = [
-    ...renderStaticRuntimeStatements({ hasAuth, hasXmlRuntime }),
+    ...renderStaticRuntimeStatements({
+      hasAuth,
+      hasXmlRuntime,
+      hasXmlOnlyRequestBody,
+      hasMixedXmlRequestBody,
+    }),
     [
       hasAuth
         ? "export function registerJsonRoutes(app: Hono<AppBindings>, controllers: HttpControllers, authenticator: Authenticator): void {"
