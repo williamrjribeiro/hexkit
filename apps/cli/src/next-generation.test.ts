@@ -386,4 +386,39 @@ describe("Given Next.js CLI generation", () => {
     expect(paths).not.toContain("src/adapters/http-next/controllers.ts");
     expect(paths).not.toContain("src/runtime/server.ts");
   });
+
+  it("when the contract declares XML media types, then the Next generation wires XML request options, helpers, and Accept negotiation", async () => {
+    const result = await runPetstoreNextGeneration(["--http", "next"]);
+    const manifest = JSON.parse(generatedFile(result, "package.json")) as {
+      dependencies: Record<string, string>;
+    };
+
+    expect(result.exitCode).toBe(0);
+    expect(manifest.dependencies).toEqual(expect.objectContaining({ "fast-xml-parser": "5.11.2" }));
+
+    const petRoute = generatedFile(result, "app/pet/route.ts");
+    expect(petRoute).toContain('jsonBody: true, xmlContentTypes: ["application/xml"],');
+    expect(petRoute.match(/xmlContentTypes: \["application\/xml"\]/g)).toHaveLength(2);
+    expect(petRoute).toContain(
+      'return handleControllerResult(result, request.headers.get("accept"));',
+    );
+
+    const petIdRoute = generatedFile(result, "app/pet/[petId]/route.ts");
+    expect(petIdRoute).toContain(
+      'return handleControllerResult(result, request.headers.get("accept"));',
+    );
+    expect(petIdRoute).not.toContain("xmlContentTypes");
+
+    const helpers = generatedFile(result, "src/adapters/http-next/helpers.ts");
+    expect(helpers).toContain('from "fast-xml-parser"');
+    expect(helpers).toContain("function prefersXmlResponse(accept: string | undefined): boolean");
+    expect(helpers).toContain("function parseXmlPayload(text: string): unknown");
+    expect(helpers).toContain("function serializeXmlPayload(data: unknown, rootName: string)");
+    expect(helpers).toContain(
+      "if (result.xmlRoot !== undefined && prefersXmlResponse(accept ?? undefined))",
+    );
+
+    const controllers = generatedFile(result, "src/adapters/http-next/controllers.ts");
+    expect(controllers).toContain('xmlRoot: "Pet"');
+  });
 });
