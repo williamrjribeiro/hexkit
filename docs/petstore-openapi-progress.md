@@ -10,7 +10,7 @@ whenever Hono/Next OpenAPI support changes (see [Keeping this tracker current](#
 
 | Field        | Value                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| Last updated | 2026-10-15                                                                                      |
+| Last updated | 2026-10-16                                                                                      |
 | Target spec  | Full Swagger Petstore (classic 19 operations + OAS 3.1 extras in the checked-in reference)      |
 | PoC contract | [`apps/petstore-sample/openapi.poc.yaml`](../apps/petstore-sample/openapi.poc.yaml)             |
 | OAS 3.1 ref  | [`apps/petstore-sample/openapi.yaml`](../apps/petstore-sample/openapi.yaml) (Pet-focused slice) |
@@ -55,7 +55,8 @@ Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON me
 OAuth, inventory, webhooks, mutualTLS, and Next auto mutation form pages. XML is
 `partial` on both: Hono Pet ops are request/response E2E-dogfooded; Next XML is
 generation-proven on the Petstore contract (route options, helpers, Accept
-wiring, manifest dep) but has no runtime E2E yet.
+wiring, manifest dep), which is accepted as sufficient — no Next runtime E2E is
+planned (decided 2026-10-16).
 
 ## Operations
 
@@ -68,16 +69,16 @@ row — not in [Cross-cutting capabilities](#cross-cutting-capabilities).
 
 ### Pet
 
-| operationId         | Method / path                   | Hono    | Next    | Notes                                                                                                                                                  |
-| ------------------- | ------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON + Hono XML request/response (E2E round-trip); Next XML generation-proven; still need form-urlencoded, `petstore_auth`, and Next runtime proof |
-| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON + Hono XML request/response (E2E round-trip); Next XML generation-proven; still need form-urlencoded, `petstore_auth`, and Next runtime proof |
-| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON + Hono `api_key` dogfood + XML `Accept` negotiation; Next XML generation-proven; still need `petstore_auth` and Next runtime proof            |
-| `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)                                                                             |
-| `findPetsByStatus`  | `GET /pet/findByStatus`         | partial | partial | PoC JSON + DB filter; still need XML and `petstore_auth`                                                                                               |
-| `findPetsByTags`    | `GET /pet/findByTags`           | partial | partial | PoC JSON + DB filter (JSONB tag names); still need XML and `petstore_auth`                                                                             |
-| `updatePetWithForm` | `POST /pet/{petId}`             | partial | partial | Query `name` / `status`; still need `petstore_auth`                                                                                                    |
-| `uploadFile`        | `POST /pet/{petId}/uploadImage` | partial | partial | Hono and Next binary octet-stream + BlobStore metadata dogfood; `petstore_auth` still missing                                                          |
+| operationId         | Method / path                   | Hono    | Next    | Notes                                                                                                                                                                |
+| ------------------- | ------------------------------- | ------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `addPet`            | `POST /pet`                     | partial | partial | PoC JSON + Hono XML request/response (E2E round-trip); Next XML generation-proven (accepted, no runtime E2E planned); still need form-urlencoded and `petstore_auth` |
+| `updatePet`         | `PUT /pet`                      | partial | partial | PoC JSON + Hono XML request/response (E2E round-trip); Next XML generation-proven (accepted, no runtime E2E planned); still need form-urlencoded and `petstore_auth` |
+| `getPetById`        | `GET /pet/{petId}`              | partial | partial | PoC JSON + Hono `api_key` dogfood + XML `Accept` negotiation; Next XML generation-proven (accepted, no runtime E2E planned); still need `petstore_auth`              |
+| `deletePet`         | `DELETE /pet/{petId}`           | partial | partial | PoC delete works; still need `petstore_auth` (+ optional `api_key` header)                                                                                           |
+| `findPetsByStatus`  | `GET /pet/findByStatus`         | partial | partial | PoC JSON + DB filter; still need XML and `petstore_auth`                                                                                                             |
+| `findPetsByTags`    | `GET /pet/findByTags`           | partial | partial | PoC JSON + DB filter (JSONB tag names); still need XML and `petstore_auth`                                                                                           |
+| `updatePetWithForm` | `POST /pet/{petId}`             | partial | partial | Query `name` / `status`; still need `petstore_auth`                                                                                                                  |
+| `uploadFile`        | `POST /pet/{petId}/uploadImage` | partial | partial | Hono and Next binary octet-stream + BlobStore metadata dogfood; `petstore_auth` still missing                                                                        |
 
 Nested Pet fields (`category`, `tags`, `photoUrls`) already persist as JSONB in
 the PoC slice (Phase 1); that is covered by the Pet rows above, not as a
@@ -110,16 +111,16 @@ Only capabilities that apply **across many operations** or at the **document /
 adapter** level. Anything that is unique to one (or a couple of) routes belongs
 in that operation’s Notes.
 
-| Capability                          | Hono    | Next    | Notes                                                                                                                                                                                                                                                                                      |
-| ----------------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| JSON request/response               | shipped | shipped | Default media type; proven on Petstore PoC dogfood                                                                                                                                                                                                                                         |
-| XML request/response                | partial | partial | Hono: `application/xml` request + `Accept` negotiation E2E-dogfooded on `addPet` / `updatePet` / `getPetById` (errors stay JSON). Next: Petstore generation proof (mixed `xmlContentTypes` route options, XML helpers, Accept wiring, `fast-xml-parser` manifest); no Next runtime E2E yet |
-| `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes                                                                                                                                                                                                                          |
-| Header `apiKey` security            | shipped | partial | Hono: Petstore `getPetById` dogfood (`api_key` / `test-key`). Next: shared contract emits Route Handler auth; RSC is in-process (no HTTP header proof)                                                                                                                                     |
-| OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today                                                                                                                                                                                                                          |
-| mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference                                                                                                                                                                                                                                      |
-| Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)                                                                                                                                                                                                                                   |
-| Auto mutation form pages (RSC)      | n/a     | missing | Follow-up: generate POST/PUT/PATCH scaffold forms from contract inputs (incl. binary file input). See Next design §11; not part of BlobStore stack                                                                                                                                         |
+| Capability                          | Hono    | Next    | Notes                                                                                                                                                                                                                                                                                                             |
+| ----------------------------------- | ------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| JSON request/response               | shipped | shipped | Default media type; proven on Petstore PoC dogfood                                                                                                                                                                                                                                                                |
+| XML request/response                | partial | partial | Hono: `application/xml` request + `Accept` negotiation E2E-dogfooded on `addPet` / `updatePet` / `getPetById` (errors stay JSON). Next: Petstore generation proof (mixed `xmlContentTypes` route options, XML helpers, Accept wiring, `fast-xml-parser` manifest) accepted as sufficient — no runtime E2E planned |
+| `application/x-www-form-urlencoded` | missing | missing | Alternate request media type on several Pet / Order / User writes                                                                                                                                                                                                                                                 |
+| Header `apiKey` security            | shipped | partial | Hono: Petstore `getPetById` dogfood (`api_key` / `test-key`). Next: shared contract emits Route Handler auth; RSC is in-process (no HTTP header proof)                                                                                                                                                            |
+| OAuth2 `petstore_auth` + scopes     | missing | missing | Required on most Pet ops; Apical marks oauth2 unenforceable today                                                                                                                                                                                                                                                 |
+| mutualTLS                           | missing | missing | Document-level scheme on checked-in OAS 3.1 reference                                                                                                                                                                                                                                                             |
+| Webhooks (`newPet`)                 | missing | missing | Document-level OAS 3.1 surface (not a `paths` operation)                                                                                                                                                                                                                                                          |
+| Auto mutation form pages (RSC)      | n/a     | missing | Follow-up: generate POST/PUT/PATCH scaffold forms from contract inputs (incl. binary file input). See Next design §11; not part of BlobStore stack                                                                                                                                                                |
 
 ## Contract map
 
@@ -164,7 +165,9 @@ Checklist for every such change:
 Do **not** mark `shipped` until the HTTP adapter covers the **full** Petstore
 needs for that feature (all required media types, params, **and** security) and
 Petstore-relevant validation exists. Incomplete but working support is
-`partial`. Partial emit without runtime proof stays `in progress`.
+`partial`. Partial emit without runtime proof stays `in progress` — sole
+exception: Next XML, where generation proof alone is accepted as sufficient
+for `partial` (decided 2026-10-16; no runtime E2E planned).
 
 ## Related docs
 

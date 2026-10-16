@@ -179,4 +179,5 @@ lint warnings in generated output: PR1 `feat/xml-request-response` and PR2
 `feat/xml-petstore-next` (cut from PR2's tip) on the local gates. Merge the
 stacked PRs bottom-up (`feat/xml-request-response` → `feat/xml-petstore-hono`
 → `feat/xml-petstore-next`) as their bases advance, then update the tracker if
-follow-up XML work (e.g. Next runtime E2E, `petstore_auth`) lands.
+follow-up XML work (e.g. `petstore_auth`) lands. Next XML runtime E2E was
+explicitly declined — generation proof is accepted (decided 2026-10-16).
