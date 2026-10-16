@@ -1,0 +1,45 @@
+diff --git a/dist/generate-DrE6VOVC.mjs b/dist/generate-DrE6VOVC.mjs
+index 002d6b2d180d46ee29f42d7bd711d5369e624820..4a12c8ba36ed1d6f9eb5140baaa35130f65b5888 100644
+--- a/dist/generate-DrE6VOVC.mjs
++++ b/dist/generate-DrE6VOVC.mjs
+@@ -7132,8 +7132,15 @@ function renderServerOperationWrapper(params) {
+ 	const routeResponseType = `${sanitizedId}RouteResponse`;
+ 	const responseTypeImport = responseMapTypeName ? `import type { ${routeResponseType} } from "../routes/${sanitizedId}.ts";` : "";
+ 	const requestMapImport = requestMapTypeName ? `import { ${requestMapTypeName} } from "../routes/${sanitizedId}.ts";` : "";
+-	const responseMapImport = responseMapTypeName ? `import { ${responseMapTypeName} } from "../routes/${sanitizedId}.ts";` : "";
+ 	const hasAnyParams = hasQuery || hasPath || hasHeaders;
++	const standardSchemaV1Import = requestMapTypeName ? `import type { StandardSchemaV1 } from "@standard-schema/spec";` : "";
++	const standardSchemaValueNames = [
++		requestMapTypeName ? "createStandardSchemaValidationError" : "",
++		"type StandardSchemaValidationError",
++		hasAnyParams || requestMapTypeName ? "validateStandardSchema" : "",
++	].filter(Boolean);
++	const standardSchemaImport = `import { ${standardSchemaValueNames.join(", ")} } from "../standard-schema.ts";`;
++	const usesRequest = hasQuery || hasPath || hasHeaders || hasBody || Boolean(requestMapTypeName);
+ 	const serverParsedParamsTypeName = `${sanitizedId}ServerParsedParamsType`;
+ 	const parsedParamsTypeImport = hasAnyParams ? `import type { ${serverParsedParamsTypeName} } from "../schemas/${sanitizedId}Parameters.ts";` : "";
+ 	const validationLogic = renderValidationLogic(operationId, requestMapTypeName, hasBody, hasQuery, hasPath, hasHeaders);
+@@ -7151,7 +7158,7 @@ function renderServerOperationWrapper(params) {
+ 	const wrapperFunction = `export function ${functionName}(
+   handler: ${sanitizedId}Handler,
+ ) {
+-  return async (req: {
++  return async (${usesRequest ? "req" : "_req"}: {
+     query: unknown;
+     path: unknown;
+     headers: unknown;
+@@ -7168,12 +7175,11 @@ ${validationLogic}
+   } as const;
+ }`;
+ 	return [
+-		`import type { StandardSchemaV1 } from "@standard-schema/spec";`,
+-		`import { createStandardSchemaValidationError, type StandardSchemaValidationError, validateStandardSchema } from "../standard-schema.ts";`,
++		standardSchemaV1Import,
++		standardSchemaImport,
+ 		`import { serverRoute as ${sanitizedId}RouteMetadata } from "../routes/${sanitizedId}.ts";`,
+ 		responseTypeImport,
+ 		requestMapImport,
+-		responseMapImport,
+ 		parsedParamsTypeImport,
+ 		validationErrorType,
+ 		parsedParamsType,
