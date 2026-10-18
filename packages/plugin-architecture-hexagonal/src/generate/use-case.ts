@@ -46,11 +46,23 @@ export function renderUseCaseFile(useCase: UseCaseModel): GeneratedFile {
     ...useCase.parameters.map((parameter) => parameter.name),
   ];
   const argumentList = useCase.parameters.map((parameter) => parameter.name).join(", ");
+  // A secured use case with no contract parameters leaves `principal` as the
+  // trailing unused argument, which strict ESLint (Next: --max-warnings 0)
+  // rejects; void it explicitly, like unused binary body content types.
   const factory = useCase.usesBlobStore
     ? renderBlobStoreFactory(useCase, factoryParameters)
     : [
         `export function ${useCase.factoryName}(${useCase.repositoryParameterName}: ${useCase.repositoryName}): ${useCase.typeName} {`,
-        `  return (${factoryParameters.join(", ")}) => ${useCase.repositoryParameterName}.${useCase.methodName}(${argumentList});`,
+        ...(useCase.requiresAuth && useCase.parameters.length === 0
+          ? [
+              `  return (${factoryParameters.join(", ")}) => {`,
+              "    void principal;",
+              `    return ${useCase.repositoryParameterName}.${useCase.methodName}(${argumentList});`,
+              "  };",
+            ]
+          : [
+              `  return (${factoryParameters.join(", ")}) => ${useCase.repositoryParameterName}.${useCase.methodName}(${argumentList});`,
+            ]),
         "}",
       ].join("\n");
   const statements = [

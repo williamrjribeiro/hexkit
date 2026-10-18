@@ -177,6 +177,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
             deletePet(petId: number): Promise<void>;
             findPetsByStatus(status: Array<"available" | "pending" | "sold">): Promise<Array<Pet>>;
             findPetsByTags(tags: Array<string>): Promise<Array<Pet>>;
+            getInventory(): Promise<Record<string, number>>;
             getPetById(petId: number): Promise<Pet | undefined>;
             updatePet(pet: Pet): Promise<Pet>;
             updatePetWithForm(petId: number, name: string | undefined, status: "available" | "pending" | "sold" | undefined): Promise<Pet | undefined>;
@@ -244,6 +245,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
               { operationId: "deletePet", name: "deletePet" },
               { operationId: "findPetsByStatus", name: "findPetsByStatus" },
               { operationId: "findPetsByTags", name: "findPetsByTags" },
+              { operationId: "getInventory", name: "getInventory" },
               { operationId: "getPetById", name: "getPetById" },
               { operationId: "updatePet", name: "updatePet" },
               { operationId: "updatePetWithForm", name: "updatePetWithForm" },

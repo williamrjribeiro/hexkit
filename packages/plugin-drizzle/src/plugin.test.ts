@@ -48,6 +48,7 @@ describe("@hexkit/plugin-drizzle", () => {
       ["updatePetWithForm", "routes/updatePetWithForm.ts"],
       ["findPetsByStatus", "routes/findPetsByStatus.ts"],
       ["findPetsByTags", "routes/findPetsByTags.ts"],
+      ["getInventory", "routes/getInventory.ts"],
       ["placeOrder", "routes/placeOrder.ts"],
       ["getOrderById", "routes/getOrderById.ts"],
       ["deleteOrder", "routes/deleteOrder.ts"],
@@ -277,7 +278,7 @@ describe("@hexkit/plugin-drizzle", () => {
           import type { PetRepository } from "../../core/ports/pet-repository.ts";
           import { mapPetRow } from "./mappers.ts";
           import { pets } from "./schema.ts";
-          import { eq, inArray } from "drizzle-orm";
+          import { count, eq, inArray } from "drizzle-orm";
           import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
           export function createDrizzlePetRepository(
@@ -308,6 +309,13 @@ describe("@hexkit/plugin-drizzle", () => {
                     return values.some((entry) => entry.name !== undefined && tags.includes(entry.name));
                   })
                   .map(mapPetRow);
+              },
+              async getInventory(): Promise<Record<string, number>> {
+                const rows = await db
+                  .select({ key: pets.status, value: count() })
+                  .from(pets)
+                  .groupBy(pets.status);
+                return Object.fromEntries(rows.filter((row) => row.key !== null).map((row) => [row.key, row.value] as const));
               },
               async getPetById(petId: number): Promise<Pet | undefined> {
                 const [row] = await db.select().from(pets).where(eq(pets.id, petId)).limit(1);

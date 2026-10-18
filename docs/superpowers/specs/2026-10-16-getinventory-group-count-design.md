@@ -1,9 +1,9 @@
 # getInventory map responses + group-count persistence — design
 
-**Status:** Approved 2026-10-16; **in progress** on
-`feat/getinventory-group-count` (paused — see
+**Status:** Approved 2026-10-16; **implemented** on
+`feat/getinventory-group-count` (complete — see
 [`../plans/2026-10-18-getinventory-group-count.md`](../plans/2026-10-18-getinventory-group-count.md)
-for continuation notes).
+for completion notes).
 
 ## Problem
 

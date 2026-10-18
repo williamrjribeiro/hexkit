@@ -1,9 +1,36 @@
-# getInventory group-count — implementation notes (paused)
+# getInventory group-count — implementation notes (complete)
 
 **Branch:** `feat/getinventory-group-count` (cut from `main` @ `f689d59`)
-**Status:** Paused mid-implementation. Design approved and committed
-([`../specs/2026-10-16-getinventory-group-count-design.md`](../specs/2026-10-16-getinventory-group-count-design.md));
-production code done, test suite partially updated. **No PR yet** (per user).
+**Status:** Complete 2026-10-18 — all gates green, PR opened. Design approved and committed
+([`../specs/2026-10-16-getinventory-group-count-design.md`](../specs/2026-10-16-getinventory-group-count-design.md)).
+
+## Completion notes (2026-10-18)
+
+- Remaining work from the pause was finished: fixture/module maps
+  (hono/next/drizzle/cli), petstore `generation.test.ts` path list +
+  content assertions, Pactum E2E `tests/api/store/inventory.test.ts`
+  (401 ×2 + exact `+1` count deltas), hardening unit tests (apical
+  normalize/validate/type-normalize, hexagonal render/kind, drizzle model +
+  new `generate/repository.test.ts`), tracker row Hono `shipped` / Next
+  `partial` + tallies.
+- **E2E determinism:** test files share one Compose DB, and inventory asserts
+  exact deltas — `apps/petstore-sample/vite.config.ts` now sets
+  `test.fileParallelism: false` so other files' pet seeds cannot land between
+  the two inventory reads. Fixture gained `inventoryAvailablePetId` /
+  `inventorySoldPetId`.
+- **`void principal;` fix:** `GET /store/inventory` is the first secured
+  operation with zero contract parameters, so its protected use case left
+  `principal` as the trailing unused argument — fatal under Next's
+  `eslint --max-warnings 0`. `generate/use-case.ts` now voids it (same
+  precedent as `void contentType;` for binary bodies).
+- **Gates (all green):** `vp check --fix`, build, all package tests (apical
+  103 / hexagonal 98 / drizzle 88 / hono 32 / next 63 / cli 68),
+  `vp run coverage` (all ≥90%), `vp run dogfood:petstore:hono` (Compose +
+  live Pactum 80/80 incl. the new inventory tests),
+  `HEXKIT_SKIP_COMPOSE=1 vp run dogfood:petstore:nextjs` (both ESLint passes
+  - one `next build`). Note: after generator changes, stale **protected**
+    files in the stable `/tmp/hexkit-dogfood-petstore-next` output are never
+    overwritten — delete them (or the dir) before re-running.
 
 ## Done (all verified building: `vp run -F './packages/*' -F './apps/cli' build` ✅)
 

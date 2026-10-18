@@ -10,7 +10,7 @@ whenever Hono/Next OpenAPI support changes (see [Keeping this tracker current](#
 
 | Field        | Value                                                                                           |
 | ------------ | ----------------------------------------------------------------------------------------------- |
-| Last updated | 2026-10-16                                                                                      |
+| Last updated | 2026-10-18                                                                                      |
 | Target spec  | Full Swagger Petstore (classic 19 operations + OAS 3.1 extras in the checked-in reference)      |
 | PoC contract | [`apps/petstore-sample/openapi.poc.yaml`](../apps/petstore-sample/openapi.poc.yaml)             |
 | OAS 3.1 ref  | [`apps/petstore-sample/openapi.yaml`](../apps/petstore-sample/openapi.yaml) (Pet-focused slice) |
@@ -46,13 +46,13 @@ Counts treat each (feature × plugin) cell. Update the tallies when rows change.
 
 | Plugin                | `shipped` | `partial` | `in progress` | `missing` |
 | --------------------- | --------- | --------- | ------------- | --------- |
-| `@hexkit/plugin-hono` | 3         | 18        | 0             | 5         |
-| `@hexkit/plugin-next` | 2         | 19        | 0             | 6         |
+| `@hexkit/plugin-hono` | 4         | 18        | 0             | 4         |
+| `@hexkit/plugin-next` | 2         | 20        | 0             | 5         |
 
 Almost all PoC Pet / Order / User routes are **partial** (JSON-only, missing
-Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON media type, and Hono header
-`apiKey` (Petstore `getPetById` dogfood). Remaining **missing** surface: form-urlencoded,
-OAuth, inventory, webhooks, mutualTLS, and Next auto mutation form pages. XML is
+Petstore security, or stubbed login/logout). **Shipped:** `deleteOrder`, JSON media type, Hono header
+`apiKey` (Petstore `getPetById` dogfood), and Hono `getInventory` (group-count map). Remaining **missing** surface: form-urlencoded,
+OAuth, webhooks, mutualTLS, and Next auto mutation form pages. XML is
 `partial` on both: Hono Pet ops are request/response E2E-dogfooded; Next XML is
 generation-proven on the Petstore contract (route options, helpers, Accept
 wiring, manifest dep), which is accepted as sufficient — no Next runtime E2E is
@@ -86,12 +86,12 @@ separate cross-cutting HTTP capability.
 
 ### Store
 
-| operationId    | Method / path                   | Hono    | Next    | Notes                                                                           |
-| -------------- | ------------------------------- | ------- | ------- | ------------------------------------------------------------------------------- |
-| `placeOrder`   | `POST /store/order`             | partial | partial | PoC JSON works; still need XML + form-urlencoded (no security in full Petstore) |
-| `getOrderById` | `GET /store/order/{orderId}`    | partial | partial | PoC JSON works; still need XML (no security in full Petstore)                   |
-| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | Full Petstore: no alternate media types and no security scheme                  |
-| `getInventory` | `GET /store/inventory`          | missing | missing | Map response (`additionalProperties` → int); requires `api_key`                 |
+| operationId    | Method / path                   | Hono    | Next    | Notes                                                                                                                 |
+| -------------- | ------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `placeOrder`   | `POST /store/order`             | partial | partial | PoC JSON works; still need XML + form-urlencoded (no security in full Petstore)                                       |
+| `getOrderById` | `GET /store/order/{orderId}`    | partial | partial | PoC JSON works; still need XML (no security in full Petstore)                                                         |
+| `deleteOrder`  | `DELETE /store/order/{orderId}` | shipped | shipped | Full Petstore: no alternate media types and no security scheme                                                        |
+| `getInventory` | `GET /store/inventory`          | shipped | partial | Map response (`additionalProperties` → int); `api_key`; Hono E2E-proven (Pactum count deltas), Next generation-proven |
 
 ### User
 

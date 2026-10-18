@@ -325,4 +325,90 @@ describe("deriveRepository", () => {
       ),
     ).toThrow('Application repository method "missingOp" has no matching contract operation.');
   });
+
+  it("when a group-count method names a table column, then groupByColumn is resolved", () => {
+    const operationsById = new Map([
+      [
+        "getInventory",
+        {
+          ...operation("getInventory", "get"),
+          extension: { aggregate: "Widget", action: "get", groupBy: "sku" },
+        },
+      ],
+    ] as const);
+
+    const repository = deriveRepository(
+      applicationRepository([
+        repositoryMethod({
+          operationId: "getInventory",
+          name: "getInventory",
+          action: "get",
+          parameters: [],
+          returnTypeExpression: "Record<string, number>",
+          persistenceKind: "group-count",
+        }),
+      ]),
+      tablesBySchema,
+      operationsById,
+    );
+
+    expect(repository.methods[0]).toMatchObject({
+      kind: "group-count",
+      groupByColumn: "sku",
+    });
+  });
+
+  it("when a group-count method lacks the groupBy extension, then derivation throws", () => {
+    const operationsById = new Map([["getInventory", operation("getInventory", "get")]] as const);
+
+    expect(() =>
+      deriveRepository(
+        applicationRepository([
+          repositoryMethod({
+            operationId: "getInventory",
+            name: "getInventory",
+            action: "get",
+            parameters: [],
+            returnTypeExpression: "Record<string, number>",
+            persistenceKind: "group-count",
+          }),
+        ]),
+        tablesBySchema,
+        operationsById,
+      ),
+    ).toThrow(
+      'Operation "getInventory" uses group-count persistence without x-hexkit.operation.groupBy.',
+    );
+  });
+
+  it("when the group-by column is not on the table, then derivation throws", () => {
+    const operationsById = new Map([
+      [
+        "getInventory",
+        {
+          ...operation("getInventory", "get"),
+          extension: { aggregate: "Widget", action: "get", groupBy: "missing" },
+        },
+      ],
+    ] as const);
+
+    expect(() =>
+      deriveRepository(
+        applicationRepository([
+          repositoryMethod({
+            operationId: "getInventory",
+            name: "getInventory",
+            action: "get",
+            parameters: [],
+            returnTypeExpression: "Record<string, number>",
+            persistenceKind: "group-count",
+          }),
+        ]),
+        tablesBySchema,
+        operationsById,
+      ),
+    ).toThrow(
+      'Operation "getInventory" group-by column "missing" is not a column of table "widgets".',
+    );
+  });
 });

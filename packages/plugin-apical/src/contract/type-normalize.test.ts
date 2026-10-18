@@ -117,6 +117,45 @@ describe("Given schema enum and properties", () => {
   });
 });
 
+describe("Given schema-valued additionalProperties", () => {
+  it("when additionalProperties declares a schema, then the type keeps a map value", () => {
+    expect(
+      normalizeContractType(
+        { type: "object", additionalProperties: { type: "integer" } },
+        "counts",
+      ),
+    ).toEqual({
+      kind: "object",
+      nullable: false,
+      properties: [],
+      additionalProperties: { kind: "integer", nullable: false },
+    });
+  });
+
+  it("when additionalProperties is a boolean, then it is ignored", () => {
+    expect(normalizeContractType({ type: "object", additionalProperties: true }, "counts")).toEqual(
+      {
+        kind: "object",
+        nullable: false,
+        properties: [],
+      },
+    );
+  });
+
+  it("when properties accompany a map value, then normalization fails", () => {
+    expect(() =>
+      normalizeContractType(
+        {
+          type: "object",
+          properties: { id: { type: "string" } },
+          additionalProperties: { type: "integer" },
+        },
+        "counts",
+      ),
+    ).toThrow("counts cannot declare both properties and a schema-valued additionalProperties.");
+  });
+});
+
 describe("Given component schemas", () => {
   it("when a schema is not an object, then normalizeSchemas fails", () => {
     expect(() =>

@@ -6,7 +6,7 @@ describe("Given deterministic acceptance ID draws", () => {
   it("when a collision occurs, then four distinct safe int32 IDs are produced", () => {
     const draws = [
       17, 17, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
-      109, 113, 127,
+      109, 113, 127, 131, 137,
     ];
     let index = 0;
 
@@ -30,6 +30,8 @@ describe("Given deterministic acceptance ID draws", () => {
         "filterQuietPetId": 89,
         "filterSoldPetId": 79,
         "invalidOrderId": 29,
+        "inventoryAvailablePetId": 131,
+        "inventorySoldPetId": 137,
         "listUserId": 103,
         "minimalPetId": 37,
         "missingPetId": 31,

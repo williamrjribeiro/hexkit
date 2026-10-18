@@ -20,6 +20,7 @@ describe("Given Next.js CLI generation", () => {
     "routes/deleteUser.ts",
     "routes/findPetsByStatus.ts",
     "routes/findPetsByTags.ts",
+    "routes/getInventory.ts",
     "routes/getOrderById.ts",
     "routes/getPetById.ts",
     "routes/getUserByName.ts",
@@ -36,6 +37,7 @@ describe("Given Next.js CLI generation", () => {
     "schemas/CreateUsersWithListInputRequest.ts",
     "schemas/FindPetsByStatus200Response.ts",
     "schemas/FindPetsByTags200Response.ts",
+    "schemas/GetInventory200Response.ts",
     "schemas/LoginUser200Response.ts",
     "schemas/Order.ts",
     "schemas/Pet.ts",
@@ -52,6 +54,7 @@ describe("Given Next.js CLI generation", () => {
     "schemas/findPetsByStatusParameters.ts",
     "schemas/findPetsByTagsParameters.ts",
     "schemas/getOrderByIdParameters.ts",
+    "schemas/getInventoryParameters.ts",
     "schemas/getPetByIdParameters.ts",
     "schemas/getUserByNameParameters.ts",
     "schemas/index.ts",
@@ -71,6 +74,7 @@ describe("Given Next.js CLI generation", () => {
     "server/deleteUser.ts",
     "server/findPetsByStatus.ts",
     "server/findPetsByTags.ts",
+    "server/getInventory.ts",
     "server/getOrderById.ts",
     "server/getPetById.ts",
     "server/getUserByName.ts",
@@ -106,6 +110,7 @@ describe("Given Next.js CLI generation", () => {
   import { serverRoute as deletePetRoute } from "./deletePet.ts";
   import { serverRoute as findPetsByStatusRoute } from "./findPetsByStatus.ts";
   import { serverRoute as findPetsByTagsRoute } from "./findPetsByTags.ts";
+  import { serverRoute as getInventoryRoute } from "./getInventory.ts";
   import { serverRoute as uploadFileRoute } from "./uploadFile.ts";
   import { serverRoute as placeOrderRoute } from "./placeOrder.ts";
   import { serverRoute as getOrderByIdRoute } from "./getOrderById.ts";
@@ -125,6 +130,7 @@ describe("Given Next.js CLI generation", () => {
     deletePet: deletePetRoute,
     findPetsByStatus: findPetsByStatusRoute,
     findPetsByTags: findPetsByTagsRoute,
+    getInventory: getInventoryRoute,
     uploadFile: uploadFileRoute,
     placeOrder: placeOrderRoute,
     getOrderById: getOrderByIdRoute,

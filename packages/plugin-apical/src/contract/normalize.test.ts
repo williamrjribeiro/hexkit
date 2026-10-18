@@ -221,6 +221,52 @@ describe("normalizeContractArtifact", () => {
     });
   });
 
+  it("preserves map responses and groupBy operation hints", () => {
+    const document = createDocument();
+    const paths = document.paths as { "/books/{bookId}": { get: Record<string, unknown> } };
+    const operation = paths["/books/{bookId}"].get;
+    operation["x-hexkit"] = {
+      operation: { aggregate: "Book", action: "read", groupBy: "title" },
+    };
+    operation.parameters = [];
+    operation.responses = {
+      "200": {
+        description: "Counts",
+        content: {
+          "application/json": {
+            schema: { type: "object", additionalProperties: { type: "integer", format: "int32" } },
+          },
+        },
+      },
+    };
+
+    const artifact = normalizeContractArtifact(document, generatedModules);
+
+    expect(artifact.operations[0]?.extension).toEqual({
+      aggregate: "Book",
+      action: "read",
+      groupBy: "title",
+    });
+    expect(artifact.operations[0]?.responses[0]?.media[0]?.type).toEqual({
+      kind: "object",
+      nullable: false,
+      properties: [],
+      additionalProperties: { kind: "integer", nullable: false, format: "int32" },
+    });
+  });
+
+  it("rejects unsupported operation extension keys", () => {
+    const document = createDocument();
+    const paths = document.paths as { "/books/{bookId}": { get: Record<string, unknown> } };
+    paths["/books/{bookId}"].get["x-hexkit"] = {
+      operation: { aggregate: "Book", action: "read", group: "title" },
+    };
+
+    expect(() => normalizeContractArtifact(document, generatedModules)).toThrow(
+      'contains unsupported key "group".',
+    );
+  });
+
   it("rejects malformed Hexkit extensions instead of guessing", () => {
     const document = createDocument();
     const components = document.components as {

@@ -42,6 +42,7 @@ describe("@hexkit/plugin-next", () => {
       ["deletePet", "routes/deletePet.ts"],
       ["findPetsByStatus", "routes/findPetsByStatus.ts"],
       ["findPetsByTags", "routes/findPetsByTags.ts"],
+      ["getInventory", "routes/getInventory.ts"],
       ["placeOrder", "routes/placeOrder.ts"],
       ["getOrderById", "routes/getOrderById.ts"],
       ["deleteOrder", "routes/deleteOrder.ts"],

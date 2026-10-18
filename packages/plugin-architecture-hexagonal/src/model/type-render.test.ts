@@ -127,6 +127,41 @@ describe("renderContractType", () => {
     });
   });
 
+  it("renders map objects typed by additionalProperties", () => {
+    expect(
+      renderContractType({
+        kind: "object",
+        nullable: false,
+        properties: [],
+        additionalProperties: { kind: "integer", nullable: false, format: "int32" },
+      }),
+    ).toEqual({ expression: "Record<string, number>", referencedSchemas: [], enumAliases: [] });
+  });
+
+  it("renders nullable maps and collects referenced value schemas", () => {
+    expect(
+      renderContractType({
+        kind: "object",
+        nullable: true,
+        properties: [],
+        additionalProperties: { kind: "integer", nullable: false, format: "int32" },
+      }).expression,
+    ).toBe("Record<string, number> | null");
+
+    expect(
+      renderContractType({
+        kind: "object",
+        nullable: false,
+        properties: [],
+        additionalProperties: { kind: "reference", nullable: false, schema: "Count" },
+      }),
+    ).toEqual({
+      expression: "Record<string, Count>",
+      referencedSchemas: ["Count"],
+      enumAliases: [],
+    });
+  });
+
   it("renders arrays of objects", () => {
     const rendered = renderContractType({
       kind: "array",
