@@ -189,6 +189,26 @@ paths:
                   $ref: "#/components/schemas/Pet"
         "400":
           description: Invalid tag value
+  /store/inventory:
+    get:
+      operationId: getInventory
+      x-hexkit:
+        operation:
+          aggregate: Pet
+          action: get
+          groupBy: status
+      security:
+        - api_key: []
+      responses:
+        "200":
+          description: Inventory by status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: integer
+                  format: int32
   /store/order:
     post:
       operationId: placeOrder

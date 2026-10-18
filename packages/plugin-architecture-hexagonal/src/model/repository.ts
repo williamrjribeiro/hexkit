@@ -32,6 +32,7 @@ export type RepositoryModel = {
 export type PersistenceKindOptions = {
   returnTypeExpression?: string;
   aggregate?: string;
+  groupBy?: string;
 };
 
 export function persistenceKindFromAction(
@@ -42,6 +43,14 @@ export function persistenceKindFromAction(
   options: PersistenceKindOptions = {},
 ): PersistenceKind {
   const kind = kindFromActionOrHttp(action, httpMethod);
+  if (options.groupBy !== undefined) {
+    if (kind !== "select") {
+      throw new Error(
+        `group-by persistence requires a read action, but action "${action}" resolves to "${kind}".`,
+      );
+    }
+    return "group-count";
+  }
   if (kind !== "select") return kind;
   if (resultCardinality === "many") return "list";
   if (parameterCount === 0) return "stub";
@@ -121,7 +130,13 @@ function deriveRepositoryMethod(
       operation.method,
       returnType.resultCardinality,
       parameters.parameters.length,
-      { returnTypeExpression: returnType.payloadExpression, aggregate },
+      {
+        returnTypeExpression: returnType.payloadExpression,
+        aggregate,
+        ...(operation.extension?.groupBy === undefined
+          ? {}
+          : { groupBy: operation.extension.groupBy }),
+      },
     ),
     referencedSchemas: unique([...parameters.referencedSchemas, ...returnType.referencedSchemas]),
     successHeaders: returnType.successHeaders,

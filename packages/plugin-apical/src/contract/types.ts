@@ -30,6 +30,8 @@ export type ContractObjectType = {
   kind: "object";
   nullable: boolean;
   properties: readonly ContractProperty[];
+  /** Schema-valued `additionalProperties`: a string-keyed map of this type. */
+  additionalProperties?: ContractType;
 };
 
 export type ContractType =
@@ -101,6 +103,8 @@ export type ContractResponse = {
 export type ContractOperationExtension = {
   aggregate: string;
   action: string;
+  /** Column the generated repository groups by for map (group-count) reads. */
+  groupBy?: string;
 };
 
 export type ContractSecurityScheme =

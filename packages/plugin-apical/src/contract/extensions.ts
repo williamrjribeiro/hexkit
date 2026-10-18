@@ -3,7 +3,13 @@ import type {
   ContractPersistenceExtension,
   ContractReferenceExtension,
 } from "./types.ts";
-import { asRecord, assertOnlyKeys, optionalRecord, requiredString } from "./values.ts";
+import {
+  asRecord,
+  assertOnlyKeys,
+  optionalRecord,
+  optionalString,
+  requiredString,
+} from "./values.ts";
 
 const extensionName = "x-hexkit";
 
@@ -68,10 +74,14 @@ export function readOperationExtension(
   );
   assertOnlyKeys(
     operationExtension,
-    ["action", "aggregate"],
+    ["action", "aggregate", "groupBy"],
     `${location}.${extensionName}.operation`,
   );
 
+  const groupBy = optionalString(
+    operationExtension.groupBy,
+    `${location}.${extensionName}.operation.groupBy`,
+  );
   return {
     aggregate: requiredString(
       operationExtension.aggregate,
@@ -81,5 +91,6 @@ export function readOperationExtension(
       operationExtension.action,
       `${location}.${extensionName}.operation.action`,
     ),
+    ...(groupBy === undefined ? {} : { groupBy }),
   };
 }

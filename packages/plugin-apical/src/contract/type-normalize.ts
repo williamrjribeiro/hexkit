@@ -152,10 +152,18 @@ export function normalizeContractType(value: unknown, location: string): Contrac
   }
 
   if (normalizedType.type === "object") {
+    const properties = normalizeProperties(schema, location);
+    const additionalProperties = readAdditionalProperties(schema, location);
+    if (additionalProperties !== undefined && properties.length > 0) {
+      throw new Error(
+        `${location} cannot declare both properties and a schema-valued additionalProperties.`,
+      );
+    }
     return {
       kind: "object",
       nullable: normalizedType.nullable,
-      properties: normalizeProperties(schema, location),
+      properties,
+      ...(additionalProperties === undefined ? {} : { additionalProperties }),
     };
   }
 
@@ -176,6 +184,20 @@ export function normalizeContractType(value: unknown, location: string): Contrac
     ...(format === undefined ? {} : { format }),
     ...(enumeration === undefined ? {} : { enum: enumeration }),
   };
+}
+
+/**
+ * Schema-valued `additionalProperties` normalizes to a string-keyed map value.
+ * Boolean forms (`true` / `false`) are ignored — v1 models schema-valued maps
+ * only, which is what map-shaped responses (group-count reads) declare.
+ */
+function readAdditionalProperties(
+  schema: Record<string, unknown>,
+  location: string,
+): ContractType | undefined {
+  const value = schema.additionalProperties;
+  if (value === undefined || typeof value === "boolean") return undefined;
+  return normalizeContractType(value, `${location}.additionalProperties`);
 }
 
 export function normalizeSchemas(

@@ -21,6 +21,8 @@ export type PersistenceRepositoryMethodModel = {
   lookupColumnName: string;
   usesBlobStore?: boolean;
   successHeaders?: readonly { name: string; typeExpression: string }[];
+  /** Table column grouped by for `group-count` reads. */
+  groupByColumn?: string;
 };
 
 export type PersistenceRepositoryModel = {
@@ -66,6 +68,10 @@ export function deriveRepository(
       firstParameterName ??
       table.schemaName.toLowerCase();
     const lookupColumnName = resolveLookupColumnName(table, parameters);
+    const groupByColumn =
+      kind === "group-count"
+        ? resolveGroupByColumn(method.operationId, operation, table)
+        : undefined;
 
     return {
       operationId: method.operationId,
@@ -77,6 +83,7 @@ export function deriveRepository(
       identityParameterName: pathParameterName ?? firstParameterName ?? table.identityPropertyName,
       lookupColumnName,
       usesBlobStore: hasBinaryRequestBody(operation),
+      ...(groupByColumn === undefined ? {} : { groupByColumn }),
       ...(method.successHeaders === undefined || method.successHeaders.length === 0
         ? {}
         : { successHeaders: method.successHeaders }),
@@ -105,4 +112,23 @@ function resolveLookupColumnName(
     }
   }
   return table.identityPropertyName;
+}
+
+function resolveGroupByColumn(
+  operationId: string,
+  operation: ContractOperation,
+  table: PersistenceTableModel,
+): string {
+  const groupBy = operation.extension?.groupBy;
+  if (groupBy === undefined) {
+    throw new Error(
+      `Operation "${operationId}" uses group-count persistence without x-hexkit.operation.groupBy.`,
+    );
+  }
+  if (!table.columns.some((column) => column.propertyName === groupBy)) {
+    throw new Error(
+      `Operation "${operationId}" group-by column "${groupBy}" is not a column of table "${table.tableName}".`,
+    );
+  }
+  return groupBy;
 }
