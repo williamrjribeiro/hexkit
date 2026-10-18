@@ -33,8 +33,8 @@ Where this PRD and the RFC disagree on PoC scope, **this PRD wins for PoC implem
 
 - Live AWS deploy or SST synthesis (`plugin-sst` is **out of PoC**).
 - OAuth, scope-based 403, mutualTLS, and auth beyond header `api_key` on `getPetById`.
-- XML (or non-JSON) request/response media types.
-- Users resource and the full Swagger Petstore surface area.
+- Non-JSON request/response media types beyond the XML support delivered post-PoC (Hono E2E-proven, Next generation-proven; see the progress tracker).
+- The full Swagger Petstore surface area beyond the delivered features (webhooks, OAuth scopes, mutualTLS remain uncovered).
 - GraphQL, gRPC, AsyncAPI.
 - Multiple languages, web frameworks, ORMs, or databases.
 - A general-purpose code-generation framework.
@@ -69,7 +69,7 @@ Trimmed contract rules:
 | Order    | `getOrderById` | `GET /store/order/{orderId}`    |
 | Order    | `deleteOrder`  | `DELETE /store/order/{orderId}` |
 
-Out of slice: Users, `GET /store/inventory`, pet image upload, form updates, find-by-status/tags (unless later added to `openapi.poc.yaml`), webhooks, OAuth scopes, XML.
+Out of slice: webhooks and OAuth scopes. Users, `GET /store/inventory`, pet image upload, form updates, find-by-status/tags, and XML entered slice after the PoC baseline when they were added to `openapi.poc.yaml`; per-feature Hono/Next status lives in [`docs/petstore-openapi-progress.md`](./docs/petstore-openapi-progress.md).
 
 ### 3.2 Quality invariant
 
