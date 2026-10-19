@@ -193,14 +193,15 @@ vp run -F @hexkit/cli... build
 vp node apps/cli/dist/index.mjs generate "$SAMPLE_DIR/openapi.poc.yaml" "$OUTPUT_DIR" \
   --http next --next-surface both
 
-lint_next_app "$OUTPUT_DIR" "generated Next.js app"
-
-# Overlay PetShop UI onto the generated tree first, then install + `next build`
-# once. The overlaid tree is what Compose builds: fixture pages, generated
-# routes, and app/ui/** RSC scaffolds. Building before overlay and again on
+# Overlay PetShop UI onto the generated tree first, then install, lint, and
+# `next build` once. Linting after install checks the generated app's own
+# dependencies (including the TypeScript 6/7 side-by-side aliases). The
+# overlaid tree is what Compose builds: fixture pages, generated routes, and
+# app/ui/** RSC scaffolds. Building before overlay and again on
 # apps/petstore-next duplicated ~20s of CI without extra coverage.
 sh "$OVERLAY_SCRIPT" "$OUTPUT_DIR" "$NEXT_DIR"
 install_next_app "$OUTPUT_DIR" "overlaid Next.js app"
+lint_next_app "$OUTPUT_DIR" "overlaid Next.js app"
 build_next_app "$OUTPUT_DIR" "overlaid Next.js app"
 
 rm -rf "$NEXT_DIR/src"

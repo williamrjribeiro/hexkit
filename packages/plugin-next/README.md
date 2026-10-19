@@ -43,6 +43,15 @@ dump. Secured GETs use the trusted in-process principal from
 `server-access.ts` (no browser credential UI); `/ui` pages are a same-app
 surface, not the public authenticated API.
 
+### TypeScript 7 and ESLint
+
+TypeScript 7.0 does not expose a programmatic API until 7.1. Generated Next
+apps therefore use TypeScript's official side-by-side setup: the `typescript`
+specifier is aliased to `@typescript/typescript6` for typescript-eslint and
+Next's type checker, while `@typescript/native` aliases `typescript@7.0.2` so
+the `tsc` command still runs TypeScript 7. Remove the aliases only after
+typescript-eslint supports the TypeScript 7 API.
+
 ## Dogfood
 
 The vanilla PetShop Next.js fixture (`apps/petstore-next`) merges generated

@@ -26,7 +26,10 @@ describe("Given a generated Next tree and PetShop fixture", () => {
     writeFileSync(join(generated, "app/pet/route.ts"), "export async function POST() {}\n");
     writeFileSync(
       join(generated, "package.json"),
-      JSON.stringify({ name: "generated", devDependencies: { typescript: "7.0.2" } }),
+      JSON.stringify({
+        name: "generated",
+        devDependencies: { typescript: "npm:@typescript/typescript6@6.0.2" },
+      }),
     );
 
     mkdirSync(join(fixture, "app/pets"), { recursive: true });
@@ -72,6 +75,6 @@ describe("Given a generated Next tree and PetShop fixture", () => {
     };
     expect(manifest.devDependencies.tailwindcss).toBe("^4");
     expect(manifest.devDependencies["@tailwindcss/postcss"]).toBe("^4");
-    expect(manifest.devDependencies.typescript).toBe("7.0.2");
+    expect(manifest.devDependencies.typescript).toBe("npm:@typescript/typescript6@6.0.2");
   });
 });

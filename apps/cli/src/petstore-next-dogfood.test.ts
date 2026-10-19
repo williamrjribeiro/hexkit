@@ -9,14 +9,17 @@ describe("Given PetShop Next dogfood", () => {
     const script = readFileSync(dogfoodScript, "utf8");
     const overlay = script.indexOf('"$OVERLAY_SCRIPT" "$OUTPUT_DIR"');
     const overlaidInstall = script.indexOf('install_next_app "$OUTPUT_DIR"');
+    const overlaidLint = script.indexOf('lint_next_app "$OUTPUT_DIR"');
     const overlaidBuild = script.indexOf('build_next_app "$OUTPUT_DIR"');
     const fixtureBuild = script.indexOf("vp run build");
 
     expect(overlay).toBeGreaterThan(-1);
     expect(overlaidInstall).toBeGreaterThan(-1);
+    expect(overlaidLint).toBeGreaterThan(-1);
     expect(overlaidBuild).toBeGreaterThan(-1);
     expect(overlay).toBeLessThan(overlaidInstall);
-    expect(overlaidInstall).toBeLessThan(overlaidBuild);
+    expect(overlaidInstall).toBeLessThan(overlaidLint);
+    expect(overlaidLint).toBeLessThan(overlaidBuild);
     // Fixture `next build` is redundant: the overlaid temp tree already includes
     // PetShop pages, generated routes, and app/ui/** RSC scaffolds.
     expect(fixtureBuild).toBe(-1);

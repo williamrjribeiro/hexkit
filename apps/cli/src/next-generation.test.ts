@@ -304,8 +304,10 @@ describe("Given Next.js CLI generation", () => {
     );
     expect(manifest.devDependencies).toEqual(
       expect.objectContaining({
+        "@typescript/native": "npm:typescript@7.0.2",
         eslint: expect.any(String),
         "eslint-config-next": "16.3.5",
+        typescript: "npm:@typescript/typescript6@6.0.2",
       }),
     );
     expect(generatedFile(result, "eslint.config.mjs")).toContain(

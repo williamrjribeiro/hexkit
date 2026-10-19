@@ -59,9 +59,13 @@ export function createNextPackageManifest(packageName: string, migrationPath: st
       "@types/pg": "8.23.1",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
+      // TypeScript 7 has no programmatic API until 7.1. Keep TS 7 as the
+      // compiler (`tsc`) while giving typescript-eslint a supported TS 6 API,
+      // per TypeScript's official side-by-side setup.
+      "@typescript/native": "npm:typescript@7.0.2",
+      typescript: "npm:@typescript/typescript6@6.0.2",
       eslint: "^9",
       "eslint-config-next": "16.3.5",
-      typescript: "7.0.2",
     },
     engines: {
       node: ">=24.18.1",
