@@ -18,7 +18,14 @@ export type ApplicationRepositoryParameter = Omit<ApplicationParameter, "locatio
 
 export type ResultCardinality = "one" | "many" | "void";
 
-export type PersistenceKind = "insert" | "update" | "delete" | "select" | "list" | "stub";
+export type PersistenceKind =
+  | "insert"
+  | "update"
+  | "delete"
+  | "select"
+  | "list"
+  | "stub"
+  | "group-count";
 
 export type ApplicationRepositoryMethod = {
   operationId: string;

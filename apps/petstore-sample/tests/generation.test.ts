@@ -43,6 +43,7 @@ describe("Given the canonical Petstore contract", () => {
     "src/core/application/delete-user.ts",
     "src/core/application/find-pets-by-status.ts",
     "src/core/application/find-pets-by-tags.ts",
+    "src/core/application/get-inventory.ts",
     "src/core/application/get-order-by-id.ts",
     "src/core/application/get-pet-by-id.ts",
     "src/core/application/get-user-by-name.ts",
@@ -77,6 +78,7 @@ describe("Given the canonical Petstore contract", () => {
     "src/generated/contracts/routes/deleteUser.ts",
     "src/generated/contracts/routes/findPetsByStatus.ts",
     "src/generated/contracts/routes/findPetsByTags.ts",
+    "src/generated/contracts/routes/getInventory.ts",
     "src/generated/contracts/routes/getOrderById.ts",
     "src/generated/contracts/routes/getPetById.ts",
     "src/generated/contracts/routes/getUserByName.ts",
@@ -93,6 +95,7 @@ describe("Given the canonical Petstore contract", () => {
     "src/generated/contracts/schemas/CreateUsersWithListInputRequest.ts",
     "src/generated/contracts/schemas/FindPetsByStatus200Response.ts",
     "src/generated/contracts/schemas/FindPetsByTags200Response.ts",
+    "src/generated/contracts/schemas/GetInventory200Response.ts",
     "src/generated/contracts/schemas/LoginUser200Response.ts",
     "src/generated/contracts/schemas/Order.ts",
     "src/generated/contracts/schemas/Pet.ts",
@@ -108,6 +111,7 @@ describe("Given the canonical Petstore contract", () => {
     "src/generated/contracts/schemas/deleteUserParameters.ts",
     "src/generated/contracts/schemas/findPetsByStatusParameters.ts",
     "src/generated/contracts/schemas/findPetsByTagsParameters.ts",
+    "src/generated/contracts/schemas/getInventoryParameters.ts",
     "src/generated/contracts/schemas/getOrderByIdParameters.ts",
     "src/generated/contracts/schemas/getPetByIdParameters.ts",
     "src/generated/contracts/schemas/getUserByNameParameters.ts",
@@ -128,6 +132,7 @@ describe("Given the canonical Petstore contract", () => {
     "src/generated/contracts/server/deleteUser.ts",
     "src/generated/contracts/server/findPetsByStatus.ts",
     "src/generated/contracts/server/findPetsByTags.ts",
+    "src/generated/contracts/server/getInventory.ts",
     "src/generated/contracts/server/getOrderById.ts",
     "src/generated/contracts/server/getPetById.ts",
     "src/generated/contracts/server/getUserByName.ts",
@@ -225,6 +230,15 @@ describe("Given the canonical Petstore contract", () => {
     expect(routes.indexOf('app.post("/user/createWithList"')).toBeLessThan(
       routes.indexOf('app.get("/user/:username"'),
     );
+
+    const petRepository = readFileSync(
+      join(outputDirectory, "src/adapters/db/pet-repository.ts"),
+      "utf8",
+    );
+    expect(petRepository).toContain("async getInventory(): Promise<Record<string, number>>");
+    expect(petRepository).toContain(".groupBy(pets.status)");
+    expect(petRepository).toContain("return Object.fromEntries(");
+    expect(routes).toContain('app.get("/store/inventory"');
   });
 
   it("when the real generator runs, then the deployable manifest matches the dogfood contract", async () => {
@@ -295,6 +309,7 @@ export const protectedUseCase = "survives regeneration";
           "Skipped existing protected file: src/core/application/delete-user.ts",
           "Skipped existing protected file: src/core/application/find-pets-by-status.ts",
           "Skipped existing protected file: src/core/application/find-pets-by-tags.ts",
+          "Skipped existing protected file: src/core/application/get-inventory.ts",
           "Skipped existing protected file: src/core/application/get-order-by-id.ts",
           "Skipped existing protected file: src/core/application/get-pet-by-id.ts",
           "Skipped existing protected file: src/core/application/get-user-by-name.ts",

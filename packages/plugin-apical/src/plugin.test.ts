@@ -103,6 +103,11 @@ describe("@hexkit/plugin-apical", () => {
             "path": "/pet/findByTags",
           },
           {
+            "method": "GET",
+            "operationId": "getInventory",
+            "path": "/store/inventory",
+          },
+          {
             "method": "POST",
             "operationId": "placeOrder",
             "path": "/store/order",
@@ -283,6 +288,7 @@ describe("@hexkit/plugin-apical", () => {
           "uploadFile",
           "findPetsByStatus",
           "findPetsByTags",
+          "getInventory",
           "placeOrder",
           "getOrderById",
           "deleteOrder",

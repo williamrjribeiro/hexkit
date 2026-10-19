@@ -59,6 +59,9 @@ export function validateArtifactReferences(artifact: ContractArtifact): void {
       for (const property of type.properties) {
         validateType(property.type, `${location}.properties.${property.name}`);
       }
+      if (type.additionalProperties !== undefined) {
+        validateType(type.additionalProperties, `${location}.additionalProperties`);
+      }
     }
   };
 
@@ -96,6 +99,7 @@ export function validateArtifactReferences(artifact: ContractArtifact): void {
         `Operation "${operation.operationId}" names unknown aggregate "${operation.extension.aggregate}".`,
       );
     }
+    validateGroupBy(operation);
     for (const parameter of operation.parameters) {
       validateType(
         parameter.type,
@@ -117,5 +121,42 @@ export function validateArtifactReferences(artifact: ContractArtifact): void {
         }
       }
     }
+  }
+}
+
+/**
+ * A `groupBy` hint drives generated group-count reads: SELECT <column>,
+ * COUNT(*) grouped by <column>, typed by the response's integer
+ * `additionalProperties` map. Reject hint shapes the Drizzle adapter cannot
+ * render rather than silently generating the wrong persistence kind.
+ */
+function validateGroupBy(operation: ContractOperation): void {
+  if (operation.extension?.groupBy === undefined) return;
+
+  if (operation.parameters.length > 0) {
+    throw new Error(
+      `Operation "${operation.operationId}" x-hexkit.operation.groupBy does not support parameters; group-count reads cannot filter.`,
+    );
+  }
+  const mapMedia = operation.responses
+    .filter((response) => response.status.startsWith("2"))
+    .flatMap((response) => response.media)
+    .find(
+      (media) =>
+        media.mediaType === "application/json" &&
+        media.type?.kind === "object" &&
+        media.type.additionalProperties !== undefined,
+    );
+  const mapType = mapMedia?.type;
+  if (mapType === undefined || mapType.kind !== "object") {
+    throw new Error(
+      `Operation "${operation.operationId}" x-hexkit.operation.groupBy requires a 2xx application/json response typed as an object with additionalProperties.`,
+    );
+  }
+  const valueType = mapType.additionalProperties;
+  if (valueType?.kind !== "integer") {
+    throw new Error(
+      `Operation "${operation.operationId}" x-hexkit.operation.groupBy requires an integer additionalProperties (got "${valueType?.kind ?? "none"}").`,
+    );
   }
 }

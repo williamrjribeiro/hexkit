@@ -37,6 +37,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
       ["updatePetWithForm", "routes/updatePetWithForm.ts"],
       ["findPetsByStatus", "routes/findPetsByStatus.ts"],
       ["findPetsByTags", "routes/findPetsByTags.ts"],
+      ["getInventory", "routes/getInventory.ts"],
       ["placeOrder", "routes/placeOrder.ts"],
       ["getOrderById", "routes/getOrderById.ts"],
       ["deleteOrder", "routes/deleteOrder.ts"],
@@ -136,6 +137,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
         { path: "src/core/application/delete-user.ts", ownership: "protected" },
         { path: "src/core/application/find-pets-by-status.ts", ownership: "protected" },
         { path: "src/core/application/find-pets-by-tags.ts", ownership: "protected" },
+        { path: "src/core/application/get-inventory.ts", ownership: "protected" },
         { path: "src/core/application/get-order-by-id.ts", ownership: "protected" },
         { path: "src/core/application/get-pet-by-id.ts", ownership: "protected" },
         { path: "src/core/application/get-user-by-name.ts", ownership: "protected" },
@@ -175,6 +177,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
             deletePet(petId: number): Promise<void>;
             findPetsByStatus(status: Array<"available" | "pending" | "sold">): Promise<Array<Pet>>;
             findPetsByTags(tags: Array<string>): Promise<Array<Pet>>;
+            getInventory(): Promise<Record<string, number>>;
             getPetById(petId: number): Promise<Pet | undefined>;
             updatePet(pet: Pet): Promise<Pet>;
             updatePetWithForm(petId: number, name: string | undefined, status: "available" | "pending" | "sold" | undefined): Promise<Pet | undefined>;
@@ -242,6 +245,7 @@ describe("@hexkit/plugin-architecture-hexagonal", () => {
               { operationId: "deletePet", name: "deletePet" },
               { operationId: "findPetsByStatus", name: "findPetsByStatus" },
               { operationId: "findPetsByTags", name: "findPetsByTags" },
+              { operationId: "getInventory", name: "getInventory" },
               { operationId: "getPetById", name: "getPetById" },
               { operationId: "updatePet", name: "updatePet" },
               { operationId: "updatePetWithForm", name: "updatePetWithForm" },

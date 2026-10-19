@@ -248,4 +248,33 @@ describe("Given a repository action", () => {
       /Cannot infer persistence action/,
     );
   });
+
+  it("when a parameterless read groups by a column, then persistence is group-count over stub", () => {
+    expect(
+      persistenceKindFromAction("get", "get", "one", 0, {
+        aggregate: "Widget",
+        groupBy: "status",
+      }),
+    ).toBe("group-count");
+  });
+
+  it("when a listed read groups by a column, then persistence is group-count over list", () => {
+    expect(
+      persistenceKindFromAction("get", "get", "many", 1, {
+        aggregate: "Widget",
+        groupBy: "status",
+      }),
+    ).toBe("group-count");
+  });
+
+  it("when a write action groups by a column, then the calculation throws", () => {
+    expect(() =>
+      persistenceKindFromAction("create", "post", "one", 1, {
+        aggregate: "Widget",
+        groupBy: "status",
+      }),
+    ).toThrow(
+      'group-by persistence requires a read action, but action "create" resolves to "insert".',
+    );
+  });
 });

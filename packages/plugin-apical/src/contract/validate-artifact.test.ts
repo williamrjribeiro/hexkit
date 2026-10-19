@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ContractArtifact } from "./types.ts";
+import type { ContractArtifact, ContractOperation } from "./types.ts";
 import { validateArtifactReferences, validateEnforceableSecurity } from "./validate-artifact.ts";
 
 function artifact(overrides: Partial<ContractArtifact> = {}): ContractArtifact {
@@ -256,5 +256,133 @@ describe("Given nested contract types on operations", () => {
         }),
       ),
     ).not.toThrow();
+  });
+});
+
+describe("Given group-by operations", () => {
+  function groupByOperation(overrides: Partial<ContractOperation> = {}): ContractOperation {
+    return {
+      operationId: "getInventory",
+      method: "get",
+      path: "/inventory",
+      modulePath: "routes/getInventory.ts",
+      parameters: [],
+      responses: [
+        {
+          status: "200",
+          description: "Inventory by status",
+          media: [
+            {
+              mediaType: "application/json",
+              type: {
+                kind: "object",
+                nullable: false,
+                properties: [],
+                additionalProperties: { kind: "integer", nullable: false, format: "int32" },
+              },
+            },
+          ],
+        },
+      ],
+      security: { overridesGlobal: false, requirements: [], apicalServerHeaderNames: [] },
+      extension: { aggregate: "Book", action: "read", groupBy: "status" },
+      ...overrides,
+    };
+  }
+
+  it("when a group-by read returns an integer map, then validation succeeds", () => {
+    expect(() =>
+      validateArtifactReferences(artifact({ operations: [groupByOperation()] })),
+    ).not.toThrow();
+  });
+
+  it("when a group-by read has parameters, then validation fails", () => {
+    expect(() =>
+      validateArtifactReferences(
+        artifact({
+          operations: [
+            groupByOperation({
+              parameters: [
+                {
+                  name: "status",
+                  location: "query",
+                  required: false,
+                  type: { kind: "string", nullable: false },
+                },
+              ],
+            }),
+          ],
+        }),
+      ),
+    ).toThrow(
+      'Operation "getInventory" x-hexkit.operation.groupBy does not support parameters; group-count reads cannot filter.',
+    );
+  });
+
+  it("when a group-by read has no 2xx JSON map response, then validation fails", () => {
+    expect(() =>
+      validateArtifactReferences(artifact({ operations: [groupByOperation({ responses: [] })] })),
+    ).toThrow(
+      'Operation "getInventory" x-hexkit.operation.groupBy requires a 2xx application/json response typed as an object with additionalProperties.',
+    );
+  });
+
+  it("when a group-by map has non-integer values, then validation fails", () => {
+    expect(() =>
+      validateArtifactReferences(
+        artifact({
+          operations: [
+            groupByOperation({
+              responses: [
+                {
+                  status: "200",
+                  description: "Inventory by status",
+                  media: [
+                    {
+                      mediaType: "application/json",
+                      type: {
+                        kind: "object",
+                        nullable: false,
+                        properties: [],
+                        additionalProperties: { kind: "string", nullable: false },
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
+          ],
+        }),
+      ),
+    ).toThrow(
+      'Operation "getInventory" x-hexkit.operation.groupBy requires an integer additionalProperties (got "string").',
+    );
+  });
+
+  it("when a map value references an unknown schema, then validation fails", () => {
+    expect(() =>
+      validateArtifactReferences(
+        artifact({
+          schemas: [
+            {
+              name: "Book",
+              modulePath: "schemas/Book.ts",
+              properties: [
+                {
+                  name: "counts",
+                  required: false,
+                  type: {
+                    kind: "object",
+                    nullable: false,
+                    properties: [],
+                    additionalProperties: { kind: "reference", nullable: false, schema: "Missing" },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ),
+    ).toThrow('references unknown schema "Missing".');
   });
 });

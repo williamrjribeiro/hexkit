@@ -35,6 +35,7 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
       method.kind === "delete" ||
       isMetadataInsert(method),
   );
+  const needsCount = repository.methods.some((method) => method.kind === "group-count");
   const needsInArray = repository.methods.some((method) => {
     if (method.kind !== "list" || method.parameters.length === 0) return false;
     const column = findListFilterColumn(table.columns, method.parameters[0]?.name ?? "");
@@ -43,6 +44,7 @@ function renderRepositoryFile(repository: PersistenceRepositoryModel): Generated
 
   const drizzleNames = [
     ...(needsEq ? (["eq"] as const) : []),
+    ...(needsCount ? (["count"] as const) : []),
     ...(needsInArray ? (["inArray"] as const) : []),
   ];
   const imports: ImportDeclaration[] = [
@@ -175,6 +177,34 @@ function renderMethod(
         `    async ${method.name}(${signatureParameters}): Promise<${method.returnTypeExpression}> {`,
         `      const [row] = await db.select().from(${table.exportName}).where(eq(${table.exportName}.${method.lookupColumnName}, ${idParameter})).limit(1);`,
         `      return row ? ${mapper}(row) : undefined;`,
+        "    }",
+      ].join("\n");
+    }
+    case "group-count": {
+      const groupByColumn = method.groupByColumn;
+      if (groupByColumn === undefined) {
+        throw new Error(
+          `Repository method "${method.name}" uses group-count persistence without a group-by column.`,
+        );
+      }
+      const column = table.columns.find((entry) => entry.propertyName === groupByColumn);
+      if (column === undefined) {
+        throw new Error(
+          `Repository method "${method.name}" group-by column "${groupByColumn}" is not on table "${table.tableName}".`,
+        );
+      }
+      // A nullable column yields a NULL group key, which a Record<string, …>
+      // map cannot represent; drop those rows instead of emitting a bad key.
+      const entries = column.required
+        ? "rows.map((row) => [row.key, row.value] as const)"
+        : "rows.filter((row) => row.key !== null).map((row) => [row.key, row.value] as const)";
+      return [
+        `    async ${method.name}(): Promise<${method.returnTypeExpression}> {`,
+        "      const rows = await db",
+        `        .select({ key: ${table.exportName}.${groupByColumn}, value: count() })`,
+        `        .from(${table.exportName})`,
+        `        .groupBy(${table.exportName}.${groupByColumn});`,
+        `      return Object.fromEntries(${entries});`,
         "    }",
       ].join("\n");
     }

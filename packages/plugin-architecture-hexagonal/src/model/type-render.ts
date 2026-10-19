@@ -62,6 +62,15 @@ export function renderContractType(
       };
     }
     case "object": {
+      if (type.additionalProperties !== undefined) {
+        const value = renderContractType(type.additionalProperties);
+        return {
+          expression: `Record<string, ${value.expression}>${nullableSuffix}`,
+          referencedSchemas: value.referencedSchemas,
+          enumAliases: value.enumAliases,
+        };
+      }
+
       const lines = type.properties.map((property) => {
         const rendered = renderContractType(property.type, {
           enumTypeName: options.enumTypeName
