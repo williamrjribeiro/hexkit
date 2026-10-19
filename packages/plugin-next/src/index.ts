@@ -25,5 +25,6 @@ export {
 export { generateNextDalFromArtifacts } from "./generate/files.ts";
 export { planPageFiles, coercePageArgument } from "./model/page-plan.ts";
 export type { PagePlan } from "./model/page-plan.ts";
+export { deriveUiResponseShape, type NextUiResponseShape } from "./model/response-shape.ts";
 export { createNextPlugin } from "./plugin.ts";
 export type { NextPluginOptions } from "./plugin.ts";

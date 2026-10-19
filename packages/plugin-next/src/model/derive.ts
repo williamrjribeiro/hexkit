@@ -22,6 +22,7 @@ import type {
   NextUiPage,
 } from "../artifact.ts";
 import { openApiPathToAppRouteFile, openApiPathToUiPageFile } from "./paths.ts";
+import { deriveUiResponseShape } from "./response-shape.ts";
 
 export const HELPERS_FILE_PATH = "src/adapters/http-next/helpers.ts";
 export const CONTROLLERS_FILE_PATH = "src/adapters/http-next/controllers.ts";
@@ -56,12 +57,7 @@ export function deriveNextHttpModel(
   const uiPages =
     surface === "routes"
       ? []
-      : deriveUiPages(
-          contract.operations,
-          methodBindings,
-          useCasesByOperationId,
-          surface === "both" ? "both" : "rsc",
-        );
+      : deriveUiPages(contract, useCasesByOperationId, surface === "both" ? "both" : "rsc");
 
   const authenticator =
     application.authenticatorPort === undefined
@@ -118,28 +114,19 @@ function groupMethodBindingsIntoRoutes(
 }
 
 function deriveUiPages(
-  operations: readonly ContractOperation[],
-  methodBindings: readonly NextMethodBinding[],
+  contract: ContractArtifact,
   useCasesByOperationId: ReadonlyMap<string, ApplicationUseCase>,
   surface: "both" | "rsc",
 ): NextUiPage[] {
-  const bindingsByOperationId = new Map(
-    methodBindings.map((binding) => [binding.operationId, binding] as const),
-  );
-
-  return operations
+  return contract.operations
     .filter((operation) => operation.method === "get")
     .toSorted((left, right) => compareText(left.operationId, right.operationId))
     .flatMap((operation) => {
-      const binding = bindingsByOperationId.get(operation.operationId);
       const useCase = useCasesByOperationId.get(operation.operationId);
-      if (binding === undefined || useCase === undefined) {
+      if (useCase === undefined) {
         throw new Error(
           `ApplicationArtifact is missing use case for operation "${operation.operationId}".`,
         );
-      }
-      if (binding.requiresAuth) {
-        return [];
       }
 
       return [
@@ -150,6 +137,7 @@ function deriveUiPages(
           useCaseAccessorName: operation.operationId,
           paramNames: [...extractOpenApiPathParamNames(operation.path)],
           parameters: useCase.parameters,
+          responseShape: deriveUiResponseShape(operation, contract.schemas),
         },
       ];
     });

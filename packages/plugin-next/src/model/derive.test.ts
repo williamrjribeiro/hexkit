@@ -313,7 +313,39 @@ describe("Given deriveNextHttpModel", () => {
         operationId: "getItem",
         paramNames: ["itemId"],
         parameters: [{ name: "itemId", typeExpression: "string" }],
+        responseShape: { kind: "entries" },
       }),
     ]);
+  });
+
+  it("when a secured GET page is derived, then the page is still emitted", () => {
+    const contract = baseContract({
+      operations: [
+        {
+          ...jsonGet("getItem", "/items/{itemId}", [
+            { name: "itemId", location: "path", required: true, type: stringType },
+          ]),
+          security: {
+            overridesGlobal: true,
+            requirements: [{ schemes: ["internalKey"], scopes: { internalKey: [] } }],
+            apicalServerHeaderNames: ["x-internal-key"],
+          },
+        },
+      ],
+      securitySchemes: [
+        { name: "internalKey", type: "apiKey", in: "header", headerName: "X-Internal-Key" },
+      ],
+    });
+    const application = baseApplication([
+      baseUseCase({
+        operationId: "getItem",
+        requiresAuth: true,
+        parameters: [{ name: "itemId", typeExpression: "string" }],
+      }),
+    ]);
+
+    const model = deriveNextHttpModel(contract, application, { surface: "both" });
+
+    expect(model.uiPages.map((page) => page.operationId)).toEqual(["getItem"]);
   });
 });

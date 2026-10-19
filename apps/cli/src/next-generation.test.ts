@@ -225,13 +225,18 @@ describe("Given Next.js CLI generation", () => {
         "app/user/login/route.ts",
         "app/ui/pet/findByStatus/page.tsx",
         "app/ui/pet/findByTags/page.tsx",
+        "app/ui/pet/[petId]/page.tsx",
+        "app/ui/store/inventory/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",
         "src/adapters/auth/in-memory-authenticator.ts",
         "src/adapters/http-next/server-access.ts",
         "src/adapters/db/database.ts",
       ]),
     );
-    expect(paths).not.toContain("app/ui/pet/[petId]/page.tsx");
+    expect(generatedFile(result, "app/ui/pet/[petId]/page.tsx")).toContain("access.getPetById(");
+    expect(generatedFile(result, "app/ui/store/inventory/page.tsx")).toContain(
+      "Object.entries(result)",
+    );
     expect(generatedFile(result, "src/core/application/get-pet-by-id.ts")).toContain(
       "principal: Principal",
     );
@@ -381,12 +386,13 @@ describe("Given Next.js CLI generation", () => {
       expect.arrayContaining([
         "app/pet/findByStatus/page.tsx",
         "app/pet/findByTags/page.tsx",
+        "app/pet/[petId]/page.tsx",
+        "app/store/inventory/page.tsx",
         "app/store/order/[orderId]/page.tsx",
         "src/adapters/http-next/server-access.ts",
         "src/adapters/db/database.ts",
       ]),
     );
-    expect(paths).not.toContain("app/pet/[petId]/page.tsx");
     expect(paths.some((path) => path.endsWith("/route.ts"))).toBe(false);
     expect(paths).not.toContain("src/adapters/http-next/runtime.ts");
     expect(paths).not.toContain("src/adapters/http-next/controllers.ts");

@@ -383,7 +383,9 @@ describe("@hexkit/plugin-next", () => {
       expect(model.uiPages.map((page) => page.filePath)).toEqual([
         "app/ui/pet/findByStatus/page.tsx",
         "app/ui/pet/findByTags/page.tsx",
+        "app/ui/store/inventory/page.tsx",
         "app/ui/store/order/[orderId]/page.tsx",
+        "app/ui/pet/[petId]/page.tsx",
         "app/ui/user/[username]/page.tsx",
         "app/ui/user/login/page.tsx",
         "app/ui/user/logout/page.tsx",
@@ -391,7 +393,9 @@ describe("@hexkit/plugin-next", () => {
       expect(model.uiPages.map((page) => page.operationId)).toEqual([
         "findPetsByStatus",
         "findPetsByTags",
+        "getInventory",
         "getOrderById",
+        "getPetById",
         "getUserByName",
         "loginUser",
         "logoutUser",
@@ -426,6 +430,8 @@ describe("@hexkit/plugin-next", () => {
           "app/user/[username]/route.ts",
           "app/ui/pet/findByStatus/page.tsx",
           "app/ui/pet/findByTags/page.tsx",
+          "app/ui/pet/[petId]/page.tsx",
+          "app/ui/store/inventory/page.tsx",
           "app/ui/store/order/[orderId]/page.tsx",
           "app/ui/user/[username]/page.tsx",
           "app/ui/user/login/page.tsx",
@@ -436,7 +442,6 @@ describe("@hexkit/plugin-next", () => {
           "src/adapters/http-next/server-access.ts",
         ]),
       );
-      expect(paths).not.toContain("app/ui/pet/[petId]/page.tsx");
       expect(files.every((file) => file.ownership === "generated")).toBe(true);
       expectNoPageRouteCollisions(paths);
 
@@ -568,7 +573,9 @@ describe("@hexkit/plugin-next", () => {
       expect(model.uiPages.map((page) => page.filePath)).toEqual([
         "app/pet/findByStatus/page.tsx",
         "app/pet/findByTags/page.tsx",
+        "app/store/inventory/page.tsx",
         "app/store/order/[orderId]/page.tsx",
+        "app/pet/[petId]/page.tsx",
         "app/user/[username]/page.tsx",
         "app/user/login/page.tsx",
         "app/user/logout/page.tsx",
@@ -592,14 +599,15 @@ describe("@hexkit/plugin-next", () => {
           "app/page.tsx",
           "app/pet/findByStatus/page.tsx",
           "app/pet/findByTags/page.tsx",
+          "app/store/inventory/page.tsx",
           "app/store/order/[orderId]/page.tsx",
+          "app/pet/[petId]/page.tsx",
           "app/user/[username]/page.tsx",
           "app/user/login/page.tsx",
           "app/user/logout/page.tsx",
           "src/adapters/http-next/server-access.ts",
         ]),
       );
-      expect(paths).not.toContain("app/pet/[petId]/page.tsx");
       expect(paths.some((path) => path.endsWith("/route.ts"))).toBe(false);
       expect(paths).not.toContain("src/adapters/http-next/helpers.ts");
       expect(paths).not.toContain("src/adapters/http-next/controllers.ts");
@@ -608,7 +616,9 @@ describe("@hexkit/plugin-next", () => {
       expect(artifact.uiPages.map((page) => page.filePath)).toEqual([
         "app/pet/findByStatus/page.tsx",
         "app/pet/findByTags/page.tsx",
+        "app/store/inventory/page.tsx",
         "app/store/order/[orderId]/page.tsx",
+        "app/pet/[petId]/page.tsx",
         "app/user/[username]/page.tsx",
         "app/user/login/page.tsx",
         "app/user/logout/page.tsx",
@@ -737,31 +747,40 @@ describe("@hexkit/plugin-next", () => {
   });
 
   describe("Given ContractArtifact + ApplicationArtifact with secured operations", () => {
-    it("when surface is both, then secured GET ops omit resource pages while routes and unsecured GET pages remain", async () => {
+    it("when surface is both, then secured and unsecured GET ops emit resource pages while routes remain", async () => {
       const application = generateApplicationFromContract(createSecuredContract()).artifact;
       const model = deriveNextHttpModel(createSecuredContract(), application, { surface: "both" });
       const { files } = await collectGeneratedFiles(createSecuredContract(), "both");
       const paths = files.map((file) => file.path);
       const filesByPath = fileMap(files);
+      const securedPage = filesByPath.get("app/ui/items/[itemId]/page.tsx");
 
-      expect(model.uiPages.map((page) => page.operationId)).toEqual(["getPublicCatalog"]);
-      expect(paths).not.toContain("app/ui/items/[itemId]/page.tsx");
+      expect(model.uiPages.map((page) => page.operationId)).toEqual([
+        "getPublicCatalog",
+        "listItems",
+      ]);
+      expect(paths).toContain("app/ui/items/[itemId]/page.tsx");
       expect(paths).toContain("app/ui/catalog/page.tsx");
       expect(paths).toContain("app/items/[itemId]/route.ts");
       expect(filesByPath.get("app/ui/catalog/page.tsx")?.contents).toContain(
         "access.getPublicCatalog(",
       );
+      expect(securedPage?.contents).toContain("access.listItems(");
+      expect(securedPage?.contents).not.toContain("principal");
       expectNoPageRouteCollisions(paths);
     });
 
-    it("when surface is rsc, then secured GET ops omit resource pages while unsecured GET pages remain", async () => {
+    it("when surface is rsc, then secured and unsecured GET ops emit resource pages without routes", async () => {
       const application = generateApplicationFromContract(createSecuredContract()).artifact;
       const model = deriveNextHttpModel(createSecuredContract(), application, { surface: "rsc" });
       const { files } = await collectGeneratedFiles(createSecuredContract(), "rsc");
       const paths = files.map((file) => file.path);
 
-      expect(model.uiPages.map((page) => page.operationId)).toEqual(["getPublicCatalog"]);
-      expect(paths).not.toContain("app/items/[itemId]/page.tsx");
+      expect(model.uiPages.map((page) => page.operationId)).toEqual([
+        "getPublicCatalog",
+        "listItems",
+      ]);
+      expect(paths).toContain("app/items/[itemId]/page.tsx");
       expect(paths).toContain("app/catalog/page.tsx");
       expect(paths).not.toContain("app/items/[itemId]/route.ts");
     });

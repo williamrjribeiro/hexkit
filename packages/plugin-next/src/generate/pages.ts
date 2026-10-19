@@ -115,6 +115,7 @@ function renderHubPageEntry(page: NextUiPage): string {
 function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
   const argumentsList = plan.argumentExpressions.join(", ");
   const searchHelpers = renderSearchParamHelpers(plan);
+  const resultHelper = renderResultHelper(plan);
   const pagePropsType = [
     ...(plan.needsParams ? ["  params: Promise<Record<string, string>>;"] : []),
     ...(plan.needsSearchHelper
@@ -128,6 +129,7 @@ function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
       'import { getServerAccess } from "@/adapters/http-next/server-access";',
       "",
       ...(searchHelpers.length > 0 ? [searchHelpers.join("\n\n"), ""] : []),
+      ...(resultHelper === undefined ? [] : [resultHelper, ""]),
       'export const dynamic = "force-dynamic";',
       "",
       ...(pagePropsType.length > 0
@@ -145,7 +147,7 @@ function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
       "  return (",
       "    <main>",
       `      <h1>{${JSON.stringify(plan.operationId)}}</h1>`,
-      "      <pre>{JSON.stringify(result, null, 2)}</pre>",
+      ...renderResultMarkup(plan),
       "    </main>",
       "  );",
       "}",
@@ -153,6 +155,99 @@ function renderResourcePageFile(plan: ResourcePagePlan): GeneratedFile {
     ].join("\n"),
     ownership: "generated",
   };
+}
+
+function renderResultHelper(plan: ResourcePagePlan): string | undefined {
+  if (plan.responseShape.kind === "json") {
+    return undefined;
+  }
+  return [
+    "function renderCell(value: unknown): string {",
+    '  if (value === undefined) return "";',
+    '  return typeof value === "string" ? value : (JSON.stringify(value) ?? "");',
+    "}",
+  ].join("\n");
+}
+
+function renderResultMarkup(plan: ResourcePagePlan): string[] {
+  switch (plan.responseShape.kind) {
+    case "json":
+      return ["      <pre>{JSON.stringify(result, null, 2)}</pre>"];
+    case "entries":
+      return renderEntriesMarkup();
+    case "table":
+      return renderTableMarkup(plan.responseShape.columns);
+    case "list":
+      return renderListMarkup();
+  }
+}
+
+function renderEntriesMarkup(): string[] {
+  return [
+    "      {result === null || result === undefined ? (",
+    "        <p>No data</p>",
+    "      ) : (",
+    "        <table>",
+    "          <thead>",
+    "            <tr>",
+    "              <th>Field</th>",
+    "              <th>Value</th>",
+    "            </tr>",
+    "          </thead>",
+    "          <tbody>",
+    "            {Object.entries(result).map(([key, value]) => (",
+    "              <tr key={key}>",
+    "                <td>{key}</td>",
+    "                <td>{renderCell(value)}</td>",
+    "              </tr>",
+    "            ))}",
+    "          </tbody>",
+    "        </table>",
+    "      )}",
+  ];
+}
+
+function renderTableMarkup(columns: readonly string[]): string[] {
+  const columnList = columns.map((column) => JSON.stringify(column)).join(", ");
+
+  return [
+    "      {result === null || result === undefined ? (",
+    "        <p>No data</p>",
+    "      ) : (",
+    "        <table>",
+    "          <thead>",
+    "            <tr>",
+    `              {[${columnList}].map((column) => (`,
+    "                <th key={column}>{column}</th>",
+    "              ))}",
+    "            </tr>",
+    "          </thead>",
+    "          <tbody>",
+    "            {result.map((row, index) => (",
+    "              <tr key={index}>",
+    `                {[${columnList}].map((column) => (`,
+    "                  <td key={column}>{renderCell((row as Record<string, unknown>)[column])}</td>",
+    "                ))}",
+    "              </tr>",
+    "            ))}",
+    "          </tbody>",
+    "        </table>",
+    "      )}",
+  ];
+}
+
+function renderListMarkup(): string[] {
+  return [
+    "      {result === null || result === undefined ? (",
+    "        <p>No data</p>",
+    "      ) : (",
+    "        <ul>",
+    "          {result.map((item, index) => (",
+    "            <li key={index}>{renderCell(item)}</li>",
+    "          ))}",
+    "        </ul>",
+    "      )}",
+  ];
 }
 
 function renderSearchParamHelpers(plan: ResourcePagePlan): string[] {

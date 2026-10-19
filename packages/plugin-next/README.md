@@ -35,6 +35,14 @@ hexkit generate <openapi> <out> --http next [--next-surface both|routes|rsc]
 - `both` — Route Handlers at contract paths; RSC pages under `app/ui/...` to
   avoid colliding with handlers on the same segment
 
+RSC read pages are generated for every GET operation. Presentation follows the
+successful JSON response shape: single objects and `additionalProperties` maps
+render as field/value tables, arrays of objects as property-column tables,
+arrays of scalars as lists, and unsupported shapes as a pretty-printed JSON
+dump. Secured GETs use the trusted in-process principal from
+`server-access.ts` (no browser credential UI); `/ui` pages are a same-app
+surface, not the public authenticated API.
+
 ## Dogfood
 
 The vanilla PetShop Next.js fixture (`apps/petstore-next`) merges generated

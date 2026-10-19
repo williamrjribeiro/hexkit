@@ -1,4 +1,5 @@
 import type { NextHttpModel, NextUiPage, NextUiPageParameter } from "../artifact.ts";
+import type { NextUiResponseShape } from "./response-shape.ts";
 
 export type ResourcePagePlan = {
   kind: "resource";
@@ -8,6 +9,7 @@ export type ResourcePagePlan = {
   needsParams: boolean;
   needsSearchHelper: boolean;
   argumentExpressions: readonly string[];
+  responseShape: NextUiResponseShape;
 };
 
 export type RootPagePlan = {
@@ -120,5 +122,6 @@ function planResourcePage(page: NextUiPage): ResourcePagePlan {
     argumentExpressions: page.parameters.map((parameter) =>
       coercePageArgument(parameter, page.paramNames),
     ),
+    responseShape: page.responseShape,
   };
 }

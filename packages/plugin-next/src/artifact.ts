@@ -3,6 +3,8 @@ import type { ApplicationArtifact } from "@hexkit/plugin-architecture-hexagonal"
 import type { ContractHttpMethod } from "@hexkit/plugin-apical";
 import type { HttpAuthSchemeBinding, HttpControllerBinding } from "@hexkit/shared";
 
+import type { NextUiResponseShape } from "./model/response-shape.ts";
+
 export type NextRouteFile = {
   filePath: string;
   openApiPath: string;
@@ -23,6 +25,7 @@ export type NextUiPage = {
   useCaseAccessorName: string;
   paramNames: readonly string[];
   parameters: readonly NextUiPageParameter[];
+  responseShape: NextUiResponseShape;
 };
 
 export type NextMethodBinding = Omit<HttpControllerBinding, "method"> & {

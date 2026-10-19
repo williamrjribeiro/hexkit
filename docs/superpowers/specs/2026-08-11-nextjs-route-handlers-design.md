@@ -256,8 +256,8 @@ Each method:
 
 - Are **async Server Components**.
 - Call `getServerAccess()` and invoke the matching use case with path params from `await props.params` and query inputs from `await props.searchParams` when the operation declares them.
-- Render a minimal, domain-agnostic presentation (e.g. title = `operationId` or path; body = pretty-printed JSON or simple key/value list). **No sample-domain copy in the generator.**
-- For secured GET ops in v1: pages may call use cases **without** browser credential UI (document limitation); unsecured GET pages are the normative v1 UI slice. Authenticated demos prefer Route Handlers (`routes` / `both`).
+- Render a minimal, domain-agnostic presentation derived from the successful JSON response shape: single objects and `additionalProperties` maps become field/value tables, arrays of objects become property-column tables, arrays of scalars become lists, and anything unsupported falls back to pretty-printed JSON. **No sample-domain copy in the generator.**
+- Include secured GET ops: `server-access.ts` wraps those use cases with a trusted in-process RSC principal, so pages call the same accessor without a `principal` argument and without browser credential UI. `/ui` pages are a same-app surface, not the public authenticated API; authenticated HTTP consumers use Route Handlers (`routes` / `both`).
 
 Ownership:
 

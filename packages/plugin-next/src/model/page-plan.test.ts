@@ -11,6 +11,7 @@ function page(
     useCaseAccessorName: overrides.useCaseAccessorName ?? overrides.operationId,
     paramNames: overrides.paramNames ?? ["itemId"],
     parameters: overrides.parameters ?? [{ name: "itemId", typeExpression: "string" }],
+    responseShape: overrides.responseShape ?? { kind: "json" },
     ...overrides,
   };
 }
@@ -109,6 +110,7 @@ describe("Given planPageFiles", () => {
         '(getSearchParam(searchParams, "active") ?? "false") === "true"',
         'getSearchParam(searchParams, "q") ?? ""',
       ],
+      responseShape: { kind: "json" },
     });
   });
 
@@ -140,6 +142,7 @@ describe("Given planPageFiles", () => {
       argumentExpressions: [
         'getSearchParamValues(searchParams, "status") as Array<"available" | "pending" | "sold">',
       ],
+      responseShape: { kind: "json" },
     });
   });
 
